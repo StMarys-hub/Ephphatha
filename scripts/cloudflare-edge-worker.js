@@ -11,8 +11,33 @@
  */
 
 const ipBuckets = new Map();
+const edgeCohortMemoryStore = new Map();
 let cachedOAuthToken = null;
 let cachedOAuthExpiry = 0;
+
+function sanitizeEdgeString(str, maxLen = 800) {
+  return String(str || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/javascript:/gi, '')
+    .trim()
+    .slice(0, maxLen);
+}
+
+async function computeEdgeCohortToken(inviteCode) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode('ephphatha-cohort-isolation-v3.3'),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, enc.encode(`COHORT:${inviteCode}`));
+  return Array.from(new Uint8Array(sig))
+    .slice(0, 16)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 function enforceRateLimit(ip) {
   const now = Date.now();
@@ -100,7 +125,7 @@ export default {
     const corsHeaders = {
       'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',
       'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Range, X-Ephphatha-Signature, X-Ephphatha-Timestamp'
+      'Access-Control-Allow-Headers': 'Content-Type, Range, X-Cohort-Token, X-Ephphatha-Signature, X-Ephphatha-Timestamp'
     };
 
     if (request.method === 'OPTIONS') {
@@ -207,7 +232,110 @@ export default {
     }
 
     // ========================================================================
-    // ROUTE 3: Health & Security Posture Verification (`/health` or `/`)
+    // ROUTE 3: Isolated Fellowship Cohort Sync API (`/fellowship/:inviteCode`)
+    // Enforces strict invite-code regex validation, HMAC Cohort Token verification,
+    // and input sanitization for cohort members, reflections, and prayer requests.
+    // ========================================================================
+    if (url.pathname.startsWith('/fellowship/')) {
+      const rawCode = url.pathname.replace('/fellowship/', '').toUpperCase().trim();
+      if (!/^[A-Z2-9]{6,10}$/.test(rawCode)) {
+        return new Response(JSON.stringify({ error: 'Invalid invitation code format' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const providedToken = request.headers.get('X-Cohort-Token') || '';
+      const expectedToken = await computeEdgeCohortToken(rawCode);
+      if (!providedToken || providedToken !== expectedToken) {
+        return new Response(JSON.stringify({ error: 'Cohort access denied: invalid isolation token' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (request.method === 'GET') {
+        const stored = edgeCohortMemoryStore.get(rawCode) || null;
+        if (!stored) {
+          return new Response(JSON.stringify({ error: 'Cohort not found', inviteCode: rawCode }), {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        return new Response(JSON.stringify({ cohort: stored }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (request.method === 'POST') {
+        const body = await request.json().catch(() => null);
+        const incoming = body?.cohort;
+        if (!incoming || incoming.inviteCode !== rawCode) {
+          return new Response(JSON.stringify({ error: 'Cohort payload mismatch' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        const sanitizedCohort = {
+          id: `cohort_${rawCode}`,
+          schemaVersion: 3,
+          inviteCode: rawCode,
+          cohortName: sanitizeEdgeString(incoming.cohortName, 64) || `Cohort ${rawCode}`,
+          createdAt: sanitizeEdgeString(incoming.createdAt, 40) || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          members: Array.isArray(incoming.members)
+            ? incoming.members.slice(0, 100).map(m => ({
+                id: sanitizeEdgeString(m.id, 40),
+                name: sanitizeEdgeString(m.name, 48),
+                role: sanitizeEdgeString(m.role, 60),
+                currentDay: Math.max(1, Math.min(365, Number(m.currentDay) || 1)),
+                completedDaysCount: Math.max(0, Math.min(365, Number(m.completedDaysCount) || 0)),
+                streakDays: Math.max(0, Math.min(365, Number(m.streakDays) || 0)),
+                activityStatus: sanitizeEdgeString(m.activityStatus, 40),
+                encouragements: Math.max(0, Number(m.encouragements) || 0),
+                joinedAt: sanitizeEdgeString(m.joinedAt, 40),
+                updatedAt: sanitizeEdgeString(m.updatedAt, 40)
+              }))
+            : [],
+          reflections: Array.isArray(incoming.reflections)
+            ? incoming.reflections.slice(0, 150).map(r => ({
+                id: sanitizeEdgeString(r.id, 48),
+                authorId: sanitizeEdgeString(r.authorId, 40),
+                authorName: sanitizeEdgeString(r.authorName, 48),
+                dayNumber: Math.max(1, Math.min(365, Number(r.dayNumber) || 1)),
+                passageRef: sanitizeEdgeString(r.passageRef, 60),
+                content: sanitizeEdgeString(r.content, 1000),
+                amenCount: Math.max(0, Number(r.amenCount) || 0),
+                createdAt: sanitizeEdgeString(r.createdAt, 40)
+              }))
+            : [],
+          prayers: Array.isArray(incoming.prayers)
+            ? incoming.prayers.slice(0, 150).map(p => ({
+                id: sanitizeEdgeString(p.id, 48),
+                authorId: p.isAnonymous ? 'anon' : sanitizeEdgeString(p.authorId, 40),
+                authorName: p.isAnonymous ? 'Anonymous Pilgrim' : sanitizeEdgeString(p.authorName, 48),
+                isAnonymous: Boolean(p.isAnonymous),
+                category: sanitizeEdgeString(p.category, 36),
+                content: sanitizeEdgeString(p.content, 800),
+                prayingCount: Math.max(0, Number(p.prayingCount) || 0),
+                isAnswered: Boolean(p.isAnswered),
+                createdAt: sanitizeEdgeString(p.createdAt, 40)
+              }))
+            : []
+        };
+
+        edgeCohortMemoryStore.set(rawCode, sanitizedCohort);
+        return new Response(JSON.stringify({ cohort: sanitizedCohort }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // ========================================================================
+    // ROUTE 4: Health & Security Posture Verification (`/health` or `/`)
     // ========================================================================
     return new Response(
       JSON.stringify({

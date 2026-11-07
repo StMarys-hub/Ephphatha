@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.2.2" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.3.0" />
 </head>
 <body>
   <!-- ========================================================================
@@ -212,41 +212,208 @@
       </section>
 
       <!-- ====================================================================
-           VIEW 3: FELLOWSHIP COMMUNITY
+           VIEW 3: PRODUCTION FELLOWSHIP & ISOLATED COHORT SYSTEM
+           Zero Hardcoded Data • Invite-Code Access Control • Reflections & Prayer Wall
            ==================================================================== -->
       <section id="view-fellowship" class="hidden">
-        <div class="fellowship-card">
+
+        <!-- A. COHORT GATEWAY: Join by Code or Spin Up a New Isolated Cohort -->
+        <div class="fellowship-card" id="fellowship-gateway-panel">
           <div class="section-header-row">
             <div>
-              <h2 id="fellowship-cohort-title">St. Thomas Parish Fellowship</h2>
-              <p style="font-size: 0.84rem; color: var(--text-secondary);">
-                Share your invite code and encourage fellow pilgrims with 1-tap prayers.
+              <h2>🤝 Fellowship Cohort Gateway</h2>
+              <p class="fellowship-subtitle">
+                Enter an invitation code to join an existing community, or generate a new code to launch an isolated cohort.
               </p>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.4rem;">
-              <span class="day-badge">Code: <span id="fellowship-invite-code">EPH734</span></span>
-              <button type="button" class="verse-icon-btn" id="btn-regen-invite" title="Generate New Code">🔄</button>
+            <button type="button" class="verse-icon-btn hidden" id="btn-cancel-cohort-gateway">
+              ✕ Back to Cohort
+            </button>
+          </div>
+
+          <!-- Previously Joined Cohorts on this Device (Quick Switcher) -->
+          <div id="my-cohorts-switcher-wrap" class="my-cohorts-switcher hidden">
+            <span class="context-item-label">Your Saved Cohorts on This Device:</span>
+            <div class="my-cohorts-pills" id="my-cohorts-pills"></div>
+          </div>
+
+          <div class="cohort-gateway-status hidden" id="cohort-gateway-alert" role="alert"></div>
+
+          <div class="cohort-gateway-grid">
+            <!-- Workflow 1: Join Existing Cohort by Code -->
+            <form id="form-join-cohort" class="cohort-gateway-box">
+              <div class="gateway-box-title">🔑 Join Existing Cohort</div>
+              <p class="gateway-box-desc">
+                Have a 6–10 character invitation code from your parish or small group?
+              </p>
+              <input
+                type="text"
+                id="input-join-cohort-code"
+                class="sanctuary-input code-uppercase-input"
+                placeholder="Invitation Code (e.g. A7K9M2)"
+                maxlength="10"
+                autocomplete="off"
+                required />
+              <input
+                type="text"
+                id="input-join-member-name"
+                class="sanctuary-input"
+                placeholder="Your Display Name"
+                maxlength="48"
+                required />
+              <input
+                type="text"
+                id="input-join-member-role"
+                class="sanctuary-input"
+                placeholder="Group Role or Note (Optional)"
+                maxlength="60" />
+              <button type="submit" class="ergonomic-btn primary-period" style="width: 100%; justify-content: center;">
+                🔑 Join Cohort by Code
+              </button>
+            </form>
+
+            <!-- Workflow 2: Create Brand-New Isolated Cohort -->
+            <form id="form-create-cohort" class="cohort-gateway-box">
+              <div class="gateway-box-title">✨ Start a New Cohort</div>
+              <p class="gateway-box-desc">
+                Spin up a completely isolated community instance with a unique invitation code.
+              </p>
+              <input
+                type="text"
+                id="input-create-cohort-name"
+                class="sanctuary-input"
+                placeholder="Cohort / Small Group Name"
+                maxlength="64"
+                required />
+              <input
+                type="text"
+                id="input-create-member-name"
+                class="sanctuary-input"
+                placeholder="Your Display Name"
+                maxlength="48"
+                required />
+              <input
+                type="text"
+                id="input-create-member-role"
+                class="sanctuary-input"
+                placeholder="Group Role or Note (Optional)"
+                maxlength="60" />
+              <button type="submit" class="ergonomic-btn" style="width: 100%; justify-content: center;">
+                ✨ Generate Code &amp; Create Cohort
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- B. ACTIVE COHORT WORKSPACE (Strictly Isolated by Invitation Code) -->
+        <div class="fellowship-card hidden" id="fellowship-active-workspace">
+          <!-- Cohort Top Bar -->
+          <div class="cohort-top-bar">
+            <div class="cohort-title-block">
+              <div class="cohort-isolation-row">
+                <span class="crypto-badge" id="cohort-sync-status-badge">🔒 Isolated Cohort</span>
+                <span class="day-badge">Code: <strong id="fellowship-invite-code">—</strong></span>
+              </div>
+              <h2 id="fellowship-cohort-title">Cohort Community</h2>
+            </div>
+
+            <div class="cohort-header-actions">
+              <button type="button" class="verse-icon-btn" id="btn-copy-cohort-code" title="Copy Invitation Code">
+                📋 Copy Code
+              </button>
+              <button type="button" class="verse-icon-btn" id="btn-share-cohort-invite" title="Share Cohort Invite Link">
+                📤 Share
+              </button>
+              <button type="button" class="verse-icon-btn" id="btn-sync-cohort-now" title="Sync Progress &amp; Refresh Stream">
+                🔄 Sync
+              </button>
+              <button type="button" class="verse-icon-btn" id="btn-switch-cohort" title="Join Another Code or Create New Cohort">
+                ⇄ Switch
+              </button>
             </div>
           </div>
 
-          <form id="form-add-member" class="compact-form-grid">
-            <input
-              type="text"
-              id="input-member-name"
-              class="sanctuary-input"
-              placeholder="Member Name"
-              required />
-            <input
-              type="text"
-              id="input-member-contact"
-              class="sanctuary-input"
-              placeholder="Email or WhatsApp" />
-            <button type="submit" class="ergonomic-btn primary-period">
-              ➕ Invite
+          <!-- Segmented Sub-Navigation: Progress | Reflection Stream | Prayer Wall -->
+          <div class="cohort-subtabs" role="tablist" aria-label="Cohort Community Sections">
+            <button type="button" class="cohort-subtab-btn active" data-cohort-tab="members">
+              👥 Progress (<span id="count-cohort-members">0</span>)
             </button>
-          </form>
+            <button type="button" class="cohort-subtab-btn" data-cohort-tab="reflections">
+              💬 Reflections (<span id="count-cohort-reflections">0</span>)
+            </button>
+            <button type="button" class="cohort-subtab-btn" data-cohort-tab="prayers">
+              🙏 Prayer Wall (<span id="count-cohort-prayers">0</span>)
+            </button>
+          </div>
 
-          <div class="fellowship-grid" id="fellowship-members-grid"></div>
+          <!-- SUB-VIEW 1: MEMBERS & READING/LISTENING PROGRESS SYNC -->
+          <div id="cohort-panel-members" class="cohort-subpanel">
+            <div class="cohort-panel-banner">
+              <span>Your reading &amp; listening progress syncs automatically to this cohort.</span>
+              <button type="button" class="verse-icon-btn" id="btn-push-my-progress">
+                ✓ Update My Progress Now
+              </button>
+            </div>
+            <div class="fellowship-grid" id="fellowship-members-grid"></div>
+          </div>
+
+          <!-- SUB-VIEW 2: SPIRITUAL REFLECTION STREAM -->
+          <div id="cohort-panel-reflections" class="cohort-subpanel hidden">
+            <form id="form-post-reflection" class="cohort-composer-form">
+              <div class="composer-header">
+                <span class="context-item-label" id="reflection-day-tag">Sharing insight on Day 1</span>
+              </div>
+              <textarea
+                id="input-cohort-reflection"
+                class="journal-textarea"
+                style="min-height: 76px;"
+                maxlength="1000"
+                placeholder="Share a spiritual insight from today's Scripture reading or audio listening with your cohort..."
+                required></textarea>
+              <div class="composer-footer">
+                <span class="crypto-badge">🔒 Visible only to Cohort members</span>
+                <button type="submit" class="ergonomic-btn primary-period">
+                  💬 Post Reflection
+                </button>
+              </div>
+            </form>
+            <div class="cohort-stream-list" id="cohort-reflections-list"></div>
+          </div>
+
+          <!-- SUB-VIEW 3: PRAYER REQUESTS (WITH ANONYMOUS OPTION) -->
+          <div id="cohort-panel-prayers" class="cohort-subpanel hidden">
+            <form id="form-post-prayer" class="cohort-composer-form">
+              <div class="composer-row-top">
+                <select id="select-prayer-category" class="day-select-dropdown" aria-label="Prayer Request Category">
+                  <option value="General Petition">🙏 General Petition</option>
+                  <option value="Healing &amp; Health">🌿 Healing &amp; Health</option>
+                  <option value="Family &amp; Guidance">🕯️ Family &amp; Guidance</option>
+                  <option value="Thanksgiving">✨ Thanksgiving &amp; Praise</option>
+                </select>
+
+                <label class="anon-toggle-label" for="chk-prayer-anonymous">
+                  <input type="checkbox" id="chk-prayer-anonymous" />
+                  <span>🕶️ Post Anonymously</span>
+                </label>
+              </div>
+
+              <textarea
+                id="input-cohort-prayer"
+                class="journal-textarea"
+                style="min-height: 76px;"
+                maxlength="800"
+                placeholder="Share a prayer request so your cohort can intercede and support you..."
+                required></textarea>
+
+              <div class="composer-footer">
+                <span class="crypto-badge">🔒 Cohort-Isolated Prayer Wall</span>
+                <button type="submit" class="ergonomic-btn primary-period">
+                  🙏 Publish Prayer Request
+                </button>
+              </div>
+            </form>
+            <div class="cohort-stream-list" id="cohort-prayers-list"></div>
+          </div>
         </div>
       </section>
 
@@ -298,7 +465,7 @@
             id="input-biometric-name"
             class="sanctuary-input"
             style="padding: 0.45rem 0.65rem; font-size: 0.85rem;"
-            value="Pilgrim Thomas" />
+            placeholder="Enter Pilgrim Display Name" />
           <button type="button" class="ergonomic-btn primary-period" id="btn-trigger-biometric-login">
             🔑 Sign In
           </button>
@@ -433,7 +600,7 @@
   </div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.2.2';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.0';
 
     window.selectJumpDay = (d) => selectDay(d);
 

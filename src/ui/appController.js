@@ -4,13 +4,28 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.2.1';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.3.0';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
   initScriptureVault,
   onFailoverEvent
-} from '../adapters/bibleFailoverGateway.js?v=3.2.1';
+} from '../adapters/bibleFailoverGateway.js?v=3.3.0';
+import {
+  createNewCohortInstance,
+  fetchCohortByInviteCode,
+  getActiveCohortCode,
+  getLocalMemberIdentity,
+  joinExistingCohortByCode,
+  normalizeAndValidateInviteCode,
+  onCohortStateChange,
+  publishCohortPrayerRequest,
+  publishCohortReflection,
+  purgeLegacyPrototypeFellowships,
+  setActiveCohortCode,
+  supportCohortItem,
+  syncMemberProgressToActiveCohort
+} from '../adapters/fellowshipGateway.js?v=3.3.0';
 import {
   deleteRecord,
   getAllRecordsMapSync,
@@ -19,14 +34,14 @@ import {
   initLocalVault,
   onStorageLatency,
   putRecord
-} from '../adapters/indexedDbRepo.js?v=3.2.1';
+} from '../adapters/indexedDbRepo.js?v=3.3.0';
 import {
   enqueueCloudSyncMutation,
   flushSyncOutboxNow,
   initBackgroundSyncLifecycle,
   onSyncStatusChange
-} from '../adapters/syncWorkerClient.js?v=3.2.1';
-import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js?v=3.2.1';
+} from '../adapters/syncWorkerClient.js?v=3.3.0';
+import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js?v=3.3.0';
 import {
   LECTIO_DIVINA_STEPS,
   generateAndDownloadVerseCard,
@@ -78,8 +93,11 @@ export async function bootstrapEphphathaApp() {
     try { appState.userProfile = JSON.parse(savedProfile); } catch (_) { /* ignore */ }
   }
 
-  // 4. Seed default Fellowship Cohort if none exists yet
-  await seedDefaultFellowshipIfEmpty();
+  // 4. Purge any legacy prototype/mock fellowship data & initialize live Cohort Gateway
+  await purgeLegacyPrototypeFellowships();
+  onCohortStateChange(() => {
+    renderFellowshipView();
+  });
 
   // 5. Hydrate 365-Day Dynamic Online Curriculum (`schedule_manifest_v3.json`)
   await loadDynamicCurriculumManifest();
@@ -98,6 +116,7 @@ export async function bootstrapEphphathaApp() {
 
   // 8. Select initial Day and render full UI
   await selectDay(appState.selectedDay, { initialBoot: true });
+  await initializeFellowshipOnBoot();
   renderFellowshipView();
   renderCurriculumMapView();
   renderVaultView();
@@ -145,20 +164,31 @@ async function loadDynamicCurriculumManifest() {
   renderPeriodsRibbon();
 }
 
-async function seedDefaultFellowshipIfEmpty() {
-  const existing = getAllRecordsSync('fellowships');
-  if (existing.length === 0) {
-    await putRecord('fellowships', {
-      id: 'cohort_st_thomas',
-      cohortName: 'St. Thomas Syro-Malabar & Parish Fellowship',
-      inviteCode: 'EPH734',
-      createdBy: 'Parish Coordinator',
-      members: [
-        { id: 'm1', name: 'Fr. Thomas Kurian', contact: 'thomas.k@parish.org', status: 'Completed Today', day: 298, amens: 14 },
-        { id: 'm2', name: 'Mariam Varghese', contact: '+1-555-0192 (WhatsApp)', status: 'Listening Now', day: 27, amens: 9 },
-        { id: 'm3', name: 'Joseph Mathew', contact: 'joseph.m@family.org', status: 'Grace Shield Active', day: 5, amens: 6 }
-      ]
-    });
+async function initializeFellowshipOnBoot() {
+  // Check if user opened a shared Cohort Invitation Deep-Link (`?cohort=XXXXXX&cohortName=...`)
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const urlCohort = params.get('cohort');
+    if (urlCohort) {
+      const check = normalizeAndValidateInviteCode(urlCohort);
+      if (check.valid) {
+        const joinInput = document.getElementById('input-join-cohort-code');
+        if (joinInput) joinInput.value = check.code;
+        appState.forceShowCohortGateway = true;
+        appState.pendingInviteCohortName = params.get('cohortName') || '';
+        switchMainTab('fellowship');
+        showCohortGatewayAlert(`Invitation Code "${check.code}" detected from share link. Enter your name below to join!`, false);
+        return;
+      }
+    }
+  } catch (_) { /* ignore */ }
+
+  const activeCode = getActiveCohortCode();
+  if (activeCode) {
+    try {
+      await fetchCohortByInviteCode(activeCode);
+      await syncMemberProgressToActiveCohort(getCurrentProgressMetrics());
+    } catch (_) { /* offline fallback uses local IndexedDB */ }
   }
 }
 
@@ -644,104 +674,331 @@ async function saveCurrentDayJournal() {
 }
 
 /* ============================================================================
- * FELLOWSHIP COMMUNITY & COHORT ENGINE (WITH XSS SANITIZATION)
+ * PRODUCTION FELLOWSHIP & ISOLATED COHORT SYSTEM
+ * Zero Hardcoded Data • Invite-Code Access Control • Reflections & Prayer Wall
  * ============================================================================ */
-function renderFellowshipView() {
-  const cohorts = getAllRecordsSync('fellowships');
-  const cohort = cohorts[0];
-  if (!cohort) return;
-
-  setText('fellowship-cohort-title', cohort.cohortName);
-  setText('fellowship-invite-code', cohort.inviteCode);
-
-  const grid = document.getElementById('fellowship-members-grid');
-  if (!grid) return;
-  grid.textContent = '';
-
-  (cohort.members || []).forEach(member => {
-    const card = document.createElement('div');
-    card.className = 'member-card';
-
-    const top = document.createElement('div');
-    const nameEl = document.createElement('h4');
-    nameEl.textContent = decodeEntitiesForTextContent(member.name);
-
-    const contactEl = document.createElement('div');
-    contactEl.style.fontSize = '0.78rem';
-    contactEl.style.color = 'var(--text-secondary)';
-    contactEl.textContent = decodeEntitiesForTextContent(member.contact);
-
-    const statusBadge = document.createElement('span');
-    statusBadge.className = 'crypto-badge';
-    statusBadge.style.display = 'inline-block';
-    statusBadge.style.marginTop = '0.45rem';
-    statusBadge.textContent = `${member.status} • Day ${member.day || 1}`;
-
-    top.appendChild(nameEl);
-    top.appendChild(contactEl);
-    top.appendChild(statusBadge);
-
-    const bottom = document.createElement('div');
-    bottom.style.display = 'flex';
-    bottom.style.justifyContent = 'space-between';
-    bottom.style.alignItems = 'center';
-
-    const amenBtn = document.createElement('button');
-    amenBtn.type = 'button';
-    amenBtn.className = 'ergonomic-btn';
-    amenBtn.textContent = `🙏 Send Amen (${member.amens || 0})`;
-    amenBtn.addEventListener('click', async () => {
-      member.amens = (member.amens || 0) + 1;
-      const res = await putRecord('fellowships', cohort);
-      updateIdbLatencyDisplay(res.latencyMs);
-      renderFellowshipView();
-      await enqueueCloudSyncMutation('FELLOWSHIP_AMEN', 'Ephphatha_Master_DB/Fellowship_Cohorts', {
-        cohortId: cohort.id,
-        memberId: member.id,
-        amens: member.amens
-      });
-    });
-
-    bottom.appendChild(amenBtn);
-    card.appendChild(top);
-    card.appendChild(bottom);
-    grid.appendChild(card);
-  });
+function getCurrentProgressMetrics() {
+  const completedMap = getAllRecordsMapSync('progress');
+  const metrics = calculateGraceStreak(completedMap, appState.selectedDay);
+  const completedToday = Boolean(completedMap[String(appState.selectedDay)]?.completed);
+  return {
+    selectedDay: appState.selectedDay,
+    totalCompleted: metrics.totalCompleted,
+    streakDays: metrics.streakDays,
+    isPlayingAudio: audioEngine.isPlaying,
+    activityStatus: audioEngine.isPlaying
+      ? `Listening Now • Day ${appState.selectedDay}`
+      : completedToday
+        ? `Completed Day ${appState.selectedDay}`
+        : `Reading Day ${appState.selectedDay}`
+  };
 }
 
-async function addFellowshipMemberFromForm(e) {
-  e.preventDefault();
-  const nameInput = document.getElementById('input-member-name');
-  const contactInput = document.getElementById('input-member-contact');
-  if (!nameInput || !contactInput) return;
+function showCohortGatewayAlert(message, isError = false) {
+  const alertEl = document.getElementById('cohort-gateway-alert');
+  if (!alertEl) return;
+  if (!message) {
+    alertEl.classList.add('hidden');
+    alertEl.textContent = '';
+    return;
+  }
+  alertEl.textContent = message;
+  alertEl.classList.remove('hidden');
+  alertEl.classList.toggle('error', Boolean(isError));
+}
 
-  const sanitizedName = sanitizeUserString(nameInput.value, 'fellowship_member_name');
-  const sanitizedContact = sanitizeUserString(contactInput.value, 'fellowship_member_contact');
+function formatRelativeDateShort(isoStr) {
+  if (!isoStr) return 'Just now';
+  const d = new Date(isoStr);
+  if (Number.isNaN(d.getTime())) return 'Recent';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
-  if (!sanitizedName) return;
+function renderFellowshipView() {
+  const gatewayPanel = document.getElementById('fellowship-gateway-panel');
+  const activeWorkspace = document.getElementById('fellowship-active-workspace');
+  const cancelGatewayBtn = document.getElementById('btn-cancel-cohort-gateway');
+  if (!gatewayPanel || !activeWorkspace) return;
 
-  const cohorts = getAllRecordsSync('fellowships');
-  const cohort = cohorts[0];
-  if (!cohort) return;
+  // Populate saved member name in Gateway forms if available
+  const identity = getLocalMemberIdentity();
+  const joinNameInput = document.getElementById('input-join-member-name');
+  const createNameInput = document.getElementById('input-create-member-name');
+  if (joinNameInput && !joinNameInput.value && identity.name) joinNameInput.value = identity.name;
+  if (createNameInput && !createNameInput.value && identity.name) createNameInput.value = identity.name;
 
-  const newMember = {
-    id: `mem_${Date.now()}`,
-    name: sanitizedName,
-    contact: sanitizedContact || 'Invited via Fellowship Deep-Link',
-    status: 'Completed Today',
-    day: appState.selectedDay,
-    amens: 1
-  };
+  // Render quick-switcher for any cohorts previously joined on this device
+  const allSavedCohorts = getAllRecordsSync('fellowships').filter(c => c.schemaVersion >= 3 && c.inviteCode);
+  const switcherWrap = document.getElementById('my-cohorts-switcher-wrap');
+  const switcherPills = document.getElementById('my-cohorts-pills');
+  if (switcherWrap && switcherPills) {
+    switcherPills.textContent = '';
+    if (allSavedCohorts.length > 0) {
+      switcherWrap.classList.remove('hidden');
+      allSavedCohorts.forEach(c => {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = `verse-pill ${c.inviteCode === getActiveCohortCode() ? 'active' : ''}`;
+        pill.textContent = `${c.cohortName} (${c.inviteCode})`;
+        pill.addEventListener('click', async () => {
+          setActiveCohortCode(c.inviteCode);
+          appState.forceShowCohortGateway = false;
+          showCohortGatewayAlert('');
+          await fetchCohortByInviteCode(c.inviteCode);
+          renderFellowshipView();
+        });
+        switcherPills.appendChild(pill);
+      });
+    } else {
+      switcherWrap.classList.add('hidden');
+    }
+  }
 
-  cohort.members.unshift(newMember);
-  const res = await putRecord('fellowships', cohort);
-  updateIdbLatencyDisplay(res.latencyMs);
+  const activeCode = getActiveCohortCode();
+  const activeCohort = activeCode ? getRecordSync('fellowships', `cohort_${activeCode}`) : null;
 
-  nameInput.value = '';
-  contactInput.value = '';
-  renderFellowshipView();
+  if (!activeCohort || appState.forceShowCohortGateway) {
+    gatewayPanel.classList.remove('hidden');
+    activeWorkspace.classList.add('hidden');
+    if (cancelGatewayBtn) {
+      cancelGatewayBtn.classList.toggle('hidden', !activeCohort);
+    }
+    return;
+  }
 
-  await enqueueCloudSyncMutation('ADD_FELLOWSHIP_MEMBER', 'Ephphatha_Master_DB/Fellowship_Cohorts', newMember);
+  // Show Active Isolated Cohort Workspace
+  gatewayPanel.classList.add('hidden');
+  activeWorkspace.classList.remove('hidden');
+
+  setText('fellowship-cohort-title', decodeEntitiesForTextContent(activeCohort.cohortName));
+  setText('fellowship-invite-code', activeCohort.inviteCode);
+  setText(
+    'cohort-sync-status-badge',
+    navigator.onLine ? `🔒 Isolated • Online Synced` : `🔒 Isolated • Offline Cache`
+  );
+
+  const daySchedule = appState.scheduleByDay[appState.selectedDay];
+  const refTag = daySchedule?.readings?.narrative || `Day ${appState.selectedDay}`;
+  setText('reflection-day-tag', `Sharing insight on Day ${appState.selectedDay} • ${refTag}`);
+
+  const members = Array.isArray(activeCohort.members) ? activeCohort.members : [];
+  const reflections = Array.isArray(activeCohort.reflections) ? activeCohort.reflections : [];
+  const prayers = Array.isArray(activeCohort.prayers) ? activeCohort.prayers : [];
+
+  setText('count-cohort-members', String(members.length));
+  setText('count-cohort-reflections', String(reflections.length));
+  setText('count-cohort-prayers', String(prayers.length));
+
+  // 1. Render Cohort Members & Progress Sync Grid
+  const membersGrid = document.getElementById('fellowship-members-grid');
+  if (membersGrid) {
+    membersGrid.textContent = '';
+    if (members.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-stream-state';
+      empty.textContent = 'No members in this cohort yet. Share your invitation code above to invite fellow pilgrims.';
+      membersGrid.appendChild(empty);
+    } else {
+      members.forEach(member => {
+        const card = document.createElement('div');
+        card.className = 'member-card';
+
+        const top = document.createElement('div');
+        const nameEl = document.createElement('h4');
+        const isSelf = member.id === identity.memberId;
+        nameEl.textContent = `${decodeEntitiesForTextContent(member.name)}${isSelf ? ' (You)' : ''}`;
+
+        const roleEl = document.createElement('div');
+        roleEl.style.fontSize = '0.76rem';
+        roleEl.style.color = 'var(--text-secondary)';
+        roleEl.textContent = decodeEntitiesForTextContent(member.role || 'Pilgrim Member');
+
+        const statusBadge = document.createElement('span');
+        statusBadge.className = 'crypto-badge';
+        statusBadge.style.display = 'inline-block';
+        statusBadge.style.marginTop = '6px';
+        statusBadge.textContent = `${decodeEntitiesForTextContent(member.activityStatus || 'Active')} • ${member.completedDaysCount || 0}/365 Done • 🔥 ${member.streakDays || 0}d`;
+
+        top.appendChild(nameEl);
+        top.appendChild(roleEl);
+        top.appendChild(statusBadge);
+
+        const bottom = document.createElement('div');
+        bottom.style.display = 'flex';
+        bottom.style.justifyContent = 'space-between';
+        bottom.style.alignItems = 'center';
+
+        const encourageBtn = document.createElement('button');
+        encourageBtn.type = 'button';
+        encourageBtn.className = 'verse-icon-btn';
+        encourageBtn.textContent = `🙏 Encourage (${member.encouragements || 0})`;
+        encourageBtn.addEventListener('click', async () => {
+          const res = await supportCohortItem('ENCOURAGE_MEMBER', member.id);
+          if (res?.latencyMs) updateIdbLatencyDisplay(res.latencyMs);
+          renderFellowshipView();
+        });
+
+        const updatedTag = document.createElement('span');
+        updatedTag.className = 'stream-meta-tag';
+        updatedTag.textContent = `Day ${member.currentDay || 1}`;
+
+        bottom.appendChild(encourageBtn);
+        bottom.appendChild(updatedTag);
+        card.appendChild(top);
+        card.appendChild(bottom);
+        membersGrid.appendChild(card);
+      });
+    }
+  }
+
+  // 2. Render Spiritual Reflection Stream
+  const reflectionsList = document.getElementById('cohort-reflections-list');
+  if (reflectionsList) {
+    reflectionsList.textContent = '';
+    if (reflections.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-stream-state';
+      empty.textContent = 'No reflections shared in this cohort yet. Be the first to share an insight from today’s Scripture reading!';
+      reflectionsList.appendChild(empty);
+    } else {
+      reflections.forEach(refl => {
+        const item = document.createElement('article');
+        item.className = 'stream-item-card';
+
+        const header = document.createElement('div');
+        header.className = 'stream-item-header';
+
+        const authorSpan = document.createElement('span');
+        authorSpan.className = 'stream-author-name';
+        authorSpan.textContent = decodeEntitiesForTextContent(refl.authorName || 'Pilgrim Member');
+
+        const metaSpan = document.createElement('span');
+        metaSpan.className = 'verse-num-badge';
+        metaSpan.textContent = decodeEntitiesForTextContent(refl.passageRef || `Day ${refl.dayNumber || 1}`);
+
+        header.appendChild(authorSpan);
+        header.appendChild(metaSpan);
+
+        const body = document.createElement('p');
+        body.className = 'stream-item-body';
+        body.textContent = decodeEntitiesForTextContent(refl.content);
+
+        const footer = document.createElement('div');
+        footer.className = 'stream-item-footer';
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'stream-meta-tag';
+        timeSpan.textContent = formatRelativeDateShort(refl.createdAt);
+
+        const amenBtn = document.createElement('button');
+        amenBtn.type = 'button';
+        amenBtn.className = 'verse-icon-btn';
+        amenBtn.textContent = `🙏 Amen (${refl.amenCount || 0})`;
+        amenBtn.addEventListener('click', async () => {
+          await supportCohortItem('AMEN_REFLECTION', refl.id);
+          renderFellowshipView();
+        });
+
+        footer.appendChild(timeSpan);
+        footer.appendChild(amenBtn);
+
+        item.appendChild(header);
+        item.appendChild(body);
+        item.appendChild(footer);
+        reflectionsList.appendChild(item);
+      });
+    }
+  }
+
+  // 3. Render Cohort Prayer Requests Wall (Supporting Anonymous Requests)
+  const prayersList = document.getElementById('cohort-prayers-list');
+  if (prayersList) {
+    prayersList.textContent = '';
+    if (prayers.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-stream-state';
+      empty.textContent = 'No prayer requests posted in this cohort yet. Share a prayer intention (publicly or anonymously) so your community can intercede with you.';
+      prayersList.appendChild(empty);
+    } else {
+      prayers.forEach(prayer => {
+        const item = document.createElement('article');
+        item.className = `stream-item-card ${prayer.isAnswered ? 'answered' : ''}`;
+
+        const header = document.createElement('div');
+        header.className = 'stream-item-header';
+
+        const authorSpan = document.createElement('span');
+        authorSpan.className = 'stream-author-name';
+        authorSpan.textContent = prayer.isAnonymous
+          ? '🕶️ Anonymous Pilgrim'
+          : decodeEntitiesForTextContent(prayer.authorName || 'Pilgrim Member');
+
+        const badgesWrap = document.createElement('div');
+        badgesWrap.style.display = 'flex';
+        badgesWrap.style.gap = '6px';
+        badgesWrap.style.alignItems = 'center';
+
+        const catBadge = document.createElement('span');
+        catBadge.className = 'verse-num-badge';
+        catBadge.textContent = decodeEntitiesForTextContent(prayer.category || 'General Petition');
+        badgesWrap.appendChild(catBadge);
+
+        if (prayer.isAnswered) {
+          const ansBadge = document.createElement('span');
+          ansBadge.className = 'crypto-badge';
+          ansBadge.textContent = '✨ Answered';
+          badgesWrap.appendChild(ansBadge);
+        }
+
+        header.appendChild(authorSpan);
+        header.appendChild(badgesWrap);
+
+        const body = document.createElement('p');
+        body.className = 'stream-item-body';
+        body.textContent = decodeEntitiesForTextContent(prayer.content);
+
+        const footer = document.createElement('div');
+        footer.className = 'stream-item-footer';
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'stream-meta-tag';
+        timeSpan.textContent = formatRelativeDateShort(prayer.createdAt);
+
+        const actionsWrap = document.createElement('div');
+        actionsWrap.style.display = 'flex';
+        actionsWrap.style.gap = '6px';
+
+        const prayBtn = document.createElement('button');
+        prayBtn.type = 'button';
+        prayBtn.className = 'verse-icon-btn';
+        prayBtn.textContent = `🙏 Praying (${prayer.prayingCount || 0})`;
+        prayBtn.addEventListener('click', async () => {
+          await supportCohortItem('PRAY_FOR_REQUEST', prayer.id);
+          renderFellowshipView();
+        });
+
+        const answeredBtn = document.createElement('button');
+        answeredBtn.type = 'button';
+        answeredBtn.className = 'verse-icon-btn';
+        answeredBtn.textContent = prayer.isAnswered ? '↺ Reopen' : '✓ Answered';
+        answeredBtn.title = 'Toggle Answered Praise Report';
+        answeredBtn.addEventListener('click', async () => {
+          await supportCohortItem('TOGGLE_PRAYER_ANSWERED', prayer.id);
+          renderFellowshipView();
+        });
+
+        actionsWrap.appendChild(prayBtn);
+        actionsWrap.appendChild(answeredBtn);
+        footer.appendChild(timeSpan);
+        footer.appendChild(actionsWrap);
+
+        item.appendChild(header);
+        item.appendChild(body);
+        item.appendChild(footer);
+        prayersList.appendChild(item);
+      });
+    }
+  }
 }
 
 /* ============================================================================
@@ -1180,6 +1437,7 @@ function bindGlobalControls() {
     renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
     refreshGraceStreakHeader();
     renderCurriculumMapView();
+    await syncMemberProgressToActiveCohort(getCurrentProgressMetrics());
 
     await enqueueCloudSyncMutation('MARK_DAY_COMPLETE', 'appDataFolder/progress_log.json', {
       dayNumber: appState.selectedDay,
@@ -1203,20 +1461,8 @@ function bindGlobalControls() {
     saveCurrentDayJournal();
   });
 
-  // Fellowship Form & Invite Code Generation
-  document.getElementById('form-add-member')?.addEventListener('submit', addFellowshipMemberFromForm);
-  document.getElementById('btn-regen-invite')?.addEventListener('click', async () => {
-    const cohorts = getAllRecordsSync('fellowships');
-    const cohort = cohorts[0];
-    if (!cohort) return;
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    const rand = window.crypto.getRandomValues(new Uint8Array(6));
-    for (let i = 0; i < 6; i++) code += chars[rand[i] % chars.length];
-    cohort.inviteCode = code;
-    await putRecord('fellowships', cohort);
-    renderFellowshipView();
-  });
+  // Production Fellowship & Isolated Cohort Controls
+  bindFellowshipModuleEvents();
 
   // Audio Player Controls
   document.getElementById('btn-audio-play-pause')?.addEventListener('click', () => {
@@ -1435,6 +1681,191 @@ function renderUserProfileBadge() {
     btn.textContent = '🔑 Sign In';
     btn.className = 'ergonomic-btn primary-period';
   }
+}
+
+function bindFellowshipModuleEvents() {
+  // Auto-uppercase Invitation Code input
+  const joinCodeInput = document.getElementById('input-join-cohort-code');
+  joinCodeInput?.addEventListener('input', (e) => {
+    e.target.value = String(e.target.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  });
+
+  // 1. Join Existing Cohort by Code
+  document.getElementById('form-join-cohort')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const codeVal = document.getElementById('input-join-cohort-code')?.value || '';
+    const nameVal = document.getElementById('input-join-member-name')?.value || '';
+    const roleVal = document.getElementById('input-join-member-role')?.value || '';
+
+    try {
+      showCohortGatewayAlert('Validating invitation code and syncing cohort...', false);
+      const res = await joinExistingCohortByCode({
+        inviteCode: codeVal,
+        memberName: nameVal,
+        memberRole: roleVal,
+        progressMetrics: getCurrentProgressMetrics(),
+        allowCreateIfMissing: Boolean(appState.pendingInviteCohortName),
+        fallbackCohortName: appState.pendingInviteCohortName || ''
+      });
+      appState.forceShowCohortGateway = false;
+      appState.pendingInviteCohortName = '';
+      showCohortGatewayAlert('');
+      if (res?.latencyMs) updateIdbLatencyDisplay(res.latencyMs);
+      renderFellowshipView();
+      pushTelemetryLog('COHORT_JOINED', `Joined isolated cohort ${res.cohort.inviteCode} (${res.cohort.cohortName})`);
+    } catch (err) {
+      showCohortGatewayAlert(err.message || 'Could not join cohort.', true);
+    }
+  });
+
+  // 2. Create Brand-New Isolated Cohort
+  document.getElementById('form-create-cohort')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const cohortNameVal = document.getElementById('input-create-cohort-name')?.value || '';
+    const nameVal = document.getElementById('input-create-member-name')?.value || '';
+    const roleVal = document.getElementById('input-create-member-role')?.value || '';
+
+    try {
+      const res = await createNewCohortInstance({
+        cohortName: cohortNameVal,
+        memberName: nameVal,
+        memberRole: roleVal,
+        progressMetrics: getCurrentProgressMetrics()
+      });
+      appState.forceShowCohortGateway = false;
+      showCohortGatewayAlert('');
+      const nameField = document.getElementById('input-create-cohort-name');
+      if (nameField) nameField.value = '';
+      if (res?.latencyMs) updateIdbLatencyDisplay(res.latencyMs);
+      renderFellowshipView();
+      pushTelemetryLog('COHORT_CREATED', `Created new isolated cohort ${res.cohort.inviteCode} (${res.cohort.cohortName})`);
+    } catch (err) {
+      showCohortGatewayAlert(err.message || 'Could not create cohort.', true);
+    }
+  });
+
+  // 3. Switch / Open Cohort Gateway & Cancel Gateway
+  document.getElementById('btn-switch-cohort')?.addEventListener('click', () => {
+    appState.forceShowCohortGateway = true;
+    showCohortGatewayAlert('');
+    renderFellowshipView();
+  });
+  document.getElementById('btn-cancel-cohort-gateway')?.addEventListener('click', () => {
+    appState.forceShowCohortGateway = false;
+    showCohortGatewayAlert('');
+    renderFellowshipView();
+  });
+
+  // 4. Copy Invitation Code & Share Invite Link
+  document.getElementById('btn-copy-cohort-code')?.addEventListener('click', async (e) => {
+    const code = getActiveCohortCode();
+    if (!code) return;
+    const btn = e.currentTarget;
+    try {
+      await navigator.clipboard.writeText(code);
+      btn.textContent = `✓ Copied ${code}`;
+      setTimeout(() => { btn.textContent = '📋 Copy Code'; }, 2000);
+    } catch (_) {
+      btn.textContent = `Code: ${code}`;
+    }
+  });
+
+  document.getElementById('btn-share-cohort-invite')?.addEventListener('click', async () => {
+    const code = getActiveCohortCode();
+    if (!code) return;
+    const cohort = getRecordSync('fellowships', `cohort_${code}`);
+    const cName = cohort?.cohortName || `Cohort ${code}`;
+    const shareUrl = `${window.location.origin}${window.location.pathname}?cohort=${encodeURIComponent(code)}&cohortName=${encodeURIComponent(cName)}`;
+    const shareText = `Join our "${cName}" Bible in a Year Fellowship on Ephphatha using Invitation Code: ${code}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: cName, text: shareText, url: shareUrl });
+        return;
+      } catch (_) { /* fallback to clipboard */ }
+    }
+    try {
+      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+      const btn = document.getElementById('btn-share-cohort-invite');
+      if (btn) {
+        btn.textContent = '✓ Invite Copied';
+        setTimeout(() => { btn.textContent = '📤 Share'; }, 2000);
+      }
+    } catch (_) { /* ignore */ }
+  });
+
+  // 5. Manual Sync & Push Progress Now
+  const handleManualSync = async () => {
+    const code = getActiveCohortCode();
+    if (!code) return;
+    setText('cohort-sync-status-badge', '🔄 Syncing...');
+    await fetchCohortByInviteCode(code);
+    await syncMemberProgressToActiveCohort(getCurrentProgressMetrics());
+    renderFellowshipView();
+    pushTelemetryLog('COHORT_SYNCED', `Synchronized cohort ${code} state & reading progress`);
+  };
+  document.getElementById('btn-sync-cohort-now')?.addEventListener('click', handleManualSync);
+  document.getElementById('btn-push-my-progress')?.addEventListener('click', handleManualSync);
+
+  // 6. Segmented Sub-Navigation Tabs (`members` | `reflections` | `prayers`)
+  document.querySelectorAll('[data-cohort-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.getAttribute('data-cohort-tab') || 'members';
+      document.querySelectorAll('[data-cohort-tab]').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-cohort-tab') === targetTab);
+      });
+      ['members', 'reflections', 'prayers'].forEach(panelKey => {
+        const panelEl = document.getElementById(`cohort-panel-${panelKey}`);
+        if (panelEl) panelEl.classList.toggle('hidden', panelKey !== targetTab);
+      });
+    });
+  });
+
+  // 7. Publish Spiritual Reflection
+  document.getElementById('form-post-reflection')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const textarea = document.getElementById('input-cohort-reflection');
+    if (!textarea) return;
+    const daySchedule = appState.scheduleByDay[appState.selectedDay];
+    const passageRef = daySchedule?.readings?.narrative || `Day ${appState.selectedDay}`;
+    try {
+      const res = await publishCohortReflection({
+        dayNumber: appState.selectedDay,
+        passageRef: `Day ${appState.selectedDay} • ${passageRef}`,
+        reflectionText: textarea.value
+      });
+      textarea.value = '';
+      if (res?.latencyMs) updateIdbLatencyDisplay(res.latencyMs);
+      renderFellowshipView();
+      pushTelemetryLog('COHORT_REFLECTION_POSTED', `Published reflection on Day ${appState.selectedDay}`);
+    } catch (err) {
+      alert(err.message || 'Unable to post reflection.');
+    }
+  });
+
+  // 8. Publish Prayer Request (with Anonymous Option)
+  document.getElementById('form-post-prayer')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const catSelect = document.getElementById('select-prayer-category');
+    const anonChk = document.getElementById('chk-prayer-anonymous');
+    const textarea = document.getElementById('input-cohort-prayer');
+    if (!textarea) return;
+
+    try {
+      const res = await publishCohortPrayerRequest({
+        category: catSelect?.value || 'General Petition',
+        requestText: textarea.value,
+        isAnonymous: Boolean(anonChk?.checked)
+      });
+      textarea.value = '';
+      if (anonChk) anonChk.checked = false;
+      if (res?.latencyMs) updateIdbLatencyDisplay(res.latencyMs);
+      renderFellowshipView();
+      pushTelemetryLog('COHORT_PRAYER_POSTED', `Published prayer request (Anonymous: ${Boolean(anonChk?.checked)})`);
+    } catch (err) {
+      alert(err.message || 'Unable to publish prayer request.');
+    }
+  });
 }
 
 function setText(id, text) {
