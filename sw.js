@@ -1,10 +1,10 @@
 /**
- * EPHPHATHA SERVICE WORKER (STALE-WHILE-REVALIDATE & TIER-4 OFFLINE VAULT)
- * Caches core application shell, Malayalam typography, schedule_manifest_v3.json,
- * and scripture_fallback_vault.json for 0ms offline startup.
+ * EPHPHATHA SERVICE WORKER (NETWORK-FIRST WITH OFFLINE VAULT FALLBACK)
+ * Ensures live code & manifest updates take effect immediately on refresh while
+ * preserving 100% offline readiness in Tier 4.
  */
 
-const CACHE_NAME = 'ephphatha-sanctuary-v3.0.2';
+const CACHE_NAME = 'ephphatha-sanctuary-v3.0.4';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const CORE_ASSETS = [
   './src/ui/appController.js',
   './src/domain/periods.js',
   './src/domain/securityEngine.js',
+  './src/domain/crdtEngine.js',
   './src/adapters/indexedDbRepo.js',
   './src/adapters/bibleFailoverGateway.js',
   './src/adapters/audioEngine.js',
@@ -23,8 +24,9 @@ const CORE_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
   );
 });
 
@@ -39,21 +41,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
-  // Stale-While-Revalidate for local assets & schedule manifest
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && event.request.url.startsWith(self.location.origin)) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return networkResponse;
-        })
-        .catch(() => cachedResponse);
+  // Never intercept cross-origin audio streams (e.g. Cloudflare Edge Worker HTTP 206 byte ranges)
+  if (!event.request.url.startsWith(self.location.origin)) return;
 
-      return cachedResponse || fetchPromise;
-    })
+  // Network-First with Offline Cache Fallback for instant updates
+  event.respondWith(
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return networkResponse;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
-

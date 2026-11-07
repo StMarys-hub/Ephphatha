@@ -4,7 +4,7 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime } from '../adapters/audioEngine.js';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.0.4';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
@@ -278,9 +278,16 @@ function renderDayHeroCard(daySchedule) {
   }
 
   const folderEl = document.getElementById('hero-gdrive-node');
-  const customFileId = localStorage.getItem(`ephphatha_gdrive_id_day_${daySchedule.day_number}`);
+  const rawStoredId = localStorage.getItem(`ephphatha_gdrive_id_day_${daySchedule.day_number}`);
+  const customFileId = normalizeGoogleDriveAudioId(rawStoredId);
   if (customFileId) {
+    // Also repair localStorage if it held the old un-stripped URL
+    if (customFileId !== rawStoredId) {
+      localStorage.setItem(`ephphatha_gdrive_id_day_${daySchedule.day_number}`, customFileId);
+    }
     daySchedule.gdrive_audio_file_id = customFileId;
+  } else {
+    daySchedule.gdrive_audio_file_id = normalizeGoogleDriveAudioId(daySchedule.gdrive_audio_file_id);
   }
   if (folderEl) {
     const streamUrl = `${audioEngine.edgeProxyBaseUrl}/audio/${daySchedule.gdrive_audio_file_id}`;
@@ -288,7 +295,7 @@ function renderDayHeroCard(daySchedule) {
   }
   const idInput = document.getElementById('input-day-gdrive-id');
   if (idInput) {
-    idInput.value = customFileId || '';
+    idInput.value = daySchedule.gdrive_audio_file_id || '';
   }
 
   const titleEn = document.getElementById('hero-title-en');
@@ -890,9 +897,8 @@ function bindGlobalControls() {
   document.getElementById('btn-set-day-gdrive-id')?.addEventListener('click', () => {
     const val = (document.getElementById('input-day-gdrive-id')?.value || '').trim();
     if (!val) return;
-    // Extract File ID automatically even if the user pasted a full https://drive.google.com/file/d/.../view link!
-    const match = val.match(/\/d\/([a-zA-Z0-9_-]{15,})/);
-    const cleanId = match ? match[1] : val.replace(/[^a-zA-Z0-9_-]/g, '');
+    const cleanId = normalizeGoogleDriveAudioId(val);
+    if (!cleanId) return;
     localStorage.setItem(`ephphatha_gdrive_id_day_${appState.selectedDay}`, cleanId);
     const daySchedule = appState.scheduleByDay[appState.selectedDay];
     if (daySchedule) {
