@@ -47,7 +47,7 @@ const appState = {
   theme: localStorage.getItem('ephphatha_theme') || 'dark', // Default to soothing Warm Dusk (#1E2430)
   fontScale: localStorage.getItem('ephphatha_font_scale') || '100',
   activeTab: 'sanctuary', // 'sanctuary' | 'curriculum' | 'fellowship' | 'vault'
-  inspectorOpen: true,
+  inspectorOpen: window.innerWidth >= 1100, // Closed by default on mobile / tablets
   selectedDay: Number(localStorage.getItem('ephphatha_selected_day')) || 1,
   activeReadingSlot: 'narrative', // 'narrative' | 'supplemental' | 'psalm_wisdom'
   langMode: 'bilingual', // 'bilingual' | 'en' | 'ml'
@@ -89,6 +89,12 @@ export async function bootstrapEphphathaApp() {
 
   // 7. Bind Top Header, Navigation, Modals, and Inspector Controls
   bindGlobalControls();
+
+  // Initialize inspector state based on screen width
+  const shell = document.getElementById('workspace-shell');
+  const inspector = document.getElementById('telemetry-inspector');
+  if (shell) shell.classList.toggle('inspector-open', appState.inspectorOpen);
+  if (inspector) inspector.classList.toggle('hidden', !appState.inspectorOpen);
 
   // 8. Select initial Day and render full UI
   await selectDay(appState.selectedDay, { initialBoot: true });
