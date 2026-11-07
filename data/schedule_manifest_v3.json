@@ -275,7 +275,7 @@
         "psalm_wisdom": "Psalm 130",
         "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 130"
       },
-      "gdrive_audio_file_id": "1Ephphatha_Day_002_Audio_64kbps_HEAAC",
+      "gdrive_audio_file_id": "18dZlhSU9kCIw-16sjjjHFdXdoEBLCpHx",
       "audio_duration_sec": 1290,
       "historical_context": {
         "era_date": "Primeval History",
@@ -284,6 +284,54 @@
         "summary": "Distrust fractures humanity's communion with God, yet in Genesis 3:15 (the Protoevangelium), God immediately promises a Redeemer who will crush the serpent.",
         "summary_ml": "മനുഷ്യൻ അനുസരണക്കേടിലൂടെ പറുദീസ നഷ്ടപ്പെടുത്തുന്നുവെങ്കിലും, ഉൽപത്തി 3:15-ൽ ദൈവം രക്ഷകനെ വാഗ്ദാനം ചെയ്യുന്നു.",
         "reflection_prompt": "When we hide in shame like Adam, God still walks into the garden calling 'Where are you?' How can you bring your honest heart to Him today?"
+      }
+    },
+    "3": {
+      "day_number": 3,
+      "period_id": 1,
+      "episode_title": "Noah & The Great Flood: Covenant Renewed",
+      "episode_title_ml": "നോഹയും പ്രളയവും: ഉടമ്പടിയുടെ നവീകരണം",
+      "readings": {
+        "narrative": "Genesis 6–7",
+        "narrative_ml": "ഉൽപത്തി 6–7",
+        "supplemental": "Job 5–6",
+        "supplemental_ml": "ജോബ് 5–6",
+        "psalm_wisdom": "Psalm 29",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 29"
+      },
+      "gdrive_audio_file_id": "1-lma3yepCg1iZDJvrgnFMsC6IKO1V2Wl",
+      "audio_duration_sec": 1320,
+      "historical_context": {
+        "era_date": "Primeval History (Ararat)",
+        "geography": "Mount Ararat & Mesopotamia",
+        "lineage": "Noah, Shem, Ham, Japheth",
+        "summary": "God preserves a righteous remnant through the waters of the flood, establishing a universal covenant marked by the bow in the clouds.",
+        "summary_ml": "ദൈവം നീതിമാനായ നോഹയെയും കുടുംബത്തെയും സംരക്ഷിക്കുകയും ജീവജാലങ്ങളുമായി ഉടമ്പടി സ്ഥാപിക്കുകയും ചെയ്യുന്നു.",
+        "reflection_prompt": "God remembered Noah amidst the storm. In what turbulent situation do you need to anchor your trust in God's faithfulness?"
+      }
+    },
+    "4": {
+      "day_number": 4,
+      "period_id": 1,
+      "episode_title": "The Tower of Babel & The Dispersion of Nations",
+      "episode_title_ml": "ബാബേൽ ഗോപുരവും ജനതകളുടെ വിതരണവും",
+      "readings": {
+        "narrative": "Genesis 11",
+        "narrative_ml": "ഉൽപത്തി 11",
+        "supplemental": "Job 7–8",
+        "supplemental_ml": "ജോബ് 7–8",
+        "psalm_wisdom": "Psalm 2",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 2"
+      },
+      "gdrive_audio_file_id": "1HlAtPYWwUACjyV9uve0kPu7-Dh7fbf8m",
+      "audio_duration_sec": 1280,
+      "historical_context": {
+        "era_date": "Primeval History (Shinar)",
+        "geography": "Plain of Shinar (Babylon)",
+        "lineage": "Shem → Terah → Abram",
+        "summary": "Humanity seeks prideful autonomy at Babel; God scatters them, setting the stage for the call of Abram in Genesis 12 to bring worldwide blessing.",
+        "summary_ml": "ബാബേൽ ഗോപുര നിർമ്മാണത്തിലൂടെ മനുഷ്യൻ അഹങ്കരിക്കുന്നു; ദൈവം ഭാഷകൾ കൂട്ടിക്കുഴച്ച് ജനങ്ങളെ ചിതറിക്കുന്നു.",
+        "reflection_prompt": "Where am I building my own towers of self-reliance instead of resting in God's divine provision?"
       }
     },
     "5": {

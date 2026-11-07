@@ -4,7 +4,7 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.0.6';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.0.7';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
@@ -919,26 +919,54 @@ function bindGlobalControls() {
     const val = (document.getElementById('input-day-gdrive-id')?.value || '').trim();
     if (!val) return;
 
-    // Case 1: User pasted a JSON Day Map from `listAllAudioFileIdsInDrive()` (e.g. `{"1":"17F4a...","3":"1abc..."}`)
-    if (val.startsWith('{') && val.endsWith('}')) {
+    // Case 1: User pasted JSON array or object (e.g. `[{"day":3,"fileId":"..."},...]` or `{"1":"...", "3":"..."}`)
+    const jsonCandidate = val.startsWith('[') || val.startsWith('{')
+      ? val
+      : (val.includes('{') && val.includes('}') ? `[${val}]` : '');
+
+    if (jsonCandidate) {
       try {
-        const parsedMap = JSON.parse(val);
+        const parsed = JSON.parse(jsonCandidate);
         let count = 0;
-        for (const [dayKey, fileIdVal] of Object.entries(parsedMap)) {
-          const cleanId = normalizeGoogleDriveAudioId(String(fileIdVal));
-          const dNum = Number(dayKey);
-          if (dNum >= 1 && dNum <= 365 && cleanId) {
-            localStorage.setItem(`ephphatha_gdrive_id_day_${dNum}`, cleanId);
-            if (appState.scheduleByDay[dNum]) {
-              appState.scheduleByDay[dNum].gdrive_audio_file_id = cleanId;
+
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            const dNum = Number(item.day || item.day_number || item.dayNumber);
+            const fileIdVal = item.fileId || item.file_id || item.gdrive_audio_file_id || item.id;
+            const cleanId = normalizeGoogleDriveAudioId(String(fileIdVal || ''));
+            if (dNum >= 1 && dNum <= 365 && cleanId) {
+              localStorage.setItem(`ephphatha_gdrive_id_day_${dNum}`, cleanId);
+              if (appState.scheduleByDay[dNum]) {
+                appState.scheduleByDay[dNum].gdrive_audio_file_id = cleanId;
+              }
+              count++;
             }
-            count++;
+          }
+        } else if (typeof parsed === 'object' && parsed !== null) {
+          for (const [dayKey, fileIdVal] of Object.entries(parsed)) {
+            const dNum = Number(dayKey);
+            const cleanId = typeof fileIdVal === 'object' && fileIdVal !== null
+              ? normalizeGoogleDriveAudioId(String(fileIdVal.fileId || fileIdVal.id || ''))
+              : normalizeGoogleDriveAudioId(String(fileIdVal || ''));
+            if (dNum >= 1 && dNum <= 365 && cleanId) {
+              localStorage.setItem(`ephphatha_gdrive_id_day_${dNum}`, cleanId);
+              if (appState.scheduleByDay[dNum]) {
+                appState.scheduleByDay[dNum].gdrive_audio_file_id = cleanId;
+              }
+              count++;
+            }
           }
         }
-        await selectDay(appState.selectedDay);
-        pushTelemetryLog('BULK_AUDIO_MAP_IMPORTED', `Bound ${count} Google Drive audio files across curriculum!`);
-        return;
-      } catch (_) { /* continue */ }
+
+        if (count > 0) {
+          await selectDay(appState.selectedDay);
+          pushTelemetryLog('BULK_AUDIO_MAP_IMPORTED', `Bound ${count} Google Drive audio files across curriculum!`);
+          alert(`Successfully bound audio for ${count} days!`);
+          return;
+        }
+      } catch (err) {
+        console.warn('JSON audio parse error:', err);
+      }
     }
 
     // Case 2: User pasted a Google Drive Folder URL (`https://drive.google.com/drive/folders/<FOLDER_ID>`)
