@@ -86,8 +86,9 @@ function createMasterDatabaseSheet_(systemFolder) {
 }
 
 /**
- * HELPER: Automatically scans all 12 Period folders in Ephphatha_Cloud_Root
- * and prints the GOOGLE_DRIVE_FILE_ID for every uploaded audio file (.m4a / .mp3).
+ * HELPER: Automatically scans all 12 Period folders in Ephphatha_Cloud_Root,
+ * detects the Day Number (1..365) from each filename (e.g. "Day 003.mp3", "003.m4a"),
+ * and prints a ready-to-paste JSON Day Map!
  */
 function listAllAudioFileIdsInDrive() {
   var rootIter = DriveApp.getRootFolder().getFoldersByName('Ephphatha_Cloud_Root');
@@ -96,24 +97,37 @@ function listAllAudioFileIdsInDrive() {
     return;
   }
   var root = rootIter.next();
-  var subFolders = root.getFolders();
-  var audioMap = {};
+  var dayMap = {};
+  var details = [];
 
-  while (subFolders.hasNext()) {
-    var folder = subFolders.next();
+  function scanFolder(folder) {
     var files = folder.getFiles();
     while (files.hasNext()) {
       var file = files.next();
-      audioMap[file.getName()] = {
-        folder: folder.getName(),
-        gdrive_audio_file_id: file.getId(),
-        stream_url: 'https://ephphatha-edge-proxy.jimmymj.workers.dev/audio/' + file.getId()
-      };
+      var name = file.getName();
+      var dayMatch = name.match(/day[\s_.-]*0*(\d{1,3})(?!\d)/i) ||
+                     name.match(/^0*(\d{1,3})(?:[\s_.-]|\b)/) ||
+                     name.match(/(?:^|[\s_.-])0*(\d{3})(?:[\s_.-]|\.|$)/);
+      if (dayMatch) {
+        var dayNum = Number(dayMatch[1]);
+        if (dayNum >= 1 && dayNum <= 365) {
+          dayMap[String(dayNum)] = file.getId();
+          details.push({ day: dayNum, fileName: name, fileId: file.getId(), folder: folder.getName() });
+        }
+      }
     }
   }
 
-  Logger.log('=== UPLOADED AUDIO FILE IDs & STREAM URLs ===');
-  Logger.log(JSON.stringify(audioMap, null, 2));
-  return audioMap;
+  scanFolder(root);
+  var subFolders = root.getFolders();
+  while (subFolders.hasNext()) {
+    scanFolder(subFolders.next());
+  }
+
+  Logger.log('=== COPY & PASTE THIS JSON MAP INTO EPHPHATHA "SET AUDIO ID" BOX ===');
+  Logger.log(JSON.stringify(dayMap));
+  Logger.log('=== DETAILED FILE LIST ===');
+  Logger.log(JSON.stringify(details, null, 2));
+  return dayMap;
 }
 

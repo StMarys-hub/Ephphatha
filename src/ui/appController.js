@@ -4,7 +4,7 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.0.4';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.0.6';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
@@ -113,6 +113,27 @@ async function loadDynamicCurriculumManifest() {
   const built = buildFull365Curriculum(manifestJson);
   appState.periods = built.periods;
   appState.scheduleByDay = built.scheduleByDay;
+
+  // Auto-discover any newly uploaded audio files in Google Drive if Root Folder ID is configured
+  const savedRootFolderId = localStorage.getItem('ephphatha_root_folder_id');
+  if (savedRootFolderId && audioEngine.edgeProxyBaseUrl && navigator.onLine) {
+    fetch(`${audioEngine.edgeProxyBaseUrl}/discover/${encodeURIComponent(savedRootFolderId)}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => {
+        if (data?.dayMap) {
+          for (const [dKey, fId] of Object.entries(data.dayMap)) {
+            localStorage.setItem(`ephphatha_gdrive_id_day_${dKey}`, fId);
+            if (appState.scheduleByDay[Number(dKey)]) {
+              appState.scheduleByDay[Number(dKey)].gdrive_audio_file_id = fId;
+            }
+          }
+          renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
+          audioEngine.loadDayAudio(appState.scheduleByDay[appState.selectedDay], 0);
+          pushTelemetryLog('AUTO_DRIVE_DISCOVERY', `Auto-synced ${data.discoveredCount || 0} audio files from Google Drive folder`);
+        }
+      })
+      .catch(() => {});
+  }
 
   populateDayDropdown();
   renderPeriodsRibbon();
@@ -849,7 +870,7 @@ function wireTelemetryStreams() {
 
     setText('audio-time-current', formatSecondsAsTime(audioState.currentTimeSec));
     setText('audio-time-total', formatSecondsAsTime(audioState.durationSec));
-    setText('audio-prefetch-badge', `HTTP 206 • Day ${audioState.prefetchedNextDay} Pre-Cached`);
+    setText('audio-prefetch-badge', audioState.http206HeaderStatus || `HTTP 206 • Day ${audioState.prefetchedNextDay} Pre-Cached`);
 
     const scrubber = document.getElementById('audio-scrubber');
     if (scrubber) {
@@ -893,10 +914,58 @@ function bindGlobalControls() {
     if (inspector) inspector.classList.toggle('hidden', !appState.inspectorOpen);
   });
 
-  // Day Selector Controls
-  document.getElementById('btn-set-day-gdrive-id')?.addEventListener('click', () => {
+  // Day Selector & Smart Audio Link / Folder / Bulk JSON Mapper Controls
+  document.getElementById('btn-set-day-gdrive-id')?.addEventListener('click', async () => {
     const val = (document.getElementById('input-day-gdrive-id')?.value || '').trim();
     if (!val) return;
+
+    // Case 1: User pasted a JSON Day Map from `listAllAudioFileIdsInDrive()` (e.g. `{"1":"17F4a...","3":"1abc..."}`)
+    if (val.startsWith('{') && val.endsWith('}')) {
+      try {
+        const parsedMap = JSON.parse(val);
+        let count = 0;
+        for (const [dayKey, fileIdVal] of Object.entries(parsedMap)) {
+          const cleanId = normalizeGoogleDriveAudioId(String(fileIdVal));
+          const dNum = Number(dayKey);
+          if (dNum >= 1 && dNum <= 365 && cleanId) {
+            localStorage.setItem(`ephphatha_gdrive_id_day_${dNum}`, cleanId);
+            if (appState.scheduleByDay[dNum]) {
+              appState.scheduleByDay[dNum].gdrive_audio_file_id = cleanId;
+            }
+            count++;
+          }
+        }
+        await selectDay(appState.selectedDay);
+        pushTelemetryLog('BULK_AUDIO_MAP_IMPORTED', `Bound ${count} Google Drive audio files across curriculum!`);
+        return;
+      } catch (_) { /* continue */ }
+    }
+
+    // Case 2: User pasted a Google Drive Folder URL (`https://drive.google.com/drive/folders/<FOLDER_ID>`)
+    const folderMatch = val.match(/\/folders\/([a-zA-Z0-9_-]{15,})/);
+    if (folderMatch) {
+      const folderId = folderMatch[1];
+      localStorage.setItem('ephphatha_root_folder_id', folderId);
+      pushTelemetryLog('DRIVE_FOLDER_SCAN', `Scanning Google Drive folder ${folderId} for Day 001..365 audio...`);
+      try {
+        const res = await fetch(`${audioEngine.edgeProxyBaseUrl}/discover/${encodeURIComponent(folderId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const dayMap = data.dayMap || {};
+          for (const [dKey, fId] of Object.entries(dayMap)) {
+            localStorage.setItem(`ephphatha_gdrive_id_day_${dKey}`, fId);
+            if (appState.scheduleByDay[Number(dKey)]) {
+              appState.scheduleByDay[Number(dKey)].gdrive_audio_file_id = fId;
+            }
+          }
+          await selectDay(appState.selectedDay);
+          pushTelemetryLog('DRIVE_FOLDER_SYNCED', `Auto-discovered ${data.discoveredCount || 0} audio files from Drive folder!`);
+          return;
+        }
+      } catch (_) { /* fallback below */ }
+    }
+
+    // Case 3: Single File Share Link (`https://drive.google.com/file/d/<ID>/view`) or Raw File ID
     const cleanId = normalizeGoogleDriveAudioId(val);
     if (!cleanId) return;
     localStorage.setItem(`ephphatha_gdrive_id_day_${appState.selectedDay}`, cleanId);

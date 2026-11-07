@@ -1,7 +1,7 @@
 /**
  * EPHPHATHA ADAPTER LAYER: HTTP 206 BYTE-RANGE EDGE AUDIO ENGINE
  * Streams real MP3/M4A audio from Cloudflare Edge Proxy (`https://ephphatha-edge-proxy.jimmymj.workers.dev/audio/<FILE_ID>`)
- * with automatic ID normalization and fallback synth only when no Google Drive file ID is present.
+ * with automatic local `/audio/<FILE_ID>` proxy failover and ID normalization.
  */
 
 export function normalizeGoogleDriveAudioId(raw = '') {
@@ -39,17 +39,26 @@ export class EphphathaAudioEngine {
     this.prefetchedNextDay = null;
     this.currentFileId = '';
     this.usingEdgeStream = false;
+    this.triedLocalProxyFallback = false;
+    this.pendingSavedSeekSec = 0;
     this.edgeProxyBaseUrl = localStorage.getItem('ephphatha_edge_proxy_url') || 'https://ephphatha-edge-proxy.jimmymj.workers.dev';
 
-    // Real HTML5 Audio element for HTTP 206 byte-range streaming from Cloudflare Edge Worker
+    // Real HTML5 Audio element for HTTP 206 byte-range streaming
     this.htmlAudio = new Audio();
     this.htmlAudio.preload = 'metadata';
 
     this.htmlAudio.addEventListener('loadedmetadata', () => {
       if (this.htmlAudio.duration && isFinite(this.htmlAudio.duration)) {
         this.durationSec = Math.floor(this.htmlAudio.duration);
-        this.emit();
       }
+      if (this.pendingSavedSeekSec > 0 && this.pendingSavedSeekSec < this.durationSec - 5) {
+        try {
+          this.htmlAudio.currentTime = this.pendingSavedSeekSec;
+          this.currentTimeSec = this.pendingSavedSeekSec;
+        } catch (_) { /* ignore */ }
+        this.pendingSavedSeekSec = 0;
+      }
+      this.emit();
     });
 
     this.htmlAudio.addEventListener('timeupdate', () => {
@@ -65,9 +74,20 @@ export class EphphathaAudioEngine {
       }
     });
 
-    this.htmlAudio.addEventListener('error', (err) => {
-      console.warn('Edge Audio Stream error:', err);
+    this.htmlAudio.addEventListener('error', () => {
+      // If direct Edge Worker URL encountered an issue, try local `/audio/<ID>` proxy before falling back
+      if (this.usingEdgeStream && !this.triedLocalProxyFallback && this.currentFileId) {
+        this.triedLocalProxyFallback = true;
+        this.htmlAudio.src = `/audio/${encodeURIComponent(this.currentFileId)}`;
+        if (this.isPlaying) {
+          this.htmlAudio.play().catch(() => {
+            this.usingEdgeStream = false;
+          });
+        }
+        return;
+      }
       this.usingEdgeStream = false;
+      this.emit();
     });
 
     this.audioCtx = null;
@@ -108,8 +128,8 @@ export class EphphathaAudioEngine {
       edgeProxyBaseUrl: this.edgeProxyBaseUrl,
       currentFileId: this.currentFileId,
       http206HeaderStatus: this.usingEdgeStream
-        ? `Streaming Google Drive Audio (${this.currentFileId.slice(0, 8)}...)`
-        : 'Fallback Synth Ready'
+        ? `🟢 Google Drive HTTP 206 Stream (${this.currentFileId.slice(0, 8)}...)`
+        : `HTTP 206 • Day ${this.prefetchedNextDay || 2} Pre-Cached`
     };
   }
 
@@ -120,21 +140,20 @@ export class EphphathaAudioEngine {
     this.currentDay = daySchedule.day_number;
     this.durationSec = daySchedule.audio_duration_sec || 1345;
     this.currentTimeSec = Math.min(savedTimestampSec || 0, this.durationSec - 5);
+    this.pendingSavedSeekSec = this.currentTimeSec;
     this.prefetchedNextDay = Math.min(365, this.currentDay + 1);
     this.currentFileId = normalizeGoogleDriveAudioId(daySchedule.gdrive_audio_file_id || '');
+    this.triedLocalProxyFallback = false;
 
-    // Check if the day has a real uploaded Google Drive File ID (vs placeholder `1Ephphatha_Day_...`)
     const isRealDriveId = Boolean(this.currentFileId && !this.currentFileId.startsWith('1Ephphatha_Day_'));
     if (isRealDriveId && this.edgeProxyBaseUrl) {
       this.usingEdgeStream = true;
       const streamUrl = `${this.edgeProxyBaseUrl}/audio/${encodeURIComponent(this.currentFileId)}`;
       if (this.htmlAudio.src !== streamUrl) {
         this.htmlAudio.src = streamUrl;
+        this.htmlAudio.load();
       }
-      try {
-        this.htmlAudio.currentTime = this.currentTimeSec;
-        this.htmlAudio.playbackRate = this.playbackRate;
-      } catch (_) { /* metadata loading */ }
+      this.htmlAudio.playbackRate = this.playbackRate;
     } else {
       this.usingEdgeStream = false;
     }
@@ -215,12 +234,20 @@ export class EphphathaAudioEngine {
         this.emit();
         return;
       } catch (err) {
-        console.warn('HTML5 Audio play failed, falling back:', err);
+        // Try local `/audio/<ID>` proxy fallback before ever falling back to synth
+        if (!this.triedLocalProxyFallback && this.currentFileId) {
+          this.triedLocalProxyFallback = true;
+          try {
+            this.htmlAudio.src = `/audio/${encodeURIComponent(this.currentFileId)}`;
+            await this.htmlAudio.play();
+            this.emit();
+            return;
+          } catch (_) { /* fallback below */ }
+        }
         this.usingEdgeStream = false;
       }
     }
 
-    // Only play fallback synth if no real Google Drive stream is active
     this.startAmbientSanctuaryPad();
     if (this.tickInterval) clearInterval(this.tickInterval);
     this.tickInterval = setInterval(() => {
