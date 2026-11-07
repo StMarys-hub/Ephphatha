@@ -1,0 +1,7 @@
+name = "ephphatha-edge-proxy"
+main = "scripts/cloudflare-edge-worker.js"
+compatibility_date = "2026-01-01"
+
+[vars]
+ALLOWED_ORIGIN = "*"
+

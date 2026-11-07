@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ephphatha — Enterprise Cloud, Google Drive & GitHub Setup Manual</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/styles/main.css" />
+  <style>
+    .guide-container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 4rem 1rem;
+    }
+    .step-card {
+      background: var(--bg-elevated-card);
+      border: 1px solid var(--border-subtle);
+      border-left: 5px solid var(--period-color);
+      border-radius: var(--radius-lg);
+      padding: 1.35rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow-card);
+    }
+    .code-block-wrap {
+      position: relative;
+      margin-top: 0.75rem;
+    }
+    pre.code-block {
+      background: #141923;
+      color: #EAE6DF;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      line-height: 1.55;
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      overflow-x: auto;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.6rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      background: var(--period-color);
+      color: #FFFFFF;
+      border: none;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .step-list {
+      margin: 0.65rem 0 0.65rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body style="padding-bottom: 2rem;">
+  <header class="top-header">
+    <div class="header-inner">
+      <div class="brand-cluster">
+        <div class="brand-emblem">א</div>
+        <div class="brand-titles">
+          <h1>Ephphatha Operations & Cloud Provisioning Guide</h1>
+          <div class="brand-subtitle">Automated Scripts & Manual Setup Steps for Google Drive, Edge Worker & GitHub Pages</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="./index.html" class="ergonomic-btn primary-period" style="text-decoration: none;">
+          ◀ Back to Ephphatha App
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="guide-container">
+    <!-- STEP 1: AUTOMATED GOOGLE DRIVE FOLDER & SHEET PROVISIONING -->
+    <section class="step-card">
+      <div class="section-header-row">
+        <h2>Step 1: Automated Google Drive Folder & Master DB Provisioning</h2>
+        <span class="crypto-badge">1-Click Google Apps Script</span>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.9rem;">
+        Instead of manually creating 14 folders and configuring spreadsheet columns, run this Google Apps Script once to automatically generate <code>Ephphatha_Cloud_Root/</code>, <code>00_System_Manifest_And_DB/</code>, all 12 Salvation History Period folders (<code>01_Early_World</code> through <code>12_The_Church</code>), and the relational <code>Ephphatha_Master_DB</code> Google Sheet.
+      </p>
+
+      <ol class="step-list">
+        <li>Open <a href="https://script.google.com" target="_blank" rel="noopener" style="color: var(--period-color);">https://script.google.com</a> and click <strong>New Project</strong>.</li>
+        <li>Click <strong>Copy Script</strong> below and paste it into the editor, replacing any existing code.</li>
+        <li>Click <strong>Run (▶)</strong> on <code>provisionEphphathaGoogleDriveHierarchy</code> and grant Drive/Sheets permission when prompted.</li>
+        <li>Copy the output JSON from the Execution Log (contains your Folder IDs and Master Sheet ID).</li>
+      </ol>
+
+      <div class="code-block-wrap">
+        <button type="button" class="copy-btn" onclick="copyCode('code-gas', this)">📋 Copy Script</button>
+        <pre class="code-block" id="code-gas">function provisionEphphathaGoogleDriveHierarchy() {
+  var rootFolder = getOrCreateFolder_(DriveApp.getRootFolder(), 'Ephphatha_Cloud_Root');
+  var periodFolders = [
+    '00_System_Manifest_And_DB',
+    '01_Early_World', '02_Patriarchs', '03_Egypt_And_Exodus',
+    '04_Desert_Wanderings', '05_Conquest_And_Judges', '06_Royal_Kingdom',
+    '07_Divided_Kingdom', '08_Exile', '09_Return',
+    '10_Maccabean_Revolt', '11_Messianic_Fulfillment', '12_The_Church'
+  ];
+
+  var folderManifest = {};
+  periodFolders.forEach(function(name) {
+    var sub = getOrCreateFolder_(rootFolder, name);
+    folderManifest[name] = { id: sub.getId(), url: sub.getUrl() };
+  });
+
+  var systemFolder = DriveApp.getFolderById(folderManifest['00_System_Manifest_And_DB'].id);
+  var ss = SpreadsheetApp.create('Ephphatha_Master_DB');
+  DriveApp.getFileById(ss.getId()).moveTo(systemFolder);
+
+  var users = ss.getActiveSheet();
+  users.setName('Users');
+  users.appendRow(['user_id', 'display_name', 'auth_method', 'streak_days', 'grace_shields', 'updated_at']);
+
+  var cohorts = ss.insertSheet('Fellowship_Cohorts');
+  cohorts.appendRow(['cohort_id', 'cohort_name', 'invite_code', 'member_name', 'member_contact', 'status', 'amens_count', 'updated_at']);
+
+  var logs = ss.insertSheet('Progress_Logs');
+  logs.appendRow(['log_id', 'user_id', 'day_number', 'completed', 'audio_timestamp_sec', 'hmac_signature', 'synced_at']);
+
+  Logger.log(JSON.stringify({ rootId: rootFolder.getId(), masterSheetId: ss.getId(), folders: folderManifest }, null, 2));
+}
+
+function getOrCreateFolder_(parent, name) {
+  var iter = parent.getFoldersByName(name);
+  return iter.hasNext() ? iter.next() : parent.createFolder(name);
+}</pre>
+      </div>
+    </section>
+
+    <!-- STEP 2: UPLOAD MANIFEST & AUDIO FILES -->
+    <section class="step-card">
+      <div class="section-header-row">
+        <h2>Step 2: Upload Schedule Manifest & 64kbps HE-AAC (.m4a) Audio</h2>
+        <span class="crypto-badge">Drive Hierarchy</span>
+      </div>
+      <ol class="step-list">
+        <li>Upload <code>data/schedule_manifest_v3.json</code> and <code>data/scripture_fallback_vault.json</code> into <code>Ephphatha_Cloud_Root/00_System_Manifest_And_DB/</code>.</li>
+        <li>Upload each daily audio file (encoded at <strong>64kbps HE-AAC <code>.m4a</code></strong> for fast streaming) into its corresponding Period folder (e.g., Days 001–004 into <code>/01_Early_World/</code>).</li>
+      </ol>
+    </section>
+
+    <!-- STEP 3: CLOUDFLARE WORKER EDGE PROXY (HTTP 206 + ZERO CLIENT SECRETS) -->
+    <section class="step-card">
+      <div class="section-header-row">
+        <h2>Step 3: Deploy Edge Audio & Security Proxy Worker (Zero Secret Exposure)</h2>
+        <span class="crypto-badge">HTTP 206 + Rate Limiting</span>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.9rem;">
+        Deploy <code>scripts/cloudflare-edge-worker.js</code> to Cloudflare Workers (Free Tier: 100,000 requests/day) to enforce <code>Accept-Ranges: bytes</code> (HTTP 206 instant audio scrubbing), Token-Bucket Rate Limiting (30 req/min), and keep your Google Cloud credentials 100% hidden from browser DevTools.
+      </p>
+
+      <h3 style="margin-top: 1rem; font-size: 1rem; color: var(--period-color);">Part 3A: Get Your Google Drive API Key (Takes 60 Seconds — Never Expires)</h3>
+      <ol class="step-list">
+        <li>In Google Drive, right-click your <code>Ephphatha_Cloud_Root</code> folder → <strong>Share</strong> → Set General Access to <strong>"Anyone with the link can Viewer"</strong> (so the Edge Worker can stream audio files using your restricted API key).</li>
+        <li>Open <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener" style="color: var(--period-color);">Google Cloud Console — Google Drive API</a> and click <strong>Enable</strong>.</li>
+        <li>Go to <strong>APIs & Services → Credentials → + Create Credentials → API Key</strong>.</li>
+        <li>Click <strong>Edit API Key</strong> → Under <em>API restrictions</em>, select <strong>Restrict key</strong> → Check <strong>Google Drive API</strong> → Save and copy your API key (starts with <code>AIza...</code>).</li>
+      </ol>
+
+      <h3 style="margin-top: 1rem; font-size: 1rem; color: var(--period-color);">Part 3B: Deploy Worker via Cloudflare Browser Dashboard (No CLI Needed)</h3>
+      <ol class="step-list">
+        <li>Sign in to the free <a href="https://dash.cloudflare.com" target="_blank" rel="noopener" style="color: var(--period-color);">Cloudflare Dashboard</a> → Click <strong>Workers & Pages</strong> (left sidebar) → <strong>Create</strong> → <strong>Create Worker</strong>.</li>
+        <li>Name it <code>ephphatha-edge-proxy</code> and click <strong>Deploy</strong>.</li>
+        <li>Click <strong>Edit Code</strong>, replace the default code in <code>worker.js</code> with the contents of <code>scripts/cloudflare-edge-worker.js</code>, and click <strong>Deploy</strong> (top right).</li>
+        <li>Go back to your Worker overview → Click <strong>Settings → Variables and Secrets → + Add</strong>:
+          <ul style="margin-left: 1.25rem; margin-top: 0.25rem;">
+            <li><strong>Type:</strong> Secret</li>
+            <li><strong>Variable name:</strong> <code>GDRIVE_API_KEY</code></li>
+            <li><strong>Value:</strong> Paste your <code>AIza...</code> Google Drive API Key → Click <strong>Deploy</strong>.</li>
+          </ul>
+        </li>
+        <li>Test your worker by visiting <code>https://ephphatha-edge-proxy.&lt;your-subdomain&gt;.workers.dev/health</code> — it will return <code>{"status":"Ephphatha Edge Gateway Active","authConfigured":true}</code>!</li>
+      </ol>
+
+      <h3 style="margin-top: 1rem; font-size: 1rem; color: var(--period-color);">Part 3C: Alternative 1-Command Terminal Deploy (Using included <code>wrangler.toml</code>)</h3>
+      <div class="code-block-wrap">
+        <button type="button" class="copy-btn" onclick="copyCode('code-cf', this)">📋 Copy Commands</button>
+        <pre class="code-block" id="code-cf"># Run inside c:\Antygravity\Ephphatha (note: use npx.cmd on Windows PowerShell)
+npx.cmd wrangler login
+npx.cmd wrangler secret put GDRIVE_API_KEY
+npx.cmd wrangler deploy</pre>
+      </div>
+    </section>
+
+    <!-- STEP 4: PUBLISH TO GITHUB REPO & GITHUB PAGES -->
+    <section class="step-card">
+      <div class="section-header-row">
+        <h2>Step 4: Push to GitHub `Ephphatha` Repo & Publish via GitHub Pages</h2>
+        <span class="crypto-badge">Zero-Build Static PWA</span>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.9rem;">
+        Ephphatha is architected with standards-native ES Modules and Service Worker caching so it runs directly on GitHub Pages without requiring complex CI build pipelines.
+      </p>
+      <div class="code-block-wrap">
+        <button type="button" class="copy-btn" onclick="copyCode('code-git', this)">📋 Copy Git Commands</button>
+        <pre class="code-block" id="code-git">cd c:\Antygravity\Ephphatha
+git init
+git branch -M main
+git add .
+git commit -m "feat: Ephphatha v3.0 Enterprise Bible in a Year PWA"
+git remote add origin https://github.com/YOUR_GITHUB_USERNAME/Ephphatha.git
+git push -u origin main
+
+# Then in GitHub -> Settings -> Pages:
+# Select Source: "Deploy from a branch" -> Branch: "main" / "/ (root)" -> Save.</pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function copyCode(elementId, btn) {
+      var text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        var orig = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(function () { btn.textContent = orig; }, 1800);
+      });
+    }
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,246 @@
+{
+  "vault_version": "3.0.0-POC-BILINGUAL",
+  "translation_en": "Revised Standard Version Catholic Edition (RSV-CE) / World English Bible",
+  "translation_ml": "പി.ഒ.സി. ബൈബിൾ (POC Malayalam Bible - KCBC)",
+  "passages": {
+    "Genesis 1–2": {
+      "reference_en": "Genesis 1–2",
+      "reference_ml": "ഉൽപത്തി 1–2 (പി.ഒ.സി. ബൈബിൾ)",
+      "verses": [
+        {
+          "verse": 1,
+          "en": "In the beginning God created the heavens and the earth.",
+          "ml": "ആദിയിൽ ദൈവം ആകാശവും ഭൂമിയും സൃഷ്ടിച്ചു.",
+          "la": "In principio creavit Deus caelum et terram.",
+          "audio_ cue_sec": 0
+        },
+        {
+          "verse": 2,
+          "en": "The earth was without form and void, and darkness was upon the face of the deep; and the Spirit of God was moving over the face of the waters.",
+          "ml": "ഭൂമി രൂപരഹിതവും ശൂന്യവുമായിരുന്നു. ആഴത്തിനു മുകളിൽ അന്ധകാരം വ്യാപിച്ചിരുന്നു. ദൈവത്തിന്റെ ചൈതന്യം ജലത്തിനു മീതെ ചലിച്ചുകൊണ്ടിരുന്നു.",
+          "la": "Terra autem erat inanis et vacua, et tenebrae super faciem abyssi, et spiritus Dei ferebatur super aquas.",
+          "audio_cue_sec": 12
+        },
+        {
+          "verse": 3,
+          "en": "And God said, “Let there be light”; and there was light.",
+          "ml": "ദൈവം അരുളിച്ചെയ്തു: വെളിച്ചം ഉണ്ടാകട്ടെ. വെളിച്ചം ഉണ്ടായി.",
+          "la": "Dixitque Deus: “Fiat lux”. Et facta est lux.",
+          "audio_cue_sec": 28
+        },
+        {
+          "verse": 4,
+          "en": "And God saw that the light was good; and God separated the light from the darkness.",
+          "ml": "വെളിച്ചം നല്ലതെന്നു ദൈവം കണ്ടു. അവിടുന്ന് വെളിച്ചത്തെ അന്ധകാരത്തിൽനിന്നു വേർതിരിച്ചു.",
+          "la": "Et vidit Deus lucem quod esset bona et divisit Deus lucem ac tenebras.",
+          "audio_cue_sec": 39
+        },
+        {
+          "verse": 5,
+          "en": "God called the light Day, and the darkness he called Night. And there was evening and there was morning, one day.",
+          "ml": "ദൈവം വെളിച്ചത്തിനു പകലെന്നും അന്ധകാരത്തിനു രാത്രിയെന്നും പേരിട്ടു. സന്ധ്യയായി, പ്രഭാതമായി — ഒന്നാം ദിവസം.",
+          "la": "Appellavitque Deus lucem Diem et tenebras Noctem. Factumque est vespere et mane, dies unus.",
+          "audio_cue_sec": 52
+        },
+        {
+          "verse": 26,
+          "en": "Then God said, “Let us make man in our image, after our likeness; and let them have dominion over the fish of the sea, and over the birds of the air, and over the cattle, and over all the earth.”",
+          "ml": "ദൈവം വീണ്ടും അരുളിച്ചെയ്തു: നമുക്കു നമ്മുടെ ഛായയിലും സാദൃശ്യത്തിലും മനുഷ്യനെ സൃഷ്ടിക്കാം. അവർക്കു കടലിലെ മത്സ്യങ്ങളുടെയും ആകാശത്തിലെ പറവകളുടെയും കന്നുകാലികളുടെയും ഭൂമി മുഴുവന്റെയും മേൽ ആധിപത്യം ഉണ്ടായിരിക്കട്ടെ.",
+          "la": "Et ait Deus: “Faciamus hominem ad imaginem et similitudinem nostram; et praesint piscibus maris et volatilibus caeli.”",
+          "audio_cue_sec": 70
+        },
+        {
+          "verse": 27,
+          "en": "So God created man in his own image, in the image of God he created him; male and female he created them.",
+          "ml": "അങ്ങനെ ദൈവം തന്റെ ഛായയിൽ മനുഷ്യനെ സൃഷ്ടിച്ചു; ദൈവത്തിന്റെ ഛായയിൽ അവിടുന്ന് അവനെ സൃഷ്ടിച്ചു; സ്ത്രീയും പുരുഷനുമായി അവരെ സൃഷ്ടിച്ചു.",
+          "la": "Et creavit Deus hominem ad imaginem suam; ad imaginem Dei creavit illum; masculum et feminam creavit eos.",
+          "audio_cue_sec": 92
+        },
+        {
+          "verse": 31,
+          "en": "And God saw everything that he had made, and behold, it was very good. And there was evening and there was morning, a sixth day.",
+          "ml": "താൻ സൃഷ്ടിച്ചതെല്ലാം വളരെ നല്ലതെന്നു ദൈവം കണ്ടു. സന്ധ്യയായി, പ്രഭാതമായി — ആറാം ദിവസം.",
+          "la": "Viditque Deus cuncta, quae fecerat, et ecce erant valde bona. Et factum est vespere et mane, dies sextus.",
+          "audio_cue_sec": 110
+        }
+      ]
+    },
+    "Job 1–2": {
+      "reference_en": "Job 1–2",
+      "reference_ml": "ജോബ് 1–2 (പി.ഒ.സി. ബൈബിൾ)",
+      "verses": [
+        {
+          "verse": 1,
+          "en": "There was a man in the land of Uz, whose name was Job; and that man was blameless and upright, one who feared God, and turned away from evil.",
+          "ml": "ഊസ് ദേശത്ത് ജോബ് എന്നുപേരായ ഒരുവൻ ഉണ്ടായിരുന്നു. അവൻ നിഷ്കളങ്കനും നീതിമാനും ദൈവഭയമുള്ളവനും തിന്മയിൽനിന്ന് അകന്നു ജീവിക്കുന്നവനും ആയിരുന്നു.",
+          "la": "Vir erat in terra Hus nomine Iob, et erat vir ille simplex et rectus ac timens Deum et recedens a malo.",
+          "audio_cue_sec": 0
+        },
+        {
+          "verse": 21,
+          "en": "And Job said, “Naked I came from my mother's womb, and naked shall I return; the LORD gave, and the LORD has taken away; blessed be the name of the LORD.”",
+          "ml": "അവൻ പറഞ്ഞു: നഗ്നനായി ഞാൻ അമ്മയുടെ ഉദരത്തിൽനിന്നു വന്നു; നഗ്നനായിത്തന്നെ ഞാൻ തിരികെപ്പോകും. കർത്താവ് തന്നു; കർത്താവ് എടുത്തു; കർത്താവിന്റെ നാമം വാഴ്ത്തപ്പെടട്ടെ!",
+          "la": "Et dixit: “Nudus egressus sum de utero matris meae et nudus revertar illuc. Dominus dedit, Dominus abstulit; sit nomen Domini benedictum!”.",
+          "audio_cue_sec": 25
+        }
+      ]
+    },
+    "Psalm 104": {
+      "reference_en": "Psalm 104",
+      "reference_ml": "സങ്കീർത്തനങ്ങൾ 104 (പി.ഒ.സി. ബൈബിൾ)",
+      "verses": [
+        {
+          "verse": 1,
+          "en": "Bless the LORD, O my soul! O LORD my God, thou art very great! Thou art clothed with honor and majesty,",
+          "ml": "എന്റെ ആത്മാവേ, കർത്താവിനെ വാഴ്ത്തുക! എന്റെ ദൈവമായ കർത്താവേ, അങ്ങ് എത്രയോ ഉന്നതനാണ്! അങ്ങ് മഹിമയും തേജസ്സും ധരിച്ചിരിക്കുന്നു.",
+          "la": "Benedic, anima mea, Domino! Domine Deus meus, magnificatus es vehementer! Maiestatem et decorem induisti,",
+          "audio_cue_sec": 0
+        },
+        {
+          "verse": 2,
+          "en": "who coverest thyself with light as with a garment, who hast stretched out the heavens like a tent,",
+          "ml": "വസ്ത്രമെന്നപോലെ അങ്ങ് പ്രകാശം ധരിച്ചിരിക്കുന്നു; കൂടാരമെന്നപോലെ അങ്ങ് ആകാശത്തെ വിരിച്ചിരിക്കുന്നു.",
+          "la": "amictus lumine sicut vestimento, extendens caelum sicut pellem.",
+          "audio_cue_sec": 18
+        },
+        {
+          "verse": 24,
+          "en": "O LORD, how manifold are thy works! In wisdom hast thou made them all; the earth is full of thy creatures.",
+          "ml": "കർത്താവേ, അങ്ങയുടെ പ്രവൃത്തികൾ എത്ര നിരവധിയാണ്! ജ്ഞാനത്തോടെ അങ്ങ് അവയെല്ലാം നിർമ്മിച്ചു; ഭൂമി അങ്ങയുടെ സൃഷ്ടികളാൽ നിറഞ്ഞിരിക്കുന്നു.",
+          "la": "Quam magnificata sunt opera tua, Domine! Omnia in sapientia fecisti; impleta est terra possessione tua.",
+          "audio_cue_sec": 35
+        },
+        {
+          "verse": 30,
+          "en": "When thou sendest forth thy Spirit, they are created; and thou renewest the face of the ground.",
+          "ml": "അങ്ങ് ജീവശ്വാസം അയയ്ക്കുമ്പോൾ അവ സൃഷ്ടിക്കപ്പെടുന്നു; ഭൂമിയുടെ മുഖം അങ്ങ് നവീകരിക്കുകയും ചെയ്യുന്നു.",
+          "la": "Emittes spiritum tuum, et creabuntur, et renovabis faciem terrae.",
+          "audio_cue_sec": 55
+        }
+      ]
+    },
+    "Genesis 3–4": {
+      "reference_en": "Genesis 3–4",
+      "reference_ml": "ഉൽപത്തി 3–4 (പി.ഒ.സി. ബൈബിൾ)",
+      "verses": [
+        {
+          "verse": 8,
+          "en": "And they heard the sound of the LORD God walking in the garden in the cool of the day, and the man and his wife hid themselves from the presence of the LORD God among the trees of the garden.",
+          "ml": "ഇളംകാറ്റുള്ള സായാഹ്നത്തിൽ ദൈവമായ കർത്താവ് തോട്ടത്തിൽ ഉലാത്തുന്നതിന്റെ ശബ്ദം അവർ കേട്ടു. മനുഷ്യനും അവന്റെ ഭാര്യയും ദൈവമായ കർത്താവിന്റെ മുമ്പിൽനിന്നു തോട്ടത്തിലെ വൃക്ഷങ്ങൾക്കിടയിൽ ഒളിച്ചു.",
+          "la": "Et cum audissent vocem Domini Dei deambulantis in paradiso ad auram post meridiem, abscondit se Adam et uxor eius.",
+          "audio_cue_sec": 0
+        },
+        {
+          "verse": 9,
+          "en": "But the LORD God called to the man, and said to him, “Where are you?”",
+          "ml": "ദൈവമായ കർത്താവ് മനുഷ്യനെ വിളിച്ചു ചോദിച്ചു: നീ എവിടെയാണ്?",
+          "la": "Vocavitque Dominus Deus Adam et dixit ei: “Ubi es?”.",
+          "audio_cue_sec": 20
+        },
+        {
+          "verse": 15,
+          "en": "I will put enmity between you and the woman, and between your seed and her seed; he shall bruise your head, and you shall bruise his heel.",
+          "ml": "നിനക്കും സ്ത്രീക്കും നിന്റെ സന്തതിക്കും അവളുടെ സന്തതിക്കും തമ്മിൽ ഞാൻ ശത്രുത ഉളവാക്കും. അവൻ നിന്റെ തല തകർക്കും; നീ അവന്റെ കുതികാലിനു പരിക്കേൽപിക്കും.",
+          "la": "Inimicitias ponam inter te et mulierem et semen tuum et semen illius; ipsum conteret caput tuum, et tu insidiaberis calcaneo eius.",
+          "audio_cue_sec": 35
+        }
+      ]
+    },
+    "Genesis 12–13": {
+      "reference_en": "Genesis 12–13",
+      "reference_ml": "ഉൽപത്തി 12–13 (പി.ഒ.സി. ബൈബിൾ)",
+      "verses": [
+        {
+          "verse": 1,
+          "en": "Now the LORD said to Abram, “Go from your country and your kindred and your father's house to the land that I will show you.",
+          "ml": "കർത്താവ് അബ്രാമിനോട് അരുളിച്ചെയ്തു: നിന്റെ ദേശത്തെയും ബന്ധുക്കളെയും പിതൃഭവനത്തെയും വിട്ട്, ഞാൻ കാണിച്ചുതരുന്ന നാട്ടിലേക്കു പോവുക.",
+          "la": "Dixit autem Dominus ad Abram: “Egredere de terra tua et de cognatione tua et de domo patris tui in terram, quam monstrabo tibi.",
+          "audio_cue_sec": 0
+        },
+        {
+          "verse": 2,
+          "en": "And I will make of you a great nation, and I will bless you, and make your name great, so that you will be a blessing.",
+          "ml": "ഞാൻ നിന്നെ വലിയൊരു ജനതയാക്കും. നിന്നെ ഞാൻ അനുഗ്രഹിക്കുകയും നിന്റെ പേര് മഹത്വമുള്ളതാക്കുകയും ചെയ്യും. നീ ഒരു അനുഗ്രഹമായിരിക്കും.",
+          "la": "Faciamque te in gentem magnam et benedicam tibi et magnificabo nomen tuum, erisque benedictio.",
+          "audio_cue_sec": 18
+        },
+        {
+          "verse": 3,
+          "en": "I will bless those who bless you, and him who curses you I will curse; and by you all the families of the earth shall bless themselves.”",
+          "ml": "നിന്നെ അനുഗ്രഹിക്കുന്നവരെ ഞാൻ അനുഗ്രഹിക്കും. നിന്നെ ശപിക്കുന്നവനെ ഞാൻ ശപിക്കും. ഭൂമിയിലെ സകല കുടുംബങ്ങളും നിന്നിലൂടെ അനുഗ്രഹിക്കപ്പെടും.",
+          "la": "Benedicam benedicentibus tibi et maledicam maledicentibus tibi, atque in te benedicentur universae cognationes terrae”.",
+          "audio_cue_sec": 36
+        }
+      ]
+    },
+    "Exodus 1–3": {
+      "reference_en": "Exodus 1–3",
+      "reference_ml": "പുറപ്പാട് 1–3 (പി.ഒ.സി. ബൈബിൾ)",
+      "verses": [
+        {
+          "verse": 2,
+          "en": "And the angel of the LORD appeared to him in a flame of fire out of the midst of a bush; and he looked, and lo, the bush was burning, yet it was not consumed.",
+          "ml": "അവിടെ ഒരു മുൾപ്പടർപ്പിന്റെ മധ്യത്തിൽനിന്ന് ജ്വലിക്കുന്ന അഗ്നിയിലൂടെ കർത്താവിന്റെ ദൂതൻ അവനു പ്രത്യക്ഷപ്പെട്ടു. മുൾപ്പടർപ്പ് കത്തുന്നെങ്കിലും അത് എരിഞ്ഞു ചാമ്പലാകുന്നില്ലെന്ന് അവൻ കണ്ടു.",
+          "la": "Apparuitque ei angelus Domini in flamma ignis de medio rubi; et videbat quod rubus arderet et non combureretur.",
+          "audio_cue_sec": 0
+        },
+        {
+          "verse": 5,
+          "en": "Then he said, “Do not come near; put off your shoes from your feet, for the place on which you are standing is holy ground.”",
+          "ml": "അവിടുന്ന് അരുളിച്ചെയ്തു: അടുത്തു വരരുത്; നിന്റെ കാലിലെ ചെരിപ്പ് അഴിച്ചുമാറ്റുക. എന്തെന്നാൽ, നീ നിൽക്കുന്ന സ്ഥലം പരിശുദ്ധമായ ഭൂമിയാണ്.",
+          "la": "At ille: “Ne appropies, inquit, huc; solve calceamentum de pedibus tuis: locus enim, in quo stas, terra sancta est”.",
+          "audio_cue_sec": 22
+        },
+        {
+          "verse": 14,
+          "en": "God said to Moses, “I AM WHO I AM.” And he said, “Say this to the people of Israel, ‘I AM has sent me to you.’”",
+          "ml": "ദൈവം മോശയോടു കൽപിച്ചു: ഞാൻ ആകുന്നവൻ ഞാൻ തന്നെ. അവിടുന്ന് തുടർന്നു: ഇസ്രായേൽ മക്കളോടു നീ പറയുക: ‘ഞാൻ ആകുന്നു’ എന്നവൻ എന്നെ നിങ്ങളുടെ അടുത്തേക്ക് അയച്ചിരിക്കുന്നു.",
+          "la": "Dixit Deus ad Moysen: “EGO SUM QUI SUM”. Ait: “Sic dices filiis Israel: QUI EST misit me ad vos”.",
+          "audio_cue_sec": 45
+        }
+      ]
+    },
+    "Mark 7:31–37 & Luke 1": {
+      "reference_en": "Mark 7:31–37 (Ephphatha — The Heart of the App)",
+      "reference_ml": "മർക്കോസ് 7:31–37 (എഫ്ഫാത്താ — പി.ഒ.സി. ബൈബിൾ)",
+      "verses": [
+        {
+          "verse": 32,
+          "en": "And they brought to him a man who was deaf and had an impediment in his speech; and they besought him to lay his hand upon him.",
+          "ml": "ബധിരനും സംസാരവൈകല്യമുള്ളവനുമായ ഒരുവനെ അവർ അവന്റെ അടുക്കൽ കൊണ്ടുവന്ന്, അവന്റെമേൽ കൈവയ്ക്കണമെന്ന് അപേക്ഷിച്ചു.",
+          "la": "Et adducunt ei surdum et mutum et deprecantur eum, ut imponat illi manum.",
+          "audio_cue_sec": 0
+        },
+        {
+          "verse": 33,
+          "en": "And taking him aside from the multitude privately, he put his fingers into his ears, and he spat and touched his tongue;",
+          "ml": "അവൻ അവനെ ജനക്കൂട്ടത്തിൽനിന്നു മാറ്റി തനിച്ചാക്കി, അവന്റെ ചെവികളിൽ വിരലുകൾ ഇടുകയും തുപ്പൽ തൊട്ട് അവന്റെ നാവിൽ സ്പർശിക്കുകയും ചെയ്തു.",
+          "la": "Et apprehendens eum de turba seorsum misit digitos suos in auriculas eius et exspuens tetigit linguam eius;",
+          "audio_cue_sec": 18
+        },
+        {
+          "verse": 34,
+          "en": "And looking up to heaven, he sighed, and said to him, “Ephphatha,” that is, “Be opened.”",
+          "ml": "അനന്തരം, സ്വർഗ്ഗത്തിലേക്ക് നോക്കി നെടുവീർപ്പിട്ടുകൊണ്ട് അവനോട് അരുളിച്ചെയ്തു: “എഫ്ഫാത്താ!” — അതായത്, “തുറക്കപ്പെടട്ടെ!”",
+          "la": "Et suspiciens in caelum ingemuit et ait illi: “Effetha”, quod est: “Adaperire”.",
+          "audio_cue_sec": 35
+        },
+        {
+          "verse": 35,
+          "en": "And his ears were opened, his tongue was released, and he spoke plainly.",
+          "ml": "ഉടനെ അവന്റെ കാതുകൾ തുറക്കപ്പെട്ടു; നാവിന്റെ കെട്ട് അഴിഞ്ഞു; അവൻ വ്യക്തമായി സംസാരിക്കുകയും ചെയ്തു.",
+          "la": "Et statim apertae sunt aures eius, et solutum est vinculum linguae eius, et loquebatur recte.",
+          "audio_cue_sec": 52
+        },
+        {
+          "verse": 37,
+          "en": "And they were astonished beyond measure, saying, “He has done all things well; he even makes the deaf hear and the dumb speak.”",
+          "ml": "അവർ അത്യധികം വിസ്മയിച്ചുകൊണ്ടു പറഞ്ഞു: അവൻ എല്ലാം നന്നായിരിക്കുന്നു; ബധിരർക്കു കേൾവിയും മൂകർക്കു സംസാരശേഷിയും നൽകുന്നു!",
+          "la": "Et eo amplius admirabantur dicentes: “Bene omnia fecit; et surdos facit audire et mutos loqui!”.",
+          "audio_cue_sec": 68
+        }
+      ]
+    }
+  }
+}
+
