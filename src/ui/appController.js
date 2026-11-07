@@ -178,6 +178,12 @@ function applyTheme(themeMode) {
       : 'Switch to Warm Dusk Dark Mode (#1E2430)';
   }
 
+  // Keep mobile status bar / system chrome color in sync with active theme (eliminates black top band in Light Mode)
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute('content', appState.theme === 'dark' ? '#1E2430' : '#FAF7F2');
+  }
+
   // Re-apply active period soft background for current theme
   const dayObj = appState.scheduleByDay[appState.selectedDay];
   if (dayObj?.period) {
@@ -934,10 +940,106 @@ function wireTelemetryStreams() {
 /* ============================================================================
  * GLOBAL CONTROLS & EVENT BINDINGS
  * ============================================================================ */
+function isRunningStandaloneOrFullscreen() {
+  return Boolean(
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  );
+}
+
+async function enterFullScreenAppMode() {
+  const docEl = document.documentElement;
+  try {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (docEl.requestFullscreen) {
+        await docEl.requestFullscreen({ navigationUI: 'hide' });
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      }
+    }
+  } catch (_) {
+    // Ignore if blocked by iOS Safari (where Add to Home Screen is used)
+  }
+  syncFullscreenUiState();
+}
+
+async function toggleFullScreenAppMode() {
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    } else {
+      await enterFullScreenAppMode();
+    }
+  } catch (_) { /* ignore */ }
+  syncFullscreenUiState();
+}
+
+function syncFullscreenUiState() {
+  const isFs = isRunningStandaloneOrFullscreen();
+  const fsBtn = document.getElementById('btn-toggle-fullscreen');
+  if (fsBtn) {
+    fsBtn.textContent = isFs ? '🗗' : '⛶';
+    fsBtn.title = isFs ? 'Exit Full Screen' : 'Enter Full Screen (Hide Address Bar)';
+  }
+  const mobileBar = document.getElementById('mobile-fullscreen-bar');
+  if (mobileBar) {
+    const isMobileViewport = window.innerWidth <= 900 || ('ontouchstart' in window);
+    mobileBar.classList.toggle('hidden', isFs || !isMobileViewport);
+  }
+}
+
 function bindGlobalControls() {
   // Theme Switcher
   document.getElementById('btn-toggle-theme')?.addEventListener('click', () => {
     applyTheme(appState.theme === 'dark' ? 'light' : 'dark');
+  });
+
+  // Full-Screen App Mode (Hide Mobile Browser Address Bar) & Native PWA Install Prompt
+  document.getElementById('btn-toggle-fullscreen')?.addEventListener('click', () => {
+    toggleFullScreenAppMode();
+  });
+  document.getElementById('btn-banner-fullscreen')?.addEventListener('click', () => {
+    enterFullScreenAppMode();
+  });
+  document.addEventListener('fullscreenchange', syncFullscreenUiState);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenUiState);
+  window.addEventListener('resize', syncFullscreenUiState);
+  syncFullscreenUiState();
+
+  // Auto-enter Full Screen on first user tap on mobile browser tabs (hides bottom address bar immediately)
+  const isMobileTouch = window.innerWidth <= 900 || ('ontouchstart' in window);
+  if (isMobileTouch && !isRunningStandaloneOrFullscreen()) {
+    const autoFsOnFirstTap = (evt) => {
+      // Do not hijack if tapping Exit Fullscreen
+      if (evt.target?.closest?.('#btn-toggle-fullscreen')) return;
+      enterFullScreenAppMode();
+      document.removeEventListener('click', autoFsOnFirstTap);
+    };
+    document.addEventListener('click', autoFsOnFirstTap, { once: true });
+  }
+
+  // Capture Native Android/Chrome PWA Install Prompt (`beforeinstallprompt`)
+  let deferredInstallPrompt = null;
+  const installBtn = document.getElementById('btn-banner-install-pwa');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    installBtn?.classList.remove('hidden');
+    syncFullscreenUiState();
+  });
+  installBtn?.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice.catch(() => null);
+    deferredInstallPrompt = null;
+    installBtn.classList.add('hidden');
   });
 
   // 1-Tap Senior-First Font Scaler (AA)

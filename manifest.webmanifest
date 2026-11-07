@@ -1,8 +1,10 @@
 {
-  "name": "Ephphatha (Be Opened) — Bible in a Year Sanctuary",
+  "id": "./",
+  "name": "Ephphatha — Bible in a Year Sanctuary",
   "short_name": "Ephphatha",
   "description": "Local-First Bilingual (English & Malayalam POC) Bible in a Year PWA across the 12 Periods of Salvation History.",
-  "start_url": "./index.html",
+  "start_url": "./",
+  "scope": "./",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "background_color": "#1E2430",
@@ -15,14 +17,25 @@
       "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
-

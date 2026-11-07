@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.2.1" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.2.2" />
 </head>
 <body>
   <!-- ========================================================================
@@ -41,6 +41,9 @@
       </div>
 
       <div class="header-actions">
+        <button type="button" class="icon-action-btn" id="btn-toggle-fullscreen" title="Enter Full Screen (Hide Browser Address Bar)">
+          ⛶
+        </button>
         <button type="button" class="icon-action-btn" id="btn-font-scaler" title="Text Size (100% / 112% / 125%)">
           AA
         </button>
@@ -53,6 +56,15 @@
       </div>
     </div>
   </header>
+
+  <!-- Mobile Full-Screen & Native App Install Bar (Auto-hides once in Full Screen or Installed App mode) -->
+  <div class="mobile-fullscreen-bar hidden" id="mobile-fullscreen-bar">
+    <span class="mobile-fs-label">📱 App Mode (No Address Bar):</span>
+    <div class="mobile-fs-actions">
+      <button type="button" class="mobile-fs-btn primary" id="btn-banner-fullscreen">⛶ Full Screen</button>
+      <button type="button" class="mobile-fs-btn hidden" id="btn-banner-install-pwa">📲 Install App</button>
+    </div>
+  </div>
 
   <!-- ========================================================================
        PRIMARY WORKSPACE CANVAS (>78% Viewport Priority)
@@ -421,7 +433,7 @@
   </div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.2.1';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.2.2';
 
     window.selectJumpDay = (d) => selectDay(d);
 

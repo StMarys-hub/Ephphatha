@@ -237,6 +237,55 @@ body {
   background: var(--period-bg-soft);
 }
 
+/* Mobile Full-Screen & Native PWA Install Banner */
+.mobile-fullscreen-bar {
+  max-width: 960px;
+  margin: 6px 8px 0 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--period-bg-soft);
+  border: 1px solid var(--period-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.mobile-fs-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-fs-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mobile-fs-btn {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--period-color);
+  background: var(--bg-elevated-card);
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-fs-btn.primary {
+  background: var(--period-color);
+  color: #FFFFFF;
+}
+
 /* ============================================================================
  * 2. PRIMARY WORKSPACE SHELL (Edge-to-Edge 8px Grid on Mobile)
  * ============================================================================ */
