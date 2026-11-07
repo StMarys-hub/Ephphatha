@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.3.0" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.3.1" />
 </head>
 <body>
   <!-- ========================================================================
@@ -258,9 +258,8 @@
                 type="text"
                 id="input-join-member-name"
                 class="sanctuary-input"
-                placeholder="Your Display Name"
-                maxlength="48"
-                required />
+                placeholder="Your Display Name (e.g. Thomas)"
+                maxlength="48" />
               <input
                 type="text"
                 id="input-join-member-role"
@@ -276,30 +275,34 @@
             <form id="form-create-cohort" class="cohort-gateway-box">
               <div class="gateway-box-title">✨ Start a New Cohort</div>
               <p class="gateway-box-desc">
-                Spin up a completely isolated community instance with a unique invitation code.
+                Generate a unique code to spin up a completely isolated community instance.
               </p>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; background: var(--bg-elevated-card); padding: 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--period-color);">
+                <span style="font-size: 0.78rem; font-weight: 700;">New Code: <strong id="preview-generated-code" class="code-uppercase-input" style="color: var(--period-color); font-size: 0.95rem;">—</strong></span>
+                <button type="button" class="verse-icon-btn" id="btn-roll-preview-code" title="Generate a New Unique Code">
+                  🎲 Generate Code
+                </button>
+              </div>
               <input
                 type="text"
                 id="input-create-cohort-name"
                 class="sanctuary-input"
-                placeholder="Cohort / Small Group Name"
-                maxlength="64"
-                required />
+                placeholder="Cohort / Small Group Name (Optional)"
+                maxlength="64" />
               <input
                 type="text"
                 id="input-create-member-name"
                 class="sanctuary-input"
-                placeholder="Your Display Name"
-                maxlength="48"
-                required />
+                placeholder="Your Display Name (Optional)"
+                maxlength="48" />
               <input
                 type="text"
                 id="input-create-member-role"
                 class="sanctuary-input"
                 placeholder="Group Role or Note (Optional)"
                 maxlength="60" />
-              <button type="submit" class="ergonomic-btn" style="width: 100%; justify-content: center;">
-                ✨ Generate Code &amp; Create Cohort
+              <button type="submit" class="ergonomic-btn primary-period" style="width: 100%; justify-content: center;">
+                ✨ Create Cohort with This Code
               </button>
             </form>
           </div>
@@ -313,6 +316,9 @@
               <div class="cohort-isolation-row">
                 <span class="crypto-badge" id="cohort-sync-status-badge">🔒 Isolated Cohort</span>
                 <span class="day-badge">Code: <strong id="fellowship-invite-code">—</strong></span>
+                <button type="button" class="verse-icon-btn" id="btn-instant-new-cohort-code" title="Generate a Brand-New Code &amp; Spin Up Isolated Cohort">
+                  🎲 New Code
+                </button>
               </div>
               <h2 id="fellowship-cohort-title">Cohort Community</h2>
             </div>
@@ -600,7 +606,7 @@
   </div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.0';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.1';
 
     window.selectJumpDay = (d) => selectDay(d);
 

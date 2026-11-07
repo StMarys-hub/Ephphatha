@@ -102,8 +102,19 @@ export function normalizeAndValidateInviteCode(rawInput) {
   return { valid: true, code: cleaned, error: null };
 }
 
+function getRandomBytes(length) {
+  const arr = new Uint8Array(length);
+  if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    return globalThis.crypto.getRandomValues(arr);
+  }
+  for (let i = 0; i < length; i++) {
+    arr[i] = Math.floor(Math.random() * 256);
+  }
+  return arr;
+}
+
 export function generateUniqueInviteCode(length = 6) {
-  const bytes = window.crypto.getRandomValues(new Uint8Array(length));
+  const bytes = getRandomBytes(length);
   let code = '';
   for (let i = 0; i < length; i++) {
     code += INVITE_ALPHABET[bytes[i] % INVITE_ALPHABET.length];
@@ -114,21 +125,39 @@ export function generateUniqueInviteCode(length = 6) {
 /**
  * Derives an HMAC-SHA256 Cohort Access Token from the invitation code so that
  * only members possessing the exact code can read/write that cohort partition.
+ * Includes a deterministic fallback for non-HTTPS LAN/mobile testing contexts.
  */
 export async function deriveCohortAccessToken(inviteCode) {
-  const enc = new TextEncoder();
-  const key = await window.crypto.subtle.importKey(
-    'raw',
-    enc.encode('ephphatha-cohort-isolation-v3.3'),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const sig = await window.crypto.subtle.sign('HMAC', key, enc.encode(`COHORT:${inviteCode}`));
-  return Array.from(new Uint8Array(sig))
-    .slice(0, 16)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  try {
+    if (globalThis.crypto && globalThis.crypto.subtle) {
+      const enc = new TextEncoder();
+      const key = await globalThis.crypto.subtle.importKey(
+        'raw',
+        enc.encode('ephphatha-cohort-isolation-v3.3'),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const sig = await globalThis.crypto.subtle.sign('HMAC', key, enc.encode(`COHORT:${inviteCode}`));
+      return Array.from(new Uint8Array(sig))
+        .slice(0, 16)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+  } catch (_) {
+    // Fallback below if WebCrypto subtle is restricted
+  }
+  let h1 = 0xdeadbeef ^ inviteCode.length;
+  let h2 = 0x41c6ce57 ^ inviteCode.length;
+  const str = `ephphatha-cohort-isolation-v3.3:COHORT:${inviteCode}`;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
 }
 
 /**
@@ -137,7 +166,7 @@ export async function deriveCohortAccessToken(inviteCode) {
 export function getLocalMemberIdentity(customName = '', customRole = '') {
   let memberId = localStorage.getItem('ephphatha_member_id_v3');
   if (!memberId) {
-    const rand = Array.from(window.crypto.getRandomValues(new Uint8Array(6)))
+    const rand = Array.from(getRandomBytes(6))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
     memberId = `pilgrim_${rand}`;
@@ -275,7 +304,7 @@ export async function fetchCohortByInviteCode(rawCode) {
   const endpoints = [
     `${getEdgeBaseUrl()}/fellowship/${encodeURIComponent(code)}`
   ];
-  if (window.location.protocol.startsWith('http') && window.location.hostname === 'localhost') {
+  if (globalThis.location && globalThis.location.protocol?.startsWith('http') && globalThis.location.hostname === 'localhost') {
     endpoints.unshift(`/api/fellowship/${encodeURIComponent(code)}`);
   }
 
@@ -342,7 +371,7 @@ export async function persistAndSyncCohort(cohort, mutationType = 'COHORT_SYNC')
     const endpoints = [
       `${getEdgeBaseUrl()}/fellowship/${encodeURIComponent(check.code)}`
     ];
-    if (window.location.protocol.startsWith('http') && window.location.hostname === 'localhost') {
+    if (globalThis.location && globalThis.location.protocol?.startsWith('http') && globalThis.location.hostname === 'localhost') {
       endpoints.unshift(`/api/fellowship/${encodeURIComponent(check.code)}`);
     }
 
@@ -392,37 +421,48 @@ export async function persistAndSyncCohort(cohort, mutationType = 'COHORT_SYNC')
  * 3. CREATE A BRAND-NEW ISOLATED COHORT INSTANCE
  */
 export async function createNewCohortInstance({
-  cohortName,
-  memberName,
+  cohortName = '',
+  memberName = '',
   memberRole = '',
+  preferredInviteCode = '',
   progressMetrics
-}) {
+} = {}) {
   const rate = checkRateLimit('create_cohort');
   if (!rate.allowed) throw new Error('Rate limit reached. Please wait a moment.');
 
-  const cleanCohortName = decodeEntitiesForTextContent(sanitizeUserString(cohortName, 'cohort_name')).slice(0, 64);
-  const cleanMemberName = decodeEntitiesForTextContent(sanitizeUserString(memberName, 'member_name')).slice(0, 48);
+  let inviteCode = '';
+  if (preferredInviteCode) {
+    const prefCheck = normalizeAndValidateInviteCode(preferredInviteCode);
+    if (prefCheck.valid && !getRecordSync('fellowships', `cohort_${prefCheck.code}`)) {
+      inviteCode = prefCheck.code;
+    }
+  }
+  if (!inviteCode) {
+    inviteCode = generateUniqueInviteCode(6);
+    while (getRecordSync('fellowships', `cohort_${inviteCode}`)) {
+      inviteCode = generateUniqueInviteCode(6);
+    }
+  }
+
+  const rawCohortName = String(cohortName || '').trim() || `Fellowship Cohort ${inviteCode}`;
+  const existingIdentity = getLocalMemberIdentity();
+  const rawMemberName = String(memberName || '').trim() || existingIdentity.name || 'Pilgrim Founder';
+
+  const cleanCohortName = decodeEntitiesForTextContent(sanitizeUserString(rawCohortName, 'cohort_name')).slice(0, 64) || `Fellowship Cohort ${inviteCode}`;
+  const cleanMemberName = decodeEntitiesForTextContent(sanitizeUserString(rawMemberName, 'member_name')).slice(0, 48) || 'Pilgrim Founder';
   const cleanRole = decodeEntitiesForTextContent(sanitizeUserString(memberRole, 'member_role')).slice(0, 60);
 
-  if (!cleanCohortName) throw new Error('Please enter a Cohort / Community Name.');
-  if (!cleanMemberName) throw new Error('Please enter your Display Name.');
-
   const identity = getLocalMemberIdentity(cleanMemberName, cleanRole);
-  let inviteCode = generateUniqueInviteCode(6);
-  // Guarantee uniqueness against local store
-  while (getRecordSync('fellowships', `cohort_${inviteCode}`)) {
-    inviteCode = generateUniqueInviteCode(6);
-  }
 
   const nowIso = new Date().toISOString();
   const founderMember = {
     id: identity.memberId,
-    name: identity.name,
+    name: identity.name || cleanMemberName,
     role: identity.role || 'Cohort Founder',
     currentDay: Number(progressMetrics?.selectedDay || 1),
     completedDaysCount: Number(progressMetrics?.totalCompleted || 0),
     streakDays: Number(progressMetrics?.streakDays || 0),
-    activityStatus: progressMetrics?.isPlayingAudio ? 'Listening Now' : 'Active Pilgrim',
+    activityStatus: progressMetrics?.activityStatus || (progressMetrics?.isPlayingAudio ? 'Listening Now' : 'Active Pilgrim'),
     encouragements: 0,
     joinedAt: nowIso,
     updatedAt: nowIso
@@ -451,21 +491,21 @@ export async function createNewCohortInstance({
  */
 export async function joinExistingCohortByCode({
   inviteCode,
-  memberName,
+  memberName = '',
   memberRole = '',
   progressMetrics,
-  allowCreateIfMissing = false,
   fallbackCohortName = ''
-}) {
+} = {}) {
   const rate = checkRateLimit('join_cohort');
   if (!rate.allowed) throw new Error('Too many join attempts. Please wait a moment.');
 
   const check = normalizeAndValidateInviteCode(inviteCode);
   if (!check.valid) throw new Error(check.error);
 
-  const cleanMemberName = decodeEntitiesForTextContent(sanitizeUserString(memberName, 'member_name')).slice(0, 48);
+  const existingIdentity = getLocalMemberIdentity();
+  const rawMemberName = String(memberName || '').trim() || existingIdentity.name || 'Pilgrim Member';
+  const cleanMemberName = decodeEntitiesForTextContent(sanitizeUserString(rawMemberName, 'member_name')).slice(0, 48) || 'Pilgrim Member';
   const cleanRole = decodeEntitiesForTextContent(sanitizeUserString(memberRole, 'member_role')).slice(0, 60);
-  if (!cleanMemberName) throw new Error('Please enter your Display Name to join the cohort.');
 
   const identity = getLocalMemberIdentity(cleanMemberName, cleanRole);
   const lookup = await fetchCohortByInviteCode(check.code);
@@ -473,9 +513,6 @@ export async function joinExistingCohortByCode({
 
   const nowIso = new Date().toISOString();
   if (!cohort) {
-    if (!allowCreateIfMissing) {
-      throw new Error(`No active cohort found for code "${check.code}". Verify the invitation code with your group leader, or create a new cohort.`);
-    }
     cohort = {
       id: `cohort_${check.code}`,
       schemaVersion: 3,
@@ -578,7 +615,7 @@ export async function publishCohortReflection({
   if (cleanText.length > 1000) throw new Error('Reflection must be 1,000 characters or fewer.');
 
   const identity = getLocalMemberIdentity();
-  const rand = Array.from(window.crypto.getRandomValues(new Uint8Array(4)))
+  const rand = Array.from(getRandomBytes(4))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 
@@ -618,7 +655,7 @@ export async function publishCohortPrayerRequest({
 
   const cleanCategory = decodeEntitiesForTextContent(sanitizeUserString(category, 'prayer_category')).slice(0, 36) || 'General Petition';
   const identity = getLocalMemberIdentity();
-  const rand = Array.from(window.crypto.getRandomValues(new Uint8Array(4)))
+  const rand = Array.from(getRandomBytes(4))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 

@@ -1,7 +1,7 @@
 /**
  * EPHPHATHA ADAPTER LAYER: LOCAL-FIRST OPTIMISTIC INDEXEDDB VAULT (<5ms WRITES)
- * Guarantees instant UI mutations with zero blocking network I/O, backed by IndexedDB
- * persistence and an asynchronous BackgroundSync outbox queue.
+ * Guarantees instant UI mutations with zero blocking network I/O, backed by a global
+ * singleton memory mirror, localStorage synchronous durability, and IndexedDB persistence.
  */
 
 const DB_NAME = 'EphphathaLocalVault_v3';
@@ -15,18 +15,45 @@ const STORES = [
   'scripture_cache'
 ];
 
-// Hot in-memory optimistic mirror for <1ms reads and <5ms optimistic commits
-const memoryCache = {
-  progress: {},
-  bookmarks: {},
-  journals_encrypted: {},
-  fellowships: {},
-  sync_outbox: {},
-  scripture_cache: {}
-};
+// Global Singleton State (prevents split-brain across ES module query-string imports)
+if (!globalThis.__EPHPHATHA_IDB_SINGLETON__) {
+  globalThis.__EPHPHATHA_IDB_SINGLETON__ = {
+    memoryCache: {
+      progress: {},
+      bookmarks: {},
+      journals_encrypted: {},
+      fellowships: {},
+      sync_outbox: {},
+      scripture_cache: {}
+    },
+    dbInstance: null,
+    latencyListeners: new Set()
+  };
+}
 
-let dbInstance = null;
-const latencyListeners = new Set();
+const singleton = globalThis.__EPHPHATHA_IDB_SINGLETON__;
+const memoryCache = singleton.memoryCache;
+const latencyListeners = singleton.latencyListeners;
+
+function mirrorStoreToLocalStorage(storeName) {
+  if (storeName === 'scripture_cache') return; // Avoid bloating localStorage with full Bible text
+  try {
+    localStorage.setItem(`ephphatha_mirror_${storeName}_v3`, JSON.stringify(memoryCache[storeName] || {}));
+  } catch (_) { /* ignore quota */ }
+}
+
+function hydrateFromLocalStorageMirror(storeName) {
+  if (storeName === 'scripture_cache') return;
+  try {
+    const raw = localStorage.getItem(`ephphatha_mirror_${storeName}_v3`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        Object.assign(memoryCache[storeName], parsed);
+      }
+    }
+  } catch (_) { /* ignore */ }
+}
 
 export function onStorageLatency(listener) {
   latencyListeners.add(listener);
@@ -46,10 +73,13 @@ function recordLatency(operation, storeName, durationMs) {
 }
 
 export async function initLocalVault() {
-  if (dbInstance) return dbInstance;
+  // Hydrate synchronous localStorage mirror immediately
+  STORES.forEach(store => hydrateFromLocalStorageMirror(store));
+
+  if (singleton.dbInstance) return singleton.dbInstance;
 
   return new Promise((resolve) => {
-    if (!window.indexedDB) {
+    if (typeof window === 'undefined' || !window.indexedDB) {
       resolve(null);
       return;
     }
@@ -66,10 +96,9 @@ export async function initLocalVault() {
     };
 
     req.onsuccess = async (event) => {
-      dbInstance = event.target.result;
-      // Hydrate memory mirror from IndexedDB at boot
+      singleton.dbInstance = event.target.result;
       await Promise.all(STORES.map(store => hydrateStoreToMemory(store)));
-      resolve(dbInstance);
+      resolve(singleton.dbInstance);
     };
 
     req.onerror = () => {
@@ -79,10 +108,10 @@ export async function initLocalVault() {
 }
 
 async function hydrateStoreToMemory(storeName) {
-  if (!dbInstance) return;
+  if (!singleton.dbInstance) return;
   return new Promise((resolve) => {
     try {
-      const tx = dbInstance.transaction(storeName, 'readonly');
+      const tx = singleton.dbInstance.transaction(storeName, 'readonly');
       const store = tx.objectStore(storeName);
       const getAllReq = store.getAll();
       getAllReq.onsuccess = () => {
@@ -92,6 +121,7 @@ async function hydrateStoreToMemory(storeName) {
             memoryCache[storeName][String(item.id)] = item;
           }
         });
+        mirrorStoreToLocalStorage(storeName);
         resolve();
       };
       getAllReq.onerror = () => resolve();
@@ -110,21 +140,27 @@ export async function putRecord(storeName, record) {
   const enriched = {
     ...record,
     id,
-    updatedAt: new Date().toISOString()
+    updatedAt: record.updatedAt || new Date().toISOString()
   };
 
-  // 1. Immediate optimistic memory commit (<0.2ms)
+  if (!memoryCache[storeName]) {
+    memoryCache[storeName] = {};
+  }
+
+  // 1. Immediate optimistic memory commit (<0.2ms) + localStorage mirror
   memoryCache[storeName][id] = enriched;
+  mirrorStoreToLocalStorage(storeName);
+
   const optimisticElapsed = performance.now() - t0;
   recordLatency('OPTIMISTIC_WRITE', storeName, optimisticElapsed);
 
   // 2. Non-blocking IndexedDB transaction commit
-  if (dbInstance) {
+  if (singleton.dbInstance) {
     try {
-      const tx = dbInstance.transaction(storeName, 'readwrite');
+      const tx = singleton.dbInstance.transaction(storeName, 'readwrite');
       tx.objectStore(storeName).put(enriched);
     } catch (_) {
-      // Fallback safely held in memoryCache + localStorage backup
+      // Safely persisted in memoryCache + localStorage mirror
     }
   }
 
@@ -134,13 +170,16 @@ export async function putRecord(storeName, record) {
 export async function deleteRecord(storeName, id) {
   const t0 = performance.now();
   const strId = String(id);
-  delete memoryCache[storeName][strId];
+  if (memoryCache[storeName]) {
+    delete memoryCache[storeName][strId];
+    mirrorStoreToLocalStorage(storeName);
+  }
   const elapsed = performance.now() - t0;
   recordLatency('OPTIMISTIC_DELETE', storeName, elapsed);
 
-  if (dbInstance) {
+  if (singleton.dbInstance) {
     try {
-      const tx = dbInstance.transaction(storeName, 'readwrite');
+      const tx = singleton.dbInstance.transaction(storeName, 'readwrite');
       tx.objectStore(storeName).delete(strId);
     } catch (_) { /* ignore */ }
   }
@@ -158,4 +197,3 @@ export function getAllRecordsSync(storeName) {
 export function getAllRecordsMapSync(storeName) {
   return { ...(memoryCache[storeName] || {}) };
 }
-

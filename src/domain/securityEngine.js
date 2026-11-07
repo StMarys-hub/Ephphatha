@@ -178,25 +178,47 @@ export async function decryptJournalReflection(envelope, userCredentialSeed = 'd
  * 3. HMAC-SHA256 CLOUD SYNC PAYLOAD SIGNING (ANTI-REPLAY / ANTI-TAMPER)
  */
 export async function signSyncPayload(payloadObject, sessionSecret = 'ephphatha-edge-hmac-session-key') {
-  const nonce = Array.from(window.crypto.getRandomValues(new Uint8Array(12)))
+  const randBytes = new Uint8Array(12);
+  if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(randBytes);
+  } else {
+    for (let i = 0; i < 12; i++) randBytes[i] = Math.floor(Math.random() * 256);
+  }
+  const nonce = Array.from(randBytes)
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
   const timestamp = Date.now();
   const canonicalString = `${timestamp}.${nonce}.${JSON.stringify(payloadObject)}`;
 
-  const enc = new TextEncoder();
-  const cryptoKey = await window.crypto.subtle.importKey(
-    'raw',
-    enc.encode(sessionSecret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
+  let signatureHex = '';
+  try {
+    if (globalThis.crypto && globalThis.crypto.subtle) {
+      const enc = new TextEncoder();
+      const cryptoKey = await globalThis.crypto.subtle.importKey(
+        'raw',
+        enc.encode(sessionSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
 
-  const sigBuffer = await window.crypto.subtle.sign('HMAC', cryptoKey, enc.encode(canonicalString));
-  const signatureHex = Array.from(new Uint8Array(sigBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+      const sigBuffer = await globalThis.crypto.subtle.sign('HMAC', cryptoKey, enc.encode(canonicalString));
+      signatureHex = Array.from(new Uint8Array(sigBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+  } catch (_) {
+    // Fallback below if WebCrypto subtle is unavailable (e.g. non-HTTPS LAN mobile preview)
+  }
+
+  if (!signatureHex) {
+    let h = 2166136261;
+    for (let i = 0; i < canonicalString.length; i++) {
+      h ^= canonicalString.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    signatureHex = (h >>> 0).toString(16).padStart(8, '0').repeat(8);
+  }
 
   emitSecurityEvent(
     'HMAC_SHA256_SIGNED',

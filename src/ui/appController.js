@@ -4,16 +4,17 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.3.0';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
   initScriptureVault,
   onFailoverEvent
-} from '../adapters/bibleFailoverGateway.js?v=3.3.0';
+} from '../adapters/bibleFailoverGateway.js';
 import {
   createNewCohortInstance,
   fetchCohortByInviteCode,
+  generateUniqueInviteCode,
   getActiveCohortCode,
   getLocalMemberIdentity,
   joinExistingCohortByCode,
@@ -25,7 +26,7 @@ import {
   setActiveCohortCode,
   supportCohortItem,
   syncMemberProgressToActiveCohort
-} from '../adapters/fellowshipGateway.js?v=3.3.0';
+} from '../adapters/fellowshipGateway.js';
 import {
   deleteRecord,
   getAllRecordsMapSync,
@@ -34,14 +35,14 @@ import {
   initLocalVault,
   onStorageLatency,
   putRecord
-} from '../adapters/indexedDbRepo.js?v=3.3.0';
+} from '../adapters/indexedDbRepo.js';
 import {
   enqueueCloudSyncMutation,
   flushSyncOutboxNow,
   initBackgroundSyncLifecycle,
   onSyncStatusChange
-} from '../adapters/syncWorkerClient.js?v=3.3.0';
-import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js?v=3.3.0';
+} from '../adapters/syncWorkerClient.js';
+import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js';
 import {
   LECTIO_DIVINA_STEPS,
   generateAndDownloadVerseCard,
@@ -72,7 +73,8 @@ const appState = {
   currentPassageData: null,
   userProfile: null,
   lastIdbLatencyMs: 0.18,
-  telemetryFeed: []
+  telemetryFeed: [],
+  previewCohortCode: generateUniqueInviteCode(6)
 };
 
 const audioEngine = new EphphathaAudioEngine();
@@ -726,6 +728,15 @@ function renderFellowshipView() {
   const createNameInput = document.getElementById('input-create-member-name');
   if (joinNameInput && !joinNameInput.value && identity.name) joinNameInput.value = identity.name;
   if (createNameInput && !createNameInput.value && identity.name) createNameInput.value = identity.name;
+
+  // Ensure live preview code is always generated and displayed in the Create Cohort card
+  if (!appState.previewCohortCode) {
+    appState.previewCohortCode = generateUniqueInviteCode(6);
+  }
+  const previewCodeEl = document.getElementById('preview-generated-code');
+  if (previewCodeEl) {
+    previewCodeEl.textContent = appState.previewCohortCode;
+  }
 
   // Render quick-switcher for any cohorts previously joined on this device
   const allSavedCohorts = getAllRecordsSync('fellowships').filter(c => c.schemaVersion >= 3 && c.inviteCode);
@@ -1718,6 +1729,16 @@ function bindFellowshipModuleEvents() {
     }
   });
 
+  // 1b. Roll / Generate New Preview Code inside Gateway
+  document.getElementById('btn-roll-preview-code')?.addEventListener('click', () => {
+    appState.previewCohortCode = generateUniqueInviteCode(6);
+    const previewCodeEl = document.getElementById('preview-generated-code');
+    if (previewCodeEl) {
+      previewCodeEl.textContent = appState.previewCohortCode;
+    }
+    showCohortGatewayAlert(`Generated new invitation code: ${appState.previewCohortCode}. Tap "✨ Launch Cohort with Code" to activate it.`, false);
+  });
+
   // 2. Create Brand-New Isolated Cohort
   document.getElementById('form-create-cohort')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1730,9 +1751,11 @@ function bindFellowshipModuleEvents() {
         cohortName: cohortNameVal,
         memberName: nameVal,
         memberRole: roleVal,
+        preferredInviteCode: appState.previewCohortCode,
         progressMetrics: getCurrentProgressMetrics()
       });
       appState.forceShowCohortGateway = false;
+      appState.previewCohortCode = generateUniqueInviteCode(6);
       showCohortGatewayAlert('');
       const nameField = document.getElementById('input-create-cohort-name');
       if (nameField) nameField.value = '';
@@ -1741,6 +1764,33 @@ function bindFellowshipModuleEvents() {
       pushTelemetryLog('COHORT_CREATED', `Created new isolated cohort ${res.cohort.inviteCode} (${res.cohort.cohortName})`);
     } catch (err) {
       showCohortGatewayAlert(err.message || 'Could not create cohort.', true);
+    }
+  });
+
+  // 2b. 1-Tap Instant New Cohort Code Generator inside Active Cohort Header
+  document.getElementById('btn-instant-new-cohort-code')?.addEventListener('click', async () => {
+    const newCode = generateUniqueInviteCode(6);
+    const identity = getLocalMemberIdentity();
+    try {
+      const res = await createNewCohortInstance({
+        cohortName: `Fellowship Cohort ${newCode}`,
+        memberName: identity.name || 'Pilgrim Founder',
+        memberRole: identity.role || '',
+        preferredInviteCode: newCode,
+        progressMetrics: getCurrentProgressMetrics()
+      });
+      appState.forceShowCohortGateway = false;
+      appState.previewCohortCode = generateUniqueInviteCode(6);
+      if (res?.latencyMs) updateIdbLatencyDisplay(res.latencyMs);
+      renderFellowshipView();
+      const btn = document.getElementById('btn-instant-new-cohort-code');
+      if (btn) {
+        btn.textContent = `✓ New: ${res.cohort.inviteCode}`;
+        setTimeout(() => { btn.textContent = '🎲 New Code'; }, 2200);
+      }
+      pushTelemetryLog('COHORT_CREATED', `Generated new isolated cohort code ${res.cohort.inviteCode}`);
+    } catch (err) {
+      alert(err.message || 'Could not generate new cohort code.');
     }
   });
 
