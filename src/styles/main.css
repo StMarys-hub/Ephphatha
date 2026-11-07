@@ -1,6 +1,6 @@
 /* ============================================================================
  * EPHPHATHA ("BE OPENED") — ENTERPRISE DESIGN SYSTEM & EYE-SOOTHING THEME ENGINE
- * Specification v3.0.0-ENTERPRISE
+ * Specification v3.0.8-MOBILE-ALIGNED
  * Strictly enforces Warm Parchment (#FAF7F2) & Warm Dusk (#1E2430 — NEVER #000000)
  * ============================================================================ */
 
@@ -129,6 +129,22 @@ body {
   flex-wrap: wrap;
 }
 
+@media (max-width: 600px) {
+  .brand-cluster {
+    width: 100%;
+  }
+  .header-actions {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .header-actions::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .brand-cluster {
   display: flex;
   align-items: center;
@@ -173,23 +189,34 @@ body {
 
 /* Minimum 48x48px Senior-First Tap Targets */
 .ergonomic-btn {
-  min-height: 48px;
-  min-width: 48px;
-  padding: 0 0.85rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.65rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated-card);
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .ergonomic-btn {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 0 0.85rem;
+    font-size: 0.85rem;
+    gap: 0.4rem;
+  }
 }
 
 .ergonomic-btn:hover {
@@ -369,7 +396,19 @@ body {
 .day-selector-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  width: 100%;
+}
+
+.day-selector-group .day-number-select {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 600px) {
+  .day-selector-group {
+    width: auto;
+  }
 }
 
 .day-badge {
@@ -410,12 +449,12 @@ body {
 /* Historical Context Accordion/Grid */
 .context-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+  gap: 0.5rem;
   background: var(--bg-subtle-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 0.85rem;
+  padding: 0.75rem;
   margin-top: 0.75rem;
 }
 
@@ -465,24 +504,41 @@ body {
 
 .reading-slot-tabs {
   display: flex;
-  gap: 0.45rem;
-  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
 }
 
 .slot-tab {
-  min-height: 48px;
-  padding: 0.4rem 0.9rem;
+  min-height: 44px;
+  padding: 0.35rem 0.65rem;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--border-subtle);
   background: var(--bg-subtle-surface);
   color: var(--text-primary);
   font-weight: 700;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
+  flex: 1 0 auto;
+}
+
+@media (min-width: 768px) {
+  .reading-slot-tabs {
+    flex-wrap: wrap;
+    width: auto;
+  }
+  .slot-tab {
+    min-height: 48px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.84rem;
+    flex: initial;
+  }
 }
 
 .slot-tab.active {
@@ -583,8 +639,16 @@ body {
   border: 1px solid var(--border-subtle);
   border-left: 4px solid var(--period-color);
   border-radius: var(--radius-md);
-  padding: 1rem 1.1rem;
+  padding: 0.75rem 0.75rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+@media (min-width: 768px) {
+  .verse-card {
+    padding: 1rem 1.1rem;
+  }
 }
 
 .verse-card.audio-active-verse {
@@ -596,7 +660,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.35rem;
   margin-bottom: 0.55rem;
+  flex-wrap: wrap;
 }
 
 .verse-num-badge {
@@ -611,7 +677,8 @@ body {
 
 .verse-actions {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.25rem;
+  flex-wrap: wrap;
 }
 
 .verse-icon-btn {
@@ -857,7 +924,17 @@ body {
 .audio-controls-cluster {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
+  width: 100%;
+  justify-content: space-between;
+}
+
+@media (min-width: 600px) {
+  .audio-controls-cluster {
+    width: auto;
+    justify-content: flex-start;
+    gap: 0.45rem;
+  }
 }
 
 .play-fab {
@@ -877,11 +954,18 @@ body {
 }
 
 .audio-scrubber-wrap {
-  flex: 1;
-  min-width: 180px;
+  flex: 1 1 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
+}
+
+@media (min-width: 600px) {
+  .audio-scrubber-wrap {
+    flex: 1 1 auto;
+    min-width: 180px;
+  }
 }
 
 .scrubber-meta {

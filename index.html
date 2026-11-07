@@ -18,7 +18,7 @@
   <!-- Google Fonts: Inter, Crimson Pro, Noto Sans Malayalam (400, 500, 700), Manjari, JetBrains Mono -->
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@400;500;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.0.8" />
 </head>
 <body>
   <!-- ========================================================================
@@ -106,17 +106,17 @@
           <div class="episode-title-ml lang-ml" id="hero-title-ml">ആദിയിൽ: സൃഷ്ടിയും അനുഗ്രഹവും</div>
 
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary);" id="hero-gdrive-node">
+            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); word-break: break-all; flex: 1; min-width: 0;" id="hero-gdrive-node">
               📁 /01_Early_World/1Ephphatha_Day_001_Audio_64kbps_HEAAC.m4a
             </div>
-            <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; width: 100%; max-width: 360px;">
               <input
                 type="text"
                 id="input-day-gdrive-id"
                 class="sanctuary-input"
-                style="padding: 0.3rem 0.6rem; font-size: 0.76rem; width: 230px; min-height: 36px;"
+                style="padding: 0.3rem 0.6rem; font-size: 0.76rem; flex: 1; min-width: 140px; min-height: 36px;"
                 placeholder="Paste Google Drive Audio File ID..." />
-              <button type="button" class="verse-icon-btn" id="btn-set-day-gdrive-id" title="Bind Google Drive File ID to current Day and stream via Edge Worker">
+              <button type="button" class="verse-icon-btn" id="btn-set-day-gdrive-id" title="Bind Google Drive File ID to current Day and stream via Edge Worker" style="flex-shrink: 0;">
                 🔗 Set Audio ID
               </button>
             </div>
