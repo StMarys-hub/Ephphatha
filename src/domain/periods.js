@@ -138,27 +138,142 @@ export function buildFull365Curriculum(manifestData = {}) {
   const featuredDays = manifestData.featured_days || {};
   const scheduleByDay = {};
 
-  const periodBookMappings = {
-    1: { book: 'Genesis', book_ml: 'ഉൽപത്തി', supp: 'Job', supp_ml: 'ജോബ്', chStart: 1 },
-    2: { book: 'Genesis', book_ml: 'ഉൽപത്തി', supp: 'Job', supp_ml: 'ജോബ്', chStart: 12 },
-    3: { book: 'Exodus', book_ml: 'പുറപ്പാട്', supp: 'Leviticus', supp_ml: 'ലേവ്യർ', chStart: 1 },
-    4: { book: 'Numbers', book_ml: 'സംഖ്യ', supp: 'Deuteronomy', supp_ml: 'നിയമാവർത്തനം', chStart: 1 },
-    5: { book: 'Joshua & Judges', book_ml: 'ജോഷ്വ & ന്യായാധിപന്മാർ', supp: 'Ruth', supp_ml: 'റൂത്ത്', chStart: 1 },
-    6: { book: '1 & 2 Samuel', book_ml: '1 & 2 സാമുവൽ', supp: '1 Chronicles', supp_ml: '1 ദിനവൃത്താന്തം', chStart: 1 },
-    7: { book: '1 & 2 Kings', book_ml: '1 & 2 രാജാക്കന്മാർ', supp: 'Isaiah & Hosea', supp_ml: 'ഏശയ്യാ & ഹോസിയാ', chStart: 12 },
-    8: { book: '2 Kings & Jeremiah', book_ml: '2 രാജാക്കന്മാർ & ജെറമിയ', supp: 'Ezekiel & Daniel', supp_ml: 'എസെക്കിയേൽ & ദാനിയേൽ', chStart: 1 },
-    9: { book: 'Ezra & Nehemiah', book_ml: 'എസ്രാ & നെഹെമിയ', supp: 'Esther & Zechariah', supp_ml: 'എസ്തേർ & സഖറിയാ', chStart: 1 },
-    10: { book: '1 Maccabees', book_ml: '1 മക്കബായർ', supp: 'Sirach & Wisdom', supp_ml: 'പ്രഭാഷകൻ & ജ്ഞാനം', chStart: 1 },
-    11: { book: 'Luke, Mark, Matthew & John', book_ml: 'ലൂക്കാ, മർക്കോസ്, മത്തായി & യോഹന്നാൻ', supp: 'Messianic Prophecies', supp_ml: 'മിശിഹാ പ്രവചനങ്ങൾ', chStart: 1 },
-    12: { book: 'Acts of the Apostles', book_ml: 'അപ്പസ്തോലന്മാരുടെ പ്രവർത്തനങ്ങൾ', supp: 'Pauline Epistles & Revelation', supp_ml: 'പൗലോസിന്റെ ലേഖനങ്ങൾ & വെളിപാട്', chStart: 1 }
+  // Canonical multi-book sequences per period so every generated day has valid book names & chapter numbers
+  const periodCanonicalStreams = {
+    1: {
+      narrative: [{ book: 'Genesis', book_ml: 'ഉൽപത്തി', start: 1, max: 11 }],
+      supp: [{ book: 'Job', book_ml: 'ജോബ്', start: 1, max: 8 }]
+    },
+    2: {
+      narrative: [{ book: 'Genesis', book_ml: 'ഉൽപത്തി', start: 12, max: 50 }],
+      supp: [{ book: 'Job', book_ml: 'ജോബ്', start: 9, max: 42 }]
+    },
+    3: {
+      narrative: [{ book: 'Exodus', book_ml: 'പുറപ്പാട്', start: 1, max: 40 }],
+      supp: [{ book: 'Leviticus', book_ml: 'ലേവ്യാപുസ്തകം', start: 1, max: 27 }]
+    },
+    4: {
+      narrative: [{ book: 'Numbers', book_ml: 'സംഖ്യാപുസ്തകം', start: 1, max: 36 }],
+      supp: [{ book: 'Deuteronomy', book_ml: 'ആവര്‍ത്തനപുസ്തകം', start: 1, max: 34 }]
+    },
+    5: {
+      narrative: [
+        { book: 'Joshua', book_ml: 'യോശുവ', start: 1, max: 24 },
+        { book: 'Judges', book_ml: 'ന്യായാധിപന്മാര്‍', start: 1, max: 21 }
+      ],
+      supp: [
+        { book: 'Ruth', book_ml: 'രൂത്ത്', start: 1, max: 4 },
+        { book: '1 Samuel', book_ml: '1 ശമൂവേൽ', start: 1, max: 8 }
+      ]
+    },
+    6: {
+      narrative: [
+        { book: '1 Samuel', book_ml: '1 ശമൂവേൽ', start: 9, max: 31 },
+        { book: '2 Samuel', book_ml: '2 ശമൂവേൽ', start: 1, max: 24 },
+        { book: '1 Kings', book_ml: '1 രാജാക്കന്മാര്‍', start: 1, max: 11 }
+      ],
+      supp: [
+        { book: '1 Chronicles', book_ml: '1 ദിനവൃത്താന്തം', start: 1, max: 29 },
+        { book: '2 Chronicles', book_ml: '2 ദിനവൃത്താന്തം', start: 1, max: 9 }
+      ]
+    },
+    7: {
+      narrative: [
+        { book: '1 Kings', book_ml: '1 രാജാക്കന്മാര്‍', start: 12, max: 22 },
+        { book: '2 Kings', book_ml: '2 രാജാക്കന്മാര്‍', start: 1, max: 16 }
+      ],
+      supp: [
+        { book: 'Isaiah', book_ml: 'യെശയ്യാവ്', start: 1, max: 39 },
+        { book: 'Hosea', book_ml: 'ഹോശേയ', start: 1, max: 14 },
+        { book: 'Amos', book_ml: 'ആമോസ്', start: 1, max: 9 }
+      ]
+    },
+    8: {
+      narrative: [
+        { book: '2 Kings', book_ml: '2 രാജാക്കന്മാര്‍', start: 17, max: 25 },
+        { book: 'Jeremiah', book_ml: 'യിരെമ്യാവ്', start: 1, max: 52 }
+      ],
+      supp: [
+        { book: 'Ezekiel', book_ml: 'യെഹെസ്കേൽ', start: 1, max: 48 },
+        { book: 'Daniel', book_ml: 'ദാനീയേൽ', start: 1, max: 12 }
+      ]
+    },
+    9: {
+      narrative: [
+        { book: 'Ezra', book_ml: 'എസ്രാ', start: 1, max: 10 },
+        { book: 'Nehemiah', book_ml: 'നെഹെമ്യാവ്', start: 1, max: 13 },
+        { book: 'Esther', book_ml: 'എസ്ഥേര്‍', start: 1, max: 10 }
+      ],
+      supp: [
+        { book: 'Haggai', book_ml: 'ഹഗ്ഗായി', start: 1, max: 2 },
+        { book: 'Zechariah', book_ml: 'സെഖര്യാവ്', start: 1, max: 14 },
+        { book: 'Malachi', book_ml: 'മലാഖി', start: 1, max: 4 }
+      ]
+    },
+    10: {
+      narrative: [
+        { book: '1 Maccabees', book_ml: '1 മക്കബായർ', start: 1, max: 16 },
+        { book: '2 Maccabees', book_ml: '2 മക്കബായർ', start: 1, max: 15 }
+      ],
+      supp: [
+        { book: 'Wisdom', book_ml: 'ജ്ഞാനം', start: 1, max: 19 },
+        { book: 'Sirach', book_ml: 'പ്രഭാഷകൻ', start: 1, max: 51 }
+      ]
+    },
+    11: {
+      narrative: [
+        { book: 'Luke', book_ml: 'ലൂക്കൊസ്', start: 1, max: 24 },
+        { book: 'Matthew', book_ml: 'മത്തായി', start: 1, max: 28 },
+        { book: 'Mark', book_ml: 'മര്‍ക്കൊസ്', start: 1, max: 16 },
+        { book: 'John', book_ml: 'യോഹന്നാന്‍', start: 1, max: 21 }
+      ],
+      supp: [
+        { book: 'Isaiah', book_ml: 'യെശയ്യാവ്', start: 40, max: 66 },
+        { book: 'Hebrews', book_ml: 'എബ്രായര്‍', start: 1, max: 13 }
+      ]
+    },
+    12: {
+      narrative: [
+        { book: 'Acts', book_ml: 'അപ്പൊ. പ്രവൃത്തികള്‍', start: 1, max: 28 },
+        { book: 'Revelation', book_ml: 'വെളിപ്പാട്', start: 1, max: 22 }
+      ],
+      supp: [
+        { book: 'Romans', book_ml: 'റോമര്‍', start: 1, max: 16 },
+        { book: '1 Corinthians', book_ml: '1 കൊരിന്ത്യര്‍', start: 1, max: 16 },
+        { book: '2 Corinthians', book_ml: '2 കൊരിന്ത്യര്‍', start: 1, max: 13 },
+        { book: 'Ephesians', book_ml: 'എഫെസ്യര്‍', start: 1, max: 6 }
+      ]
+    }
   };
+
+  function pickCanonicalPassage(streamList, offsetIdx, chaptersPerDay = 2) {
+    const flatChapters = [];
+    for (const item of streamList) {
+      for (let ch = item.start; ch <= item.max; ch++) {
+        flatChapters.push({ book: item.book, book_ml: item.book_ml, ch });
+      }
+    }
+    if (flatChapters.length === 0) {
+      return { en: 'Genesis 1', ml: 'ഉൽപത്തി 1' };
+    }
+    const startPos = (offsetIdx * chaptersPerDay) % flatChapters.length;
+    const first = flatChapters[startPos];
+    if (chaptersPerDay === 1) {
+      return { en: `${first.book} ${first.ch}`, ml: `${first.book_ml} ${first.ch}` };
+    }
+    const second = flatChapters[Math.min(flatChapters.length - 1, startPos + 1)];
+    if (second && second.book === first.book && second.ch > first.ch) {
+      return { en: `${first.book} ${first.ch}–${second.ch}`, ml: `${first.book_ml} ${first.ch}–${second.ch}` };
+    }
+    return { en: `${first.book} ${first.ch}`, ml: `${first.book_ml} ${first.ch}` };
+  }
 
   for (let day = 1; day <= 365; day++) {
     const period = periods.find(p => day >= p.day_start && day <= p.day_end) || periods[0];
     const dayOffsetInPeriod = day - period.day_start;
-    const mapping = periodBookMappings[period.id];
-    const chA = mapping.chStart + dayOffsetInPeriod * 2;
-    const chB = chA + 1;
+    const streams = periodCanonicalStreams[period.id] || periodCanonicalStreams[1];
+    const narrPair = pickCanonicalPassage(streams.narrative, dayOffsetInPeriod, 2);
+    const suppPair = pickCanonicalPassage(streams.supp, dayOffsetInPeriod, 1);
     const psalmNum = ((day - 1) % 150) + 1;
     const paddedDay = String(day).padStart(3, '0');
 
@@ -172,15 +287,15 @@ export function buildFull365Curriculum(manifestData = {}) {
         day_number: day,
         period_id: period.id,
         period,
-        episode_title: `${period.name} — Day ${dayOffsetInPeriod + 1}: ${ period.theme }`,
-        episode_title_ml: `${period.name_ml} — ദിവസം ${dayOffsetInPeriod + 1}: ${ period.theme_ml }`,
+        episode_title: `${period.name} — Day ${dayOffsetInPeriod + 1}: ${period.theme}`,
+        episode_title_ml: `${period.name_ml} — ദിവസം ${dayOffsetInPeriod + 1}: ${period.theme_ml}`,
         readings: {
-          narrative: `${mapping.book} ${chA}–${chB}`,
-          narrative_ml: `${mapping.book_ml} ${chA}–${chB}`,
-          supplemental: `${mapping.supp} ${dayOffsetInPeriod + 1}`,
-          supplemental_ml: `${mapping.supp_ml} ${dayOffsetInPeriod + 1}`,
+          narrative: narrPair.en,
+          narrative_ml: narrPair.ml,
+          supplemental: suppPair.en,
+          supplemental_ml: suppPair.ml,
           psalm_wisdom: day % 3 === 0 ? `Proverbs ${((day - 1) % 31) + 1}` : `Psalm ${psalmNum}`,
-          psalm_wisdom_ml: day % 3 === 0 ? `സുഭാഷിതങ്ങൾ ${((day - 1) % 31) + 1}` : `സങ്കീർത്തനങ്ങൾ ${psalmNum}`
+          psalm_wisdom_ml: day % 3 === 0 ? `സദൃശവാക്യങ്ങള്‍ ${((day - 1) % 31) + 1}` : `സങ്കീർത്തനങ്ങൾ ${psalmNum}`
         },
         gdrive_audio_file_id: `1Ephphatha_Day_${paddedDay}_${period.code}_64kbps_HEAAC`,
         audio_duration_sec: 1200 + ((day * 37) % 420),
@@ -190,7 +305,7 @@ export function buildFull365Curriculum(manifestData = {}) {
           lineage: period.lineage,
           summary: `Day ${day} continues the ${period.name} narrative (${period.span}), illuminating the theme of ${period.theme} within the unfolding covenant plan of Salvation History.`,
           summary_ml: `രക്ഷാകര ചരിത്രത്തിലെ '${period.name_ml}' (${period.span_ml}) കാലഘട്ടത്തിലൂടെയുള്ള ${day}-ാം ദിവസത്തെ വായനയും ധ്യാനവും.`,
-          reflection_prompt: `As you meditate on ${mapping.book} ${chA}–${chB} and Psalm ${psalmNum}, how is the Lord speaking "Ephphatha — Be Opened" into your life today?`
+          reflection_prompt: `As you meditate on ${narrPair.en} and Psalm ${psalmNum}, how is the Lord speaking "Ephphatha — Be Opened" into your life today?`
         }
       };
     }

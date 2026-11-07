@@ -4,13 +4,13 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.1.0';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.2.0';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
   initScriptureVault,
   onFailoverEvent
-} from '../adapters/bibleFailoverGateway.js';
+} from '../adapters/bibleFailoverGateway.js?v=3.2.0';
 import {
   deleteRecord,
   getAllRecordsMapSync,
@@ -19,14 +19,14 @@ import {
   initLocalVault,
   onStorageLatency,
   putRecord
-} from '../adapters/indexedDbRepo.js';
+} from '../adapters/indexedDbRepo.js?v=3.2.0';
 import {
   enqueueCloudSyncMutation,
   flushSyncOutboxNow,
   initBackgroundSyncLifecycle,
   onSyncStatusChange
-} from '../adapters/syncWorkerClient.js';
-import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js';
+} from '../adapters/syncWorkerClient.js?v=3.2.0';
+import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js?v=3.2.0';
 import {
   LECTIO_DIVINA_STEPS,
   generateAndDownloadVerseCard,
@@ -398,8 +398,13 @@ async function loadActiveReadingSlot(daySchedule) {
 function renderScriptureVerses(passageData) {
   if (!passageData) return;
 
-  setText('reader-active-ref', `${passageData.reference_en} • ${passageData.reference_ml || ''}`);
-  setText('reader-tier-badge', `${passageData.tierBadge} (${passageData.latencyMs.toFixed(1)}ms)`);
+  const totalVerses = passageData.verses?.length || 0;
+  setText('reader-active-ref', `${passageData.reference_en} • ${passageData.reference_ml || ''} (${totalVerses} Verses)`);
+  const tierEl = document.getElementById('reader-tier-badge');
+  if (tierEl) {
+    tierEl.textContent = `Tier ${passageData.activeTier || 1}`;
+    tierEl.title = `${passageData.tierBadge} (${passageData.latencyMs.toFixed(1)}ms)`;
+  }
 
   // Render Quick-Jump Verse Pills
   const jumpBar = document.getElementById('verse-jump-bar');
@@ -410,17 +415,36 @@ function renderScriptureVerses(passageData) {
   versesList.textContent = '';
 
   const bookmarksMap = getAllRecordsMapSync('bookmarks');
+  const distinctChapters = new Set(passageData.verses.map(v => v.chapter).filter(Boolean));
+  const hasMultipleChapters = distinctChapters.size > 1;
+  let lastRenderedChapter = null;
 
   passageData.verses.forEach((v, idx) => {
-    const verseDomId = `verse-card-${v.verse}`;
-    const bookmarkId = `bm_d${appState.selectedDay}_${passageData.reference_en}_v${v.verse}`;
+    const chKey = v.chapter ? `${v.chapter}_` : '';
+    const verseDomId = `verse-card-${chKey}${v.verse}`;
+    const bookmarkId = `bm_d${appState.selectedDay}_${passageData.reference_en}_${chKey}v${v.verse}`;
     const isBookmarked = Boolean(bookmarksMap[bookmarkId]);
+    const displayRefEn = v.ref_en || (v.chapter ? `${passageData.reference_en.replace(/\s+\d+.*$/, '')} ${v.chapter}:${v.verse}` : `${passageData.reference_en} : ${v.verse}`);
+    const displayRefMl = v.ref_ml || passageData.reference_ml || '';
+
+    // Render Chapter Section Header when transitioning chapters in a multi-chapter reading
+    if (hasMultipleChapters && v.chapter && v.chapter !== lastRenderedChapter) {
+      lastRenderedChapter = v.chapter;
+      const chBanner = document.createElement('div');
+      chBanner.className = 'chapter-divider-banner';
+      const bookTitleEn = displayRefEn.replace(/\s+\d+:\d+$/, '');
+      const bookTitleMl = displayRefMl ? displayRefMl.replace(/\s+\d+:\d+$/, '') : '';
+      chBanner.textContent = bookTitleMl
+        ? `📖 ${bookTitleEn} — Chapter ${v.chapter} • ${bookTitleMl} ${v.chapter}`
+        : `📖 ${bookTitleEn} — Chapter ${v.chapter}`;
+      versesList.appendChild(chBanner);
+    }
 
     // 1. Quick-Jump Pill
     const pill = document.createElement('button');
     pill.type = 'button';
     pill.className = 'verse-pill';
-    pill.textContent = `v.${v.verse}`;
+    pill.textContent = hasMultipleChapters && v.chapter ? `${v.chapter}:${v.verse}` : `v.${v.verse}`;
     pill.addEventListener('click', () => {
       const target = document.getElementById(verseDomId);
       if (target) {
@@ -442,7 +466,7 @@ function renderScriptureVerses(passageData) {
 
     const numBadge = document.createElement('span');
     numBadge.className = 'verse-num-badge';
-    numBadge.textContent = `${passageData.reference_en} : ${v.verse}`;
+    numBadge.textContent = displayRefEn;
 
     const actions = document.createElement('div');
     actions.className = 'verse-actions';
@@ -464,7 +488,7 @@ function renderScriptureVerses(passageData) {
     bmBtn.textContent = isBookmarked ? '🔖 Saved' : '🔖';
     bmBtn.title = 'Bookmark Verse';
     bmBtn.addEventListener('click', async () => {
-      await toggleVerseBookmark(bookmarkId, passageData.reference_en, passageData.reference_ml, v);
+      await toggleVerseBookmark(bookmarkId, displayRefEn, displayRefMl, v);
       renderScriptureVerses(appState.currentPassageData);
       renderVaultView();
     });
@@ -481,13 +505,13 @@ function renderScriptureVerses(passageData) {
         dayNumber: appState.selectedDay,
         periodName: periodObj?.name || 'Salvation History',
         periodAccentHex: periodObj?.accent_hex || '#2B8CBE',
-        referenceEn: passageData.reference_en,
-        referenceMl: passageData.reference_ml,
+        referenceEn: displayRefEn,
+        referenceMl: displayRefMl,
         verseNumber: v.verse,
         textEn: v.en,
         textMl: v.ml
       });
-      pushTelemetryLog('VERSE_CARD_GENERATED', `Rendered 1080x1080 bilingual verse card for ${passageData.reference_en}:${v.verse}`);
+      pushTelemetryLog('VERSE_CARD_GENERATED', `Rendered 1080x1080 bilingual verse card for ${displayRefEn}`);
     });
 
     actions.appendChild(speakBtn);

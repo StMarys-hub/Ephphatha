@@ -422,19 +422,25 @@ export function validateScripturePayload(payload) {
 
   const validatedVerses = payload.verses.map((v, idx) => {
     const verseNum = Number(v.verse) || (idx + 1);
+    const chapterNum = Number(v.chapter) || undefined;
+    const refEnLabel = v.ref_en ? decodeEntitiesForTextContent(sanitizeUserString(String(v.ref_en), `verse_${idx}_ref_en`)) : undefined;
+    const refMlLabel = v.ref_ml ? decodeEntitiesForTextContent(sanitizeUserString(String(v.ref_ml), `verse_${idx}_ref_ml`)) : undefined;
     const enText = decodeEntitiesForTextContent(sanitizeUserString(String(v.en || v.text || ''), `verse_${verseNum}_en`));
     const mlText = decodeEntitiesForTextContent(sanitizeUserString(String(v.ml || ''), `verse_${verseNum}_ml`));
     const laText = decodeEntitiesForTextContent(sanitizeUserString(String(v.la || ''), `verse_${verseNum}_la`));
     const translitMl = decodeEntitiesForTextContent(sanitizeUserString(String(v.translit_ml || ''), `verse_${verseNum}_translit`));
     const lexiconNote = decodeEntitiesForTextContent(sanitizeUserString(String(v.lexicon_note || ''), `verse_${verseNum}_lexicon`));
     return {
+      chapter: chapterNum,
       verse: verseNum,
+      ref_en: refEnLabel,
+      ref_ml: refMlLabel,
       en: enText,
       ml: mlText,
       la: laText,
       translit_ml: translitMl,
       lexicon_note: lexiconNote,
-      audio_cue_sec: Number(v.audio_cue_sec) || idx * 14
+      audio_cue_sec: Number(v.audio_cue_sec) || idx * 12
     };
   });
 

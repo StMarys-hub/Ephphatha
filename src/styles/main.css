@@ -116,6 +116,7 @@ body {
   gap: 8px;
   min-width: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .brand-emblem {
@@ -150,7 +151,7 @@ body {
   color: var(--text-secondary);
 }
 
-@media (max-width: 380px) {
+@media (max-width: 480px) {
   .brand-ml {
     display: none;
   }
@@ -617,6 +618,17 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.chapter-divider-banner {
+  background: var(--period-bg-soft);
+  border: 1px solid var(--period-color);
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
 }
 
 .verse-card {
