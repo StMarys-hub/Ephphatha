@@ -8,21 +8,20 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Ephphatha" />
-  <meta name="description" content="Ephphatha ('Be Opened' — Mark 7:34): Zero-latency Local-First Bible in a Year PWA with English & Malayalam POC Bible, 12 Salvation History Periods, and AES-GCM 256-bit Encrypted Prayer Journals." />
-  <title>Ephphatha ("Be Opened") — Bible in a Year Sanctuary</title>
+  <meta name="description" content="Ephphatha ('Be Opened' — Mark 7:34): Local-First Bible in a Year Sanctuary with English & Malayalam POC Bible." />
+  <title>Ephphatha ("Be Opened") — Bible in a Year</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <!-- Google Fonts: Inter, Crimson Pro, Noto Sans Malayalam (400, 500, 700), Manjari, JetBrains Mono -->
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&family=Noto+Sans+Malayalam:wght@400;500;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.0.8" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.1.0" />
 </head>
 <body>
   <!-- ========================================================================
-       TOP SANCTUARY HEADER (Senior-First >=48x48px Controls)
+       SINGLE-ROW COMPACT TOP BAR (56px height — Zero Clutter)
        ======================================================================== -->
   <header class="top-header" role="banner">
     <div class="header-inner">
@@ -31,167 +30,133 @@
         <div class="brand-titles">
           <h1>
             <span>Ephphatha</span>
-            <span class="lang-ml" style="font-size: 0.92rem; font-weight: 600; opacity: 0.9;">എഫ്ഫാത്താ</span>
+            <span class="lang-ml brand-ml">എഫ്ഫാത്താ</span>
           </h1>
-          <div class="brand-subtitle">“Be Opened” (Mark 7:34) • 365-Day Salvation History Sanctuary</div>
+        </div>
+        <div class="streak-pill" id="header-streak-count" title="Active Reading Streak & Grace Shields">
+          🔥 0d
         </div>
       </div>
 
       <div class="header-actions">
-        <div class="streak-pill" id="header-streak-count" title="Grace-First Streak & Shield Status">
-          🔥 0d Streak • 🛡️ 2 Grace Shields • 0%
-        </div>
-
-        <button type="button" class="ergonomic-btn" id="btn-font-scaler" title="Senior-First 1-Tap Font Scaler (100% / 112% / 125%)">
-          AA 100%
+        <button type="button" class="icon-action-btn" id="btn-font-scaler" title="Text Size (100% / 112% / 125%)">
+          AA
         </button>
-
-        <button type="button" class="ergonomic-btn" id="btn-toggle-theme" title="Switch between Warm Parchment (#FAF7F2) and Eye-Soothing Warm Dusk (#1E2430)">
-          ☀️ Parchment Light
+        <button type="button" class="icon-action-btn" id="btn-toggle-theme" title="Toggle Light / Warm Dusk Theme">
+          ☀️
         </button>
-
-        <button type="button" class="ergonomic-btn" id="btn-open-auth-modal" title="Passwordless Native Device Biometric / System PIN Login">
-          🔑 Biometric / Passkey Login
+        <button type="button" class="icon-action-btn" id="btn-open-settings-drawer" title="Settings, Account, Audio Setup & Telemetry">
+          ⚙️
         </button>
-
-        <button type="button" class="ergonomic-btn" id="btn-toggle-inspector" title="Toggle Enterprise Security & Telemetry Inspector">
-          🛡️ Telemetry
-        </button>
-
-        <a href="./setup-guide.html" class="ergonomic-btn" style="text-decoration: none;" title="Open Cloud & Google Drive Setup Operations Manual">
-          📘 Setup Guide
-        </a>
       </div>
     </div>
   </header>
 
   <!-- ========================================================================
-       MAIN WORKSPACE SHELL (Primary View + Desktop Telemetry Inspector)
+       PRIMARY WORKSPACE CANVAS (>78% Viewport Priority)
        ======================================================================== -->
-  <main class="workspace-shell inspector-open" id="workspace-shell">
-    <!-- PRIMARY LEFT COLUMN -->
+  <main class="workspace-shell" id="workspace-shell">
     <div id="primary-view-column">
 
       <!-- ====================================================================
-           VIEW 1: TODAY'S SANCTUARY (12 Periods Ribbon + Reader + Journal)
+           VIEW 1: TODAY'S SANCTUARY (Focused Scripture & Reflection Workflow)
            ==================================================================== -->
       <section id="view-sanctuary">
-        <!-- 12 Periods of Salvation History Ribbon -->
-        <div class="periods-ribbon-wrap" aria-label="12 Periods of Salvation History">
-          <div class="ribbon-header">
-            <span class="ribbon-title">12 Chronological Periods of Salvation History (Dynamic Theme Engine)</span>
-            <span style="font-size: 0.76rem; color: var(--text-secondary);">Tap any period to morph theme & jump to era</span>
-          </div>
-          <div class="periods-strip" id="periods-strip"></div>
-        </div>
 
-        <!-- Day Hero & Historical Context Card -->
+        <!-- Collapsible 12 Periods Strip (Toggled via Period Badge or Era Button) -->
+        <details class="periods-drawer-card" id="periods-accordion">
+          <summary class="periods-summary-bar">
+            <span class="day-badge" id="hero-period-badge">Period 01 • Early World</span>
+            <span class="summary-hint">12 Salvation History Eras ▾</span>
+          </summary>
+          <div class="periods-strip" id="periods-strip"></div>
+        </details>
+
+        <!-- Compact Day Header & Collapsible Historical Context -->
         <div class="day-hero-card">
           <div class="day-nav-row">
             <div class="day-selector-group">
-              <button type="button" class="ergonomic-btn" id="btn-prev-day" aria-label="Previous Day">◀ Prev</button>
-              <select id="day-select-dropdown" class="day-number-select" aria-label="Select Day of Year (1 to 365)"></select>
-              <button type="button" class="ergonomic-btn" id="btn-next-day" aria-label="Next Day">Next ▶</button>
+              <button type="button" class="nav-step-btn" id="btn-prev-day" aria-label="Previous Day">◀</button>
+              <select id="day-select-dropdown" class="day-number-select" aria-label="Select Day (1 to 365)"></select>
+              <button type="button" class="nav-step-btn" id="btn-next-day" aria-label="Next Day">▶</button>
             </div>
-
-            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-              <span class="day-badge" id="hero-period-badge">Period 01 • Early World</span>
-              <button type="button" class="ergonomic-btn" id="btn-mark-day-complete">
-                ☐ Mark Day 1 Complete
-              </button>
-            </div>
+            <button type="button" class="complete-action-btn" id="btn-mark-day-complete">
+              ☐ Complete
+            </button>
           </div>
 
           <h2 class="episode-title-en" id="hero-title-en">Day 1: In the Beginning: Creation & Blessing</h2>
           <div class="episode-title-ml lang-ml" id="hero-title-ml">ആദിയിൽ: സൃഷ്ടിയും അനുഗ്രഹവും</div>
 
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-            <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); word-break: break-all; flex: 1; min-width: 0;" id="hero-gdrive-node">
-              📁 /01_Early_World/1Ephphatha_Day_001_Audio_64kbps_HEAAC.m4a
+          <!-- Progressive Disclosure: Historical Context collapsed by default -->
+          <details class="context-accordion">
+            <summary class="context-summary-trigger">
+              <span>🏛️ Historical Context & Overview</span>
+              <span class="summary-chevron">▾</span>
+            </summary>
+            <div class="context-body">
+              <div class="context-grid">
+                <div>
+                  <div class="context-item-label">Era</div>
+                  <div class="context-item-val" id="ctx-era-date">Primeval Dawn</div>
+                </div>
+                <div>
+                  <div class="context-item-label">Geography</div>
+                  <div class="context-item-val" id="ctx-geography">Eden & Four Rivers</div>
+                </div>
+                <div>
+                  <div class="context-item-label">Lineage</div>
+                  <div class="context-item-val" id="ctx-lineage">Adam & Eve → Seth</div>
+                </div>
+              </div>
+              <p class="context-summary-text" id="ctx-summary"></p>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap; width: 100%; max-width: 360px;">
-              <input
-                type="text"
-                id="input-day-gdrive-id"
-                class="sanctuary-input"
-                style="padding: 0.3rem 0.6rem; font-size: 0.76rem; flex: 1; min-width: 140px; min-height: 36px;"
-                placeholder="Paste Google Drive Audio File ID..." />
-              <button type="button" class="verse-icon-btn" id="btn-set-day-gdrive-id" title="Bind Google Drive File ID to current Day and stream via Edge Worker" style="flex-shrink: 0;">
-                🔗 Set Audio ID
-              </button>
-            </div>
-          </div>
-
-          <div class="context-grid">
-            <div>
-              <div class="context-item-label">Historical Era</div>
-              <div class="context-item-val" id="ctx-era-date">Primeval Dawn</div>
-            </div>
-            <div>
-              <div class="context-item-label">Biblical Geography</div>
-              <div class="context-item-val" id="ctx-geography">Eden & Four Rivers</div>
-            </div>
-            <div>
-              <div class="context-item-label">Covenant Lineage</div>
-              <div class="context-item-val" id="ctx-lineage">Adam & Eve → Seth</div>
-            </div>
-          </div>
-
-          <p style="margin-top: 0.75rem; font-size: 0.92rem; color: var(--text-secondary);" id="ctx-summary"></p>
+          </details>
         </div>
 
-        <!-- Bilingual Verse-by-Verse Scripture Reader -->
+        <!-- Primary Scripture Reader Canvas -->
         <div class="reader-card">
           <div class="reader-toolbar">
             <div class="reading-slot-tabs" id="reading-slot-tabs" role="tablist"></div>
 
-            <div class="lang-mode-group" role="group" aria-label="Scripture Language Display Mode">
-              <button type="button" class="lang-mode-btn active" data-lang-mode="bilingual">Parallel (EN + മലയാളം)</button>
-              <button type="button" class="lang-mode-btn" data-lang-mode="en">English Only</button>
-              <button type="button" class="lang-mode-btn lang-ml" data-lang-mode="ml">മലയാളം (POC)</button>
+            <div class="lang-mode-group" role="group" aria-label="Language Mode">
+              <button type="button" class="lang-mode-btn active" data-lang-mode="bilingual">EN + മലയാളം</button>
+              <button type="button" class="lang-mode-btn" data-lang-mode="en">EN</button>
+              <button type="button" class="lang-mode-btn lang-ml" data-lang-mode="ml">മലയാളം</button>
             </div>
           </div>
 
-          <div class="failover-status-strip">
-            <span id="reader-active-ref">Genesis 1–2 • ഉൽപത്തി 1–2</span>
-            <span class="crypto-badge" id="reader-tier-badge">Tier 1 • Primary Multilingual Gateway</span>
-          </div>
-
-          <!-- Horizontal Quick-Jump Verse Bar -->
-          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-            <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap;">Go to Verse:</span>
+          <!-- Compact Reference & Quick-Jump Verse Bar -->
+          <div class="reader-subbar">
+            <span class="active-passage-title" id="reader-active-ref">Genesis 1–2 • ഉൽപത്തി 1–2</span>
             <div class="verse-jump-bar" id="verse-jump-bar"></div>
           </div>
 
-          <!-- Verse Cards Container -->
+          <!-- Scripture Verses -->
           <div class="verses-list" id="verses-list"></div>
         </div>
 
-        <!-- AES-GCM 256-Bit Encrypted Personal Prayer Reflection Journal + Guided Lectio Divina -->
+        <!-- Personal Prayer Reflection & Guided Contemplation -->
         <div class="journal-card">
           <div class="section-header-row">
-            <div>
-              <h3>🕯️ Guided Lectio Divina & Encrypted Prayer Journal</h3>
-              <p style="font-size: 0.8rem; color: var(--text-secondary);">
-                Encrypted at rest in IndexedDB via Web Crypto API (<code>AES-GCM 256-bit</code>) & synced to your private Google Drive <code>appDataFolder</code>.
-              </p>
-            </div>
-            <span class="crypto-badge">🔒 AES-256-GCM + PBKDF2</span>
+            <h3>🕯️ Prayer Reflection & Lectio Divina</h3>
+            <span class="minimal-status-badge" title="Encrypted at rest in IndexedDB via AES-256-GCM">🔒 Private</span>
           </div>
 
-          <!-- 4-Step Lectio Divina Contemplative Bar -->
-          <div style="background: var(--bg-subtle-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 0.85rem;">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;" id="lectio-steps-pills"></div>
-              <div style="display: flex; align-items: center; gap: 0.45rem;">
-                <span class="crypto-badge" id="lectio-timer-display">02:00</span>
-                <button type="button" class="verse-icon-btn" id="btn-lectio-timer-toggle">▶ Start Contemplation</button>
+          <!-- Collapsible Guided Lectio Divina Timer -->
+          <details class="context-accordion" style="margin-bottom: 0.65rem;">
+            <summary class="context-summary-trigger">
+              <span>⏱️ Guided 4-Step Contemplation Timer</span>
+              <span class="crypto-badge" id="lectio-timer-display">02:00</span>
+            </summary>
+            <div class="context-body">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.45rem;">
+                <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;" id="lectio-steps-pills"></div>
+                <button type="button" class="verse-icon-btn" id="btn-lectio-timer-toggle">▶ Start</button>
               </div>
+              <p style="font-size: 0.82rem; color: var(--text-secondary);" id="lectio-step-instruction"></p>
             </div>
-            <p style="font-size: 0.84rem; color: var(--text-secondary);" id="lectio-step-instruction">
-              1. Lectio (Read): Read today’s bilingual passage slowly twice. Listen for the single word or phrase that gently touches your heart.
-            </p>
-          </div>
+          </details>
 
           <div class="reflection-prompt-box" id="journal-prompt-text">
             Where in your life today is God inviting you to say 'Ephphatha — Be Opened' to His creative light and peace?
@@ -200,34 +165,32 @@
           <textarea
             id="journal-textarea"
             class="sanctuary-textarea"
-            rows="4"
-            placeholder="Write your prayer reflection here (English or മലയാളം)..."></textarea>
+            rows="3"
+            placeholder="Write your prayer reflection (English or മലയാളം)..."></textarea>
 
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem;">
-            <div style="font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-secondary);" id="journal-cipher-preview">
-              Ready for zero-latency local encryption (<5ms).
-            </div>
+          <div class="journal-footer-row">
+            <span class="subtle-status-text" id="journal-cipher-preview">Saved locally & encrypted</span>
             <button type="button" class="ergonomic-btn primary-period" id="btn-save-journal">
-              💾 Encrypt & Save Reflection
+              💾 Save Reflection
             </button>
           </div>
         </div>
       </section>
 
       <!-- ====================================================================
-           VIEW 2: 365-DAY CURRICULUM & SALVATION HISTORY EXPLORER
+           VIEW 2: 365-DAY CURRICULUM EXPLORER
            ==================================================================== -->
       <section id="view-curriculum" class="hidden">
         <div class="day-hero-card">
           <div class="section-header-row">
             <div>
-              <h2>365-Day Salvation History Curriculum Map</h2>
-              <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Dynamic schedule hydrated from <code>schedule_manifest_v3.json</code> across all 12 chronological periods. Tap any day to open its readings and audio.
+              <h2>365-Day Salvation History Plan</h2>
+              <p style="font-size: 0.84rem; color: var(--text-secondary);">
+                Tap any day across the 12 periods to open its readings and audio.
               </p>
             </div>
             <button type="button" class="ergonomic-btn" onclick="window.selectJumpDay && window.selectJumpDay(298)">
-              ✨ Jump to Day 298: Mark 7:34 (“Ephphatha”)
+              ✨ Day 298 (Mark 7:34)
             </button>
           </div>
         </div>
@@ -235,37 +198,37 @@
       </section>
 
       <!-- ====================================================================
-           VIEW 3: FELLOWSHIP COMMUNITY & COHORT ENGINE
+           VIEW 3: FELLOWSHIP COMMUNITY
            ==================================================================== -->
       <section id="view-fellowship" class="hidden">
         <div class="fellowship-card">
           <div class="section-header-row">
             <div>
-              <h2 id="fellowship-cohort-title">St. Thomas Syro-Malabar & Parish Fellowship</h2>
-              <p style="font-size: 0.86rem; color: var(--text-secondary);">
-                Walk through the Bible in a Year together with family & parish cohorts. Synced via <code>Fellowship_Cohorts</code> in <code>Ephphatha_Master_DB</code>.
+              <h2 id="fellowship-cohort-title">St. Thomas Parish Fellowship</h2>
+              <p style="font-size: 0.84rem; color: var(--text-secondary);">
+                Share your invite code and encourage fellow pilgrims with 1-tap prayers.
               </p>
             </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span class="day-badge">Invite Code: <span id="fellowship-invite-code">EPH734</span></span>
-              <button type="button" class="ergonomic-btn" id="btn-regen-invite">🔄 New Code</button>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <span class="day-badge">Code: <span id="fellowship-invite-code">EPH734</span></span>
+              <button type="button" class="verse-icon-btn" id="btn-regen-invite" title="Generate New Code">🔄</button>
             </div>
           </div>
 
-          <form id="form-add-member" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.65rem; margin-top: 1rem;">
+          <form id="form-add-member" class="compact-form-grid">
             <input
               type="text"
               id="input-member-name"
               class="sanctuary-input"
-              placeholder="Member Name (XSS-Sanitized)"
+              placeholder="Member Name"
               required />
             <input
               type="text"
               id="input-member-contact"
               class="sanctuary-input"
-              placeholder="Email or WhatsApp (+1...)" />
+              placeholder="Email or WhatsApp" />
             <button type="submit" class="ergonomic-btn primary-period">
-              ➕ Invite & Add Member
+              ➕ Invite
             </button>
           </form>
 
@@ -274,52 +237,23 @@
       </section>
 
       <!-- ====================================================================
-           VIEW 4: BOOKMARKS & SHARDED APPDATA VAULT + EDGE GATEWAY CONFIG
+           VIEW 4: SAVED BOOKMARKS VAULT
            ==================================================================== -->
       <section id="view-vault" class="hidden">
-        <!-- Edge Audio & Cloud Gateway Configuration Card -->
         <div class="reader-card">
           <div class="section-header-row">
             <div>
-              <h2>☁️ Edge Audio Proxy & Zero-Knowledge Recovery Vault</h2>
-              <p style="font-size: 0.86rem; color: var(--text-secondary);">
-                Connect your deployed Step 3 Cloudflare Edge Worker URL for <code>HTTP 206</code> Google Drive audio streaming, or export your Zero-Knowledge Recovery Key Card.
+              <h2>Saved Bookmarks & Backup</h2>
+              <p style="font-size: 0.84rem; color: var(--text-secondary);">
+                Your bookmarked verses and personal reading progress.
               </p>
             </div>
-            <span class="crypto-badge" id="edge-proxy-status-badge">Local Synth Active</span>
-          </div>
-
-          <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 1rem;">
-            <input
-              type="url"
-              id="input-edge-proxy-url"
-              class="sanctuary-input"
-              style="flex: 1; min-width: 240px;"
-              value="https://ephphatha-edge-proxy.jimmymj.workers.dev"
-              placeholder="https://ephphatha-edge-proxy.jimmymj.workers.dev" />
-            <button type="button" class="ergonomic-btn primary-period" id="btn-save-edge-proxy">
-              🔗 Save & Test Edge Worker
-            </button>
-            <button type="button" class="ergonomic-btn" id="btn-export-recovery-card">
-              🗝️ Download Zero-Knowledge Key Card
-            </button>
-          </div>
-        </div>
-
-        <div class="reader-card">
-          <div class="section-header-row">
-            <div>
-              <h2>Saved Scripture Bookmarks & CRDT Data Shards</h2>
-              <p style="font-size: 0.86rem; color: var(--text-secondary);">
-                Stored locally in <code>IndexedDB</code> (<5ms) with Hybrid Logical Clock (HLC) CRDT conflict resolution and isolated in your Google Drive <code>appDataFolder</code>.
-              </p>
-            </div>
-            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button type="button" class="ergonomic-btn" id="btn-simulate-crdt-merge">
-                🔄 Test Multi-Device CRDT Merge
+            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+              <button type="button" class="verse-icon-btn" id="btn-export-recovery-card">
+                🗝️ Recovery Key
               </button>
               <button type="button" class="ergonomic-btn primary-period" id="btn-export-appdata">
-                ⬇️ Export JSON Shards Backup
+                ⬇️ Export Backup
               </button>
             </div>
           </div>
@@ -328,119 +262,143 @@
         </div>
       </section>
     </div>
-
-    <!-- ======================================================================
-         RIGHT COLUMN: ENTERPRISE TELEMETRY & SECURITY COMPANION INSPECTOR
-         ====================================================================== -->
-    <aside class="telemetry-inspector" id="telemetry-inspector" aria-label="Enterprise Security and Telemetry Inspector">
-      <div class="section-header-row" style="margin-bottom: 0.4rem;">
-        <h3 style="font-size: 0.98rem;">🛡️ Security & Failover Telemetry</h3>
-        <span class="crypto-badge">v3.0 ENTERPRISE</span>
-      </div>
-      <p style="font-size: 0.76rem; color: var(--text-secondary);">
-        Live verification of <5ms IndexedDB writes, 4-Tier Bible API Circuit-Breaker, AES-GCM encryption, and HMAC-SHA256 sync signing.
-      </p>
-
-      <div class="inspector-metric-grid">
-        <div class="metric-box">
-          <div class="context-item-label">IndexedDB Write</div>
-          <div class="metric-val" id="metric-idb-latency">0.18 ms (<5ms SLA)</div>
-        </div>
-        <div class="metric-box">
-          <div class="context-item-label">Active Bible Tier</div>
-          <div class="metric-val" id="metric-active-tier">Tier 1</div>
-        </div>
-        <div class="metric-box">
-          <div class="context-item-label">Rate Limiter</div>
-          <div class="metric-val" id="metric-rate-tokens">30 / 30 rpm</div>
-        </div>
-        <div class="metric-box">
-          <div class="context-item-label">Sync Outbox</div>
-          <div class="metric-val" id="metric-outbox-count">0 pending</div>
-        </div>
-      </div>
-
-      <!-- Interactive 4-Tier Circuit-Breaker Failover Simulator -->
-      <div style="background: var(--bg-subtle-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.7rem; margin-bottom: 0.75rem;">
-        <div class="context-item-label" style="margin-bottom: 0.4rem;">4-Tier Circuit-Breaker Failover Simulator</div>
-        <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; margin-bottom: 0.25rem; cursor: pointer;">
-          <input type="checkbox" id="chk-fail-t1" /> Simulate Tier 1 Outage (Primary API > 1.8s)
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; margin-bottom: 0.25rem; cursor: pointer;">
-          <input type="checkbox" id="chk-fail-t2" /> Simulate Tier 2 Outage (Secondary Mirror)
-        </label>
-        <label style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; cursor: pointer;">
-          <input type="checkbox" id="chk-fail-t3" /> Simulate Tier 3 Outage (Force Tier 4 IndexedDB Vault)
-        </label>
-      </div>
-
-      <div style="display: flex; gap: 0.45rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-        <button type="button" class="ergonomic-btn" style="min-height: 40px; font-size: 0.76rem; flex: 1;" id="btn-flush-outbox-now">
-          ☁️ Flush Sync Outbox
-        </button>
-        <button type="button" class="ergonomic-btn" style="min-height: 40px; font-size: 0.76rem; flex: 1;" id="btn-test-xss-shield">
-          🧪 Test XSS Guard
-        </button>
-      </div>
-
-      <div class="context-item-label" style="margin-bottom: 0.3rem;">
-        Last HMAC-SHA256 Signature: <span id="metric-hmac-sig" style="font-family: var(--font-mono);">Awaiting batch...</span>
-      </div>
-
-      <div class="telemetry-log-list" id="telemetry-log-list"></div>
-    </aside>
   </main>
 
   <!-- ========================================================================
-       PASSWORDLESS DEVICE BIOMETRIC / SYSTEM PIN AUTHENTICATION MODAL
+       SLIDE-OVER SETTINGS, AUDIO CONFIG & SYSTEM TELEMETRY DRAWER (Progressive Disclosure)
+       All technical metadata, audio file IDs, login, and diagnostics live here!
        ======================================================================== -->
-  <div class="modal-backdrop hidden" id="auth-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
-    <div class="modal-card">
-      <div class="section-header-row">
-        <h3 id="auth-modal-title">🔐 Passwordless Device Biometric Login</h3>
-        <button type="button" class="verse-icon-btn" id="btn-close-auth-modal">✕</button>
+  <div class="modal-backdrop hidden" id="settings-drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title">
+    <aside class="slide-over-drawer">
+      <div class="section-header-row" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.65rem;">
+        <h3 id="settings-drawer-title">⚙️ Settings & System Configuration</h3>
+        <button type="button" class="verse-icon-btn" id="btn-close-settings-drawer">✕ Close</button>
       </div>
-      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
-        No password required. Ephphatha uses <strong>W3C WebAuthn Platform Passkeys</strong> (FaceID, TouchID, Windows Hello PIN/Biometrics, or Android Biometrics) paired with <strong>OAuth 2.0 + PKCE (S256)</strong> to isolate your personal reading progress and encrypt your prayer journal at rest.
-      </p>
 
-      <label for="input-biometric-name" class="context-item-label">Your Pilgrim Display Name</label>
-      <input
-        type="text"
-        id="input-biometric-name"
-        class="sanctuary-input"
-        style="margin: 0.35rem 0 1rem 0;"
-        value="Pilgrim Thomas" />
-
-      <div style="display: flex; gap: 0.65rem; justify-content: flex-end; flex-wrap: wrap;">
-        <button type="button" class="ergonomic-btn primary-period" id="btn-trigger-biometric-login" style="width: 100%;">
-          🪪 Authenticate with Device Biometrics / PIN
-        </button>
+      <!-- 1. Account & Biometric Passkey Login -->
+      <div class="drawer-section">
+        <div class="context-item-label">1. Pilgrim Profile & Passwordless Passkey</div>
+        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
+          <input
+            type="text"
+            id="input-biometric-name"
+            class="sanctuary-input"
+            style="padding: 0.45rem 0.65rem; font-size: 0.85rem;"
+            value="Pilgrim Thomas" />
+          <button type="button" class="ergonomic-btn primary-period" id="btn-trigger-biometric-login">
+            🔑 Sign In
+          </button>
+        </div>
       </div>
-    </div>
+
+      <!-- 2. Google Drive Audio ID / Folder Configuration -->
+      <div class="drawer-section">
+        <div class="context-item-label">2. Audio Stream Source (Current Day / Drive Folder)</div>
+        <div class="drawer-mono-note" id="hero-gdrive-node">
+          📁 /01_Early_World/
+        </div>
+        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
+          <input
+            type="text"
+            id="input-day-gdrive-id"
+            class="sanctuary-input"
+            style="padding: 0.45rem 0.65rem; font-size: 0.82rem;"
+            placeholder="Paste Drive File ID, Share Link, or JSON..." />
+          <button type="button" class="ergonomic-btn" id="btn-set-day-gdrive-id">
+            🔗 Bind Audio
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 0.4rem; margin-top: 0.45rem;">
+          <input
+            type="url"
+            id="input-edge-proxy-url"
+            class="sanctuary-input"
+            style="padding: 0.45rem 0.65rem; font-size: 0.8rem;"
+            value="https://ephphatha-edge-proxy.jimmymj.workers.dev" />
+          <button type="button" class="verse-icon-btn" id="btn-save-edge-proxy">
+            ☁️ Test Worker
+          </button>
+        </div>
+        <div style="margin-top: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+          <span class="crypto-badge" id="edge-proxy-status-badge">Edge Proxy Ready</span>
+          <a href="./setup-guide.html" class="verse-icon-btn" style="text-decoration: none;">📘 Open Cloud Setup Guide</a>
+        </div>
+      </div>
+
+      <!-- 3. Advanced System Telemetry & Failover Diagnostics (Collapsed by default) -->
+      <details class="context-accordion">
+        <summary class="context-summary-trigger">
+          <span>🛡️ System Telemetry & Failover Diagnostics</span>
+          <span class="crypto-badge" id="reader-tier-badge">Tier 1</span>
+        </summary>
+        <div class="context-body">
+          <div class="inspector-metric-grid">
+            <div class="metric-box">
+              <div class="context-item-label">IndexedDB Write</div>
+              <div class="metric-val" id="metric-idb-latency">0.18 ms</div>
+            </div>
+            <div class="metric-box">
+              <div class="context-item-label">Bible API Tier</div>
+              <div class="metric-val" id="metric-active-tier">Tier 1</div>
+            </div>
+            <div class="metric-box">
+              <div class="context-item-label">Rate Limiter</div>
+              <div class="metric-val" id="metric-rate-tokens">30 / 30 rpm</div>
+            </div>
+            <div class="metric-box">
+              <div class="context-item-label">Sync Outbox</div>
+              <div class="metric-val" id="metric-outbox-count">0 pending</div>
+            </div>
+          </div>
+
+          <div style="margin: 0.5rem 0;">
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; margin-bottom: 0.2rem;">
+              <input type="checkbox" id="chk-fail-t1" /> Simulate Tier 1 Outage
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; margin-bottom: 0.2rem;">
+              <input type="checkbox" id="chk-fail-t2" /> Simulate Tier 2 Outage
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.76rem;">
+              <input type="checkbox" id="chk-fail-t3" /> Simulate Tier 3 Outage (Offline Vault)
+            </label>
+          </div>
+
+          <div style="display: flex; gap: 0.35rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="verse-icon-btn" id="btn-flush-outbox-now">☁️ Flush Sync</button>
+            <button type="button" class="verse-icon-btn" id="btn-test-xss-shield">🧪 Test XSS Guard</button>
+            <button type="button" class="verse-icon-btn" id="btn-simulate-crdt-merge">🔄 CRDT Merge</button>
+          </div>
+
+          <div class="context-item-label" style="margin-bottom: 0.25rem;">
+            HMAC: <span id="metric-hmac-sig" style="font-family: var(--font-mono);">Verified</span>
+          </div>
+          <div class="telemetry-log-list" id="telemetry-log-list"></div>
+        </div>
+      </details>
+    </aside>
   </div>
 
   <!-- ========================================================================
-       THUMB-ZONE DOCK: HTTP 206 AUDIO STREAM PLAYER + BOTTOM TAB BAR
+       COMPACT THUMB-ZONE DOCK: SINGLE-ROW AUDIO BAR + 4-TAB NAVIGATION
        ======================================================================== -->
   <div class="thumb-zone-dock">
-    <!-- Audio Player Bar -->
+    <!-- Single-Row Consolidated Audio Player -->
     <div class="audio-player-bar" role="region" aria-label="Daily Audio Player">
-      <div class="audio-controls-cluster">
-        <button type="button" class="ergonomic-btn" id="btn-audio-back-15" title="Rewind 15 Seconds">-15s</button>
-        <button type="button" class="play-fab" id="btn-audio-play-pause" aria-label="Play or Pause Daily Audio">▶</button>
-        <button type="button" class="ergonomic-btn" id="btn-audio-fwd-15" title="Skip Forward 15 Seconds">+15s</button>
-        <button type="button" class="ergonomic-btn" id="btn-audio-speed" title="Cycle Playback Speed">1x</button>
-      </div>
+      <button type="button" class="play-fab" id="btn-audio-play-pause" aria-label="Play or Pause">▶</button>
+      <button type="button" class="audio-mini-btn" id="btn-audio-back-15" title="Rewind 15s">-15s</button>
 
       <div class="audio-scrubber-wrap">
+        <input type="range" id="audio-scrubber" class="audio-range-input" min="0" max="1345" value="0" aria-label="Audio Timeline" />
         <div class="scrubber-meta">
           <span id="audio-time-current">00:00</span>
-          <span id="audio-prefetch-badge" style="color: var(--period-color);">HTTP 206 • Day 2 Pre-Cached</span>
+          <span id="audio-prefetch-badge" class="audio-status-dot" title="HTTP 206 Google Drive Stream Active">● Ready</span>
           <span id="audio-time-total">22:25</span>
         </div>
-        <input type="range" id="audio-scrubber" class="audio-range-input" min="0" max="1345" value="0" aria-label="Audio Playback Timeline" />
       </div>
+
+      <button type="button" class="audio-mini-btn" id="btn-audio-fwd-15" title="Forward 15s">+15s</button>
+      <button type="button" class="audio-mini-btn" id="btn-audio-speed" title="Playback Speed">1x</button>
     </div>
 
     <!-- Bottom Tab Navigation -->
@@ -449,19 +407,19 @@
         <span>📖 Sanctuary</span>
       </button>
       <button type="button" class="tab-nav-btn" data-nav-tab="curriculum">
-        <span>🗓️ 365-Day Plan</span>
+        <span>🗓️ 365 Plan</span>
       </button>
       <button type="button" class="tab-nav-btn" data-nav-tab="fellowship">
         <span>🤝 Fellowship</span>
       </button>
       <button type="button" class="tab-nav-btn" data-nav-tab="vault">
-        <span>🔖 Saved Vault</span>
+        <span>🔖 Saved</span>
       </button>
     </nav>
   </div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.0.7';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.1.0';
 
     window.selectJumpDay = (d) => selectDay(d);
 
@@ -474,4 +432,3 @@
   </script>
 </body>
 </html>
-

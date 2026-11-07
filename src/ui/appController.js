@@ -4,7 +4,7 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.0.7';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.1.0';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
@@ -172,9 +172,10 @@ function applyTheme(themeMode) {
 
   const themeBtn = document.getElementById('btn-toggle-theme');
   if (themeBtn) {
-    themeBtn.textContent = appState.theme === 'dark'
-      ? '☀️ Parchment Light'
-      : '🌙 Warm Dusk (#1E2430)';
+    themeBtn.textContent = appState.theme === 'dark' ? '☀️' : '🌙';
+    themeBtn.title = appState.theme === 'dark'
+      ? 'Switch to Warm Parchment Light Mode (#FAF7F2)'
+      : 'Switch to Warm Dusk Dark Mode (#1E2430)';
   }
 
   // Re-apply active period soft background for current theme
@@ -199,7 +200,7 @@ function applyFontScale(scaleStr) {
 
   const fontBtn = document.getElementById('btn-font-scaler');
   if (fontBtn) {
-    fontBtn.textContent = `AA ${valid}%`;
+    fontBtn.textContent = valid === '100' ? 'AA' : `AA ${valid}%`;
   }
 }
 
@@ -278,6 +279,8 @@ function renderPeriodsRibbon() {
 
     btn.addEventListener('click', () => {
       selectDay(p.day_start);
+      const acc = document.getElementById('periods-accordion');
+      if (acc) acc.removeAttribute('open');
     });
 
     strip.appendChild(btn);
@@ -342,17 +345,15 @@ function renderDayHeroCard(daySchedule) {
   const isDone = Boolean(progressRec?.completed);
   const completeBtn = document.getElementById('btn-mark-day-complete');
   if (completeBtn) {
-    completeBtn.textContent = isDone
-      ? `✅ Day ${daySchedule.day_number} Completed`
-      : `☐ Mark Day ${daySchedule.day_number} Complete`;
-    completeBtn.className = isDone ? 'ergonomic-btn primary-period' : 'ergonomic-btn';
+    completeBtn.textContent = isDone ? '✅ Done' : '☐ Complete';
+    completeBtn.className = isDone ? 'complete-action-btn primary-period' : 'complete-action-btn';
   }
 
-  // Update Reading Slot Tab labels
+  // Update Reading Slot Tab labels (Concise Scannable Micro-copy)
   const slots = [
     { key: 'narrative', label: '1. Narrative', ref: daySchedule.readings.narrative, refMl: daySchedule.readings.narrative_ml },
     { key: 'supplemental', label: '2. Supplemental', ref: daySchedule.readings.supplemental, refMl: daySchedule.readings.supplemental_ml },
-    { key: 'psalm_wisdom', label: '3. Psalm / Wisdom', ref: daySchedule.readings.psalm_wisdom, refMl: daySchedule.readings.psalm_wisdom_ml }
+    { key: 'psalm_wisdom', label: '3. Psalm', ref: daySchedule.readings.psalm_wisdom, refMl: daySchedule.readings.psalm_wisdom_ml }
   ];
 
   const slotContainer = document.getElementById('reading-slot-tabs');
@@ -460,7 +461,8 @@ function renderScriptureVerses(passageData) {
     const bmBtn = document.createElement('button');
     bmBtn.type = 'button';
     bmBtn.className = `verse-icon-btn ${isBookmarked ? 'bookmarked' : ''}`;
-    bmBtn.textContent = isBookmarked ? '🔖 Saved' : '🔖 Bookmark';
+    bmBtn.textContent = isBookmarked ? '🔖 Saved' : '🔖';
+    bmBtn.title = 'Bookmark Verse';
     bmBtn.addEventListener('click', async () => {
       await toggleVerseBookmark(bookmarkId, passageData.reference_en, passageData.reference_ml, v);
       renderScriptureVerses(appState.currentPassageData);
@@ -471,7 +473,7 @@ function renderScriptureVerses(passageData) {
     const shareCardBtn = document.createElement('button');
     shareCardBtn.type = 'button';
     shareCardBtn.className = 'verse-icon-btn';
-    shareCardBtn.textContent = '🎨 Share Card';
+    shareCardBtn.textContent = '🎨 Share';
     shareCardBtn.title = 'Download High-DPI Bilingual Verse Image Card';
     shareCardBtn.addEventListener('click', async () => {
       const periodObj = appState.scheduleByDay[appState.selectedDay]?.period;
@@ -566,12 +568,13 @@ async function loadDayJournalEntry(dayNum, daySchedule) {
     const plain = await decryptJournalReflection(storedEnvelope, credentialSeed);
     textarea.value = plain;
     if (cipherPreview) {
-      cipherPreview.textContent = `AES-256-GCM Ciphertext in IndexedDB: ${storedEnvelope.ciphertext.slice(0, 44)}... (IV: ${storedEnvelope.iv})`;
+      cipherPreview.textContent = '🔒 Saved & Encrypted';
+      cipherPreview.title = `AES-256-GCM Ciphertext: ${storedEnvelope.ciphertext.slice(0, 32)}...`;
     }
   } else {
     textarea.value = '';
     if (cipherPreview) {
-      cipherPreview.textContent = 'No reflection saved for this day yet. Reflections are encrypted with AES-GCM 256-bit before writing to IndexedDB.';
+      cipherPreview.textContent = '🔒 Private & Encrypted';
     }
   }
 }
@@ -596,7 +599,8 @@ async function saveCurrentDayJournal() {
   updateIdbLatencyDisplay(writeRes.latencyMs);
 
   if (cipherPreview) {
-    cipherPreview.textContent = `✅ Saved in ${writeRes.latencyMs}ms • AES-256-GCM Ciphertext: ${encryptedEnvelope.ciphertext.slice(0, 44)}...`;
+    cipherPreview.textContent = `✅ Saved (${writeRes.latencyMs}ms)`;
+    cipherPreview.title = `AES-256-GCM Ciphertext: ${encryptedEnvelope.ciphertext.slice(0, 32)}...`;
   }
 
   await enqueueCloudSyncMutation('SAVE_ENCRYPTED_JOURNAL', 'appDataFolder/journals.json', {
@@ -822,7 +826,11 @@ function refreshGraceStreakHeader() {
   const progressMap = getAllRecordsMapSync('progress');
   const stats = calculateGraceStreak(progressMap, appState.selectedDay);
 
-  setText('header-streak-count', `🔥 ${stats.streakDays}d Streak • 🛡️ ${stats.graceShieldsAvailable} Grace Shields • ${stats.percentComplete}%`);
+  const el = document.getElementById('header-streak-count');
+  if (el) {
+    el.textContent = `🔥 ${stats.streakDays}d`;
+    el.title = `🔥 ${stats.streakDays}d Streak • 🛡️ ${stats.graceShieldsAvailable} Grace Shields • ${stats.percentComplete}% Complete`;
+  }
 }
 
 function updateIdbLatencyDisplay(ms) {
@@ -876,7 +884,11 @@ function wireTelemetryStreams() {
 
     setText('audio-time-current', formatSecondsAsTime(audioState.currentTimeSec));
     setText('audio-time-total', formatSecondsAsTime(audioState.durationSec));
-    setText('audio-prefetch-badge', audioState.http206HeaderStatus || `HTTP 206 • Day ${audioState.prefetchedNextDay} Pre-Cached`);
+    const badgeEl = document.getElementById('audio-prefetch-badge');
+    if (badgeEl) {
+      badgeEl.textContent = audioState.usingEdgeStream ? '🟢 Drive Audio' : '● Ready';
+      badgeEl.title = audioState.http206HeaderStatus || 'HTTP 206 Stream Ready';
+    }
 
     const scrubber = document.getElementById('audio-scrubber');
     if (scrubber) {
@@ -911,13 +923,17 @@ function bindGlobalControls() {
     applyFontScale(next);
   });
 
-  // Inspector Drawer Toggle
-  document.getElementById('btn-toggle-inspector')?.addEventListener('click', () => {
-    appState.inspectorOpen = !appState.inspectorOpen;
-    const shell = document.getElementById('workspace-shell');
-    const inspector = document.getElementById('telemetry-inspector');
-    if (shell) shell.classList.toggle('inspector-open', appState.inspectorOpen);
-    if (inspector) inspector.classList.toggle('hidden', !appState.inspectorOpen);
+  // Slide-Over Settings & Telemetry Drawer Toggle
+  document.getElementById('btn-open-settings-drawer')?.addEventListener('click', () => {
+    document.getElementById('settings-drawer-backdrop')?.classList.remove('hidden');
+  });
+  document.getElementById('btn-close-settings-drawer')?.addEventListener('click', () => {
+    document.getElementById('settings-drawer-backdrop')?.classList.add('hidden');
+  });
+  document.getElementById('settings-drawer-backdrop')?.addEventListener('click', (e) => {
+    if (e.target.id === 'settings-drawer-backdrop') {
+      document.getElementById('settings-drawer-backdrop')?.classList.add('hidden');
+    }
   });
 
   // Day Selector & Smart Audio Link / Folder / Bulk JSON Mapper Controls
@@ -1101,20 +1117,13 @@ function bindGlobalControls() {
     });
   });
 
-  // Passwordless Device Biometric Login Modal
-  document.getElementById('btn-open-auth-modal')?.addEventListener('click', () => {
-    document.getElementById('auth-modal-backdrop')?.classList.remove('hidden');
-  });
-  document.getElementById('btn-close-auth-modal')?.addEventListener('click', () => {
-    document.getElementById('auth-modal-backdrop')?.classList.add('hidden');
-  });
+  // Passwordless Device Biometric Login inside Settings Drawer
   document.getElementById('btn-trigger-biometric-login')?.addEventListener('click', async () => {
     const nameInput = document.getElementById('input-biometric-name');
     const nameVal = nameInput?.value || 'Ephphatha Pilgrim';
     const profile = await authenticateWithDeviceBiometrics(nameVal);
     appState.userProfile = profile;
     renderUserProfileBadge();
-    document.getElementById('auth-modal-backdrop')?.classList.add('hidden');
     // Re-load journal with hardware credential key
     await loadDayJournalEntry(appState.selectedDay, appState.scheduleByDay[appState.selectedDay]);
   });
@@ -1291,14 +1300,14 @@ function switchMainTab(tabName) {
 }
 
 function renderUserProfileBadge() {
-  const btn = document.getElementById('btn-open-auth-modal');
+  const btn = document.getElementById('btn-trigger-biometric-login');
   if (!btn) return;
   if (appState.userProfile) {
     btn.textContent = `🔐 ${appState.userProfile.displayName} (${appState.userProfile.credentialIdHex.slice(0, 6)})`;
     btn.className = 'ergonomic-btn primary-period';
   } else {
-    btn.textContent = '🔑 Biometric / Passkey Login';
-    btn.className = 'ergonomic-btn';
+    btn.textContent = '🔑 Sign In';
+    btn.className = 'ergonomic-btn primary-period';
   }
 }
 
