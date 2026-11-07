@@ -135,8 +135,24 @@ function emitFailoverTelemetry(tierNumber, tierName, status, passageRef, latency
   });
 }
 
+export function normalizeMalayalamKoottaksharam(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/\u0D28\u0D4D[\u200C\u200D]+\u0D31/g, '\u0D28\u0D4D\u0D31')
+    .replace(/\u0D7B\u0D4D?\u0D31/g, '\u0D28\u0D4D\u0D31')
+    .replace(/([\u0D15-\u0D22\u0D24-\u0D27\u0D2A-\u0D2F\u0D35-\u0D39])\u0D4D[\u200C\u200D]+([\u0D15-\u0D39])/g, (m, c1, c2) => `${c1}\u0D4D${c2}`)
+    .replace(/\u0D23\u0D4D\u200D/g, '\u0D7A')
+    .replace(/\u0D28\u0D4D\u200D/g, '\u0D7B')
+    .replace(/\u0D30\u0D4D\u200D/g, '\u0D7C')
+    .replace(/\u0D32\u0D4D\u200D/g, '\u0D7D')
+    .replace(/\u0D33\u0D4D\u200D/g, '\u0D7E')
+    .replace(/\u0D15\u0D4D\u200D/g, '\u0D7F');
+}
+
 function cleanVerseHtml(str) {
-  return String(str || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return normalizeMalayalamKoottaksharam(
+    String(str || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  );
 }
 
 function findBookInfo(bookNameRaw) {
@@ -230,7 +246,7 @@ export function parsePassageSegments(passageRef) {
  */
 export async function initScriptureVault() {
   try {
-    const res = await fetch('./data/scripture_fallback_vault.json?v=3.2.0');
+    const res = await fetch('./data/scripture_fallback_vault.json?v=3.2.1');
     if (res.ok) {
       fallbackVaultMemory = await res.json();
       const passages = fallbackVaultMemory.passages || {};
@@ -445,7 +461,7 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
   if (!circuitBreakerState.forceTier3Fail) {
     try {
       if (!fallbackVaultMemory) {
-        const res = await fetch('./data/scripture_fallback_vault.json?v=3.2.0');
+        const res = await fetch('./data/scripture_fallback_vault.json?v=3.2.1');
         if (res.ok) fallbackVaultMemory = await res.json();
       }
       if (fallbackVaultMemory?.passages) {

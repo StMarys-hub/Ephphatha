@@ -4,13 +4,13 @@
  * and Adapters (IndexedDB <5ms Vault, 4-Tier Bible Failover, HTTP 206 Audio Engine, BackgroundSync).
  */
 
-import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.2.0';
+import { EphphathaAudioEngine, formatSecondsAsTime, normalizeGoogleDriveAudioId } from '../adapters/audioEngine.js?v=3.2.1';
 import {
   circuitBreakerState,
   fetchPassageWithFailover,
   initScriptureVault,
   onFailoverEvent
-} from '../adapters/bibleFailoverGateway.js?v=3.2.0';
+} from '../adapters/bibleFailoverGateway.js?v=3.2.1';
 import {
   deleteRecord,
   getAllRecordsMapSync,
@@ -19,14 +19,14 @@ import {
   initLocalVault,
   onStorageLatency,
   putRecord
-} from '../adapters/indexedDbRepo.js?v=3.2.0';
+} from '../adapters/indexedDbRepo.js?v=3.2.1';
 import {
   enqueueCloudSyncMutation,
   flushSyncOutboxNow,
   initBackgroundSyncLifecycle,
   onSyncStatusChange
-} from '../adapters/syncWorkerClient.js?v=3.2.0';
-import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js?v=3.2.0';
+} from '../adapters/syncWorkerClient.js?v=3.2.1';
+import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js?v=3.2.1';
 import {
   LECTIO_DIVINA_STEPS,
   generateAndDownloadVerseCard,

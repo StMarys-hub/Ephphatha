@@ -94,8 +94,8 @@ export async function generateAndDownloadVerseCard({
 
   if (referenceMl) {
     ctx.fillStyle = '#B8B2A6';
-    ctx.font = '600 32px "Noto Sans Malayalam", Inter, sans-serif';
-    ctx.fillText(`${referenceMl} : ${verseNumber}`, 100, 260);
+    ctx.font = '700 32px "SMC Manjari", "Manjari", "SMC Meera", Inter, sans-serif';
+    ctx.fillText(referenceMl, 100, 260);
   }
 
   // 5. Divider Line
@@ -114,7 +114,7 @@ export async function generateAndDownloadVerseCard({
   // 7. Malayalam POC Verse Text (Word-wrapped)
   if (textMl) {
     ctx.fillStyle = '#E6DEC8';
-    ctx.font = '500 33px "Noto Sans Malayalam", sans-serif';
+    ctx.font = '400 34px "SMC Manjari", "Manjari", "SMC Meera", sans-serif';
     drawWrappedText(ctx, textMl, 100, Math.min(760, yAfterEn + 45), 880, 56);
   }
 

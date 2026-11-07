@@ -1,8 +1,36 @@
 /* ============================================================================
- * EPHPHATHA ("BE OPENED") — SPATIALLY OPTIMIZED UX/UI DESIGN SYSTEM (v3.1.0)
+ * EPHPHATHA ("BE OPENED") — SPATIALLY OPTIMIZED UX/UI DESIGN SYSTEM (v3.2.1)
  * 8px/4px Structural Grid • >78% Viewport Canvas Priority • Progressive Disclosure
  * Strictly enforces Warm Parchment (#FAF7F2) & Warm Dusk (#1E2430 — NEVER #000000)
+ * Bundled Un-Subsetted SMC Manjari & Meera Fonts for Natural Malayalam Koottaksharam
  * ============================================================================ */
+
+@font-face {
+  font-family: 'SMC Manjari';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../assets/fonts/Manjari-Regular.woff2') format('woff2');
+  unicode-range: U+0D00-0D7F, U+200C-200D, U+25CC;
+}
+
+@font-face {
+  font-family: 'SMC Manjari';
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url('../../assets/fonts/Manjari-Bold.woff2') format('woff2');
+  unicode-range: U+0D00-0D7F, U+200C-200D, U+25CC;
+}
+
+@font-face {
+  font-family: 'SMC Meera';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../../assets/fonts/Meera-Regular.woff2') format('woff2');
+  unicode-range: U+0D00-0D7F, U+200C-200D, U+25CC;
+}
 
 :root,
 [data-theme="light"] {
@@ -30,9 +58,9 @@
   --radius-lg: 16px;
   --radius-pill: 9999px;
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-serif: 'Crimson Pro', 'Georgia', serif;
-  --font-malayalam: 'Noto Sans Malayalam', 'Manjari', sans-serif;
+  --font-sans: 'Inter', 'SMC Manjari', 'SMC Meera', 'Manjari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Crimson Pro', 'SMC Manjari', 'SMC Meera', 'Manjari', 'Georgia', serif;
+  --font-malayalam: 'SMC Manjari', 'SMC Meera', 'Manjari', sans-serif;
   --font-mono: 'JetBrains Mono', Consolas, monospace;
 }
 
@@ -70,6 +98,9 @@ body {
   font-family: var(--font-sans);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures contextual;
+  font-feature-settings: "liga" 1, "clig" 1, "calt" 1, "akhn" 1, "rphf" 1, "blwf" 1, "pstf" 1, "cjct" 1, "pres" 1, "abvs" 1, "blws" 1, "psts" 1, "haln" 1;
   min-height: 100vh;
   min-height: 100dvh;
   padding-bottom: calc(116px + env(safe-area-inset-bottom, 0px));
@@ -78,10 +109,16 @@ body {
 }
 
 .lang-ml,
-[lang="ml"] {
+[lang="ml"],
+.context-summary,
+.slot-tab-sub {
   font-family: var(--font-malayalam);
   line-height: 1.85 !important;
-  letter-spacing: 0.01em !important;
+  letter-spacing: normal !important;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures contextual;
+  font-feature-settings: "liga" 1, "clig" 1, "calt" 1, "akhn" 1, "rphf" 1, "blwf" 1, "pstf" 1, "cjct" 1, "pres" 1, "abvs" 1, "blws" 1, "psts" 1, "haln" 1;
+  text-rendering: optimizeLegibility;
   word-break: keep-all;
   overflow-wrap: break-word;
 }

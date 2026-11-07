@@ -4,12 +4,15 @@
  * preserving 100% offline readiness in Tier 4.
  */
 
-const CACHE_NAME = 'ephphatha-sanctuary-v3.2.0';
+const CACHE_NAME = 'ephphatha-sanctuary-v3.2.1';
 const CORE_ASSETS = [
   './',
   './index.html',
   './setup-guide.html',
   './manifest.webmanifest',
+  './assets/fonts/Manjari-Regular.woff2',
+  './assets/fonts/Manjari-Bold.woff2',
+  './assets/fonts/Meera-Regular.woff2',
   './src/styles/main.css',
   './src/ui/appController.js',
   './src/domain/periods.js',
