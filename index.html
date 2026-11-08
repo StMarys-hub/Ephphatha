@@ -196,6 +196,103 @@
       </section>
 
       <!-- ====================================================================
+           VIEW: CANONICAL CATHOLIC BIBLE NAVIGATOR (73 Books in Sacred Order)
+           Browse, search, and read any Book & Chapter with POC Malayalam + RSV2CE/BSB + Nova Vulgata
+           ==================================================================== -->
+      <section id="view-bible" class="hidden">
+
+        <!-- A. BIBLE CATALOG PANE (Browse all 73 Books) -->
+        <div id="bible-catalog-pane">
+          <div class="bible-hero-card">
+            <div class="bible-hero-title">
+              <span>📜 Holy Scripture • വിശുദ്ധ ഗ്രന്ഥം</span>
+            </div>
+            <p class="bible-hero-subtitle">
+              73 Books of the Catholic Canon in Sacred Order — Read sequentially with official Malayalam POC Bible (പി.ഒ.സി. ബൈബിൾ), English, and Latin Vulgate.
+            </p>
+            <div class="bible-resume-banner hidden" id="bible-resume-banner">
+              <div>
+                <div style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700;">Continue Reading</div>
+                <div id="bible-resume-title" style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary);">Genesis 1 • ഉൽപത്തി 1</div>
+              </div>
+              <button type="button" class="bible-resume-btn" id="btn-bible-resume">Resume ➔</button>
+            </div>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="bible-search-row">
+            <input
+              type="text"
+              id="bible-search-input"
+              class="bible-search-input"
+              placeholder="🔍 Search books (e.g. Luke, തോബിത്, Psalm, Romans...)"
+              autocomplete="off"
+            />
+            <button type="button" class="verse-icon-btn hidden" id="btn-clear-bible-search" title="Clear search">✕</button>
+          </div>
+
+          <!-- Category Filter Pills -->
+          <div class="bible-filter-pills" id="bible-filter-pills">
+            <button type="button" class="bible-filter-pill active" data-bible-filter="ALL">All (73)</button>
+            <button type="button" class="bible-filter-pill" data-bible-filter="OT">Old Testament (46)</button>
+            <button type="button" class="bible-filter-pill" data-bible-filter="NT">New Testament (27)</button>
+            <button type="button" class="bible-filter-pill" data-bible-filter="GOSPEL">Gospels (4)</button>
+            <button type="button" class="bible-filter-pill" data-bible-filter="WISDOM">Wisdom (7)</button>
+            <button type="button" class="bible-filter-pill" data-bible-filter="DEUTERO">Deuterocanonical (7)</button>
+          </div>
+
+          <!-- Books Grid Container -->
+          <div class="bible-books-grid" id="bible-books-grid"></div>
+        </div>
+
+        <!-- B. CANONICAL CHAPTER READER PANE (Reading a Specific Chapter) -->
+        <div id="bible-reader-pane" class="hidden">
+          <!-- Sticky Chapter Toolbar -->
+          <div class="bible-reader-toolbar">
+            <button type="button" class="verse-icon-btn" id="btn-bible-back-to-catalog" title="Return to Books Catalog">
+              ◀ Books
+            </button>
+            <div style="display: flex; align-items: center; gap: 4px;">
+              <button type="button" class="verse-icon-btn" id="btn-bible-prev-ch-mini" title="Previous Chapter">◀</button>
+              <div class="bible-reader-title-badge" id="bible-reader-title-badge">
+                Genesis 1 • ഉൽപത്തി 1
+              </div>
+              <button type="button" class="verse-icon-btn" id="btn-bible-next-ch-mini" title="Next Chapter">▶</button>
+            </div>
+            <div class="language-pill-group" style="margin: 0;">
+              <button type="button" class="lang-pill active" id="btn-canonical-lang-en-ml">EN+മല</button>
+              <button type="button" class="lang-pill" id="btn-canonical-lang-ml">മല</button>
+              <button type="button" class="lang-pill" id="btn-canonical-lang-en">EN</button>
+            </div>
+          </div>
+
+          <!-- Quick-Jump Verse Pills Bar -->
+          <div class="verse-jump-bar" id="bible-verse-jump-bar" style="margin-bottom: 0.75rem;"></div>
+
+          <!-- Chapter Verses Stream -->
+          <div class="verses-stream" id="bible-verses-stream"></div>
+
+          <!-- Bottom Continuous Reading Navigation Bar -->
+          <div class="bible-reader-bottom-nav">
+            <div class="bible-reader-nav-btns">
+              <button type="button" class="bible-reader-nav-card prev" id="btn-bible-prev-ch-card">
+                <span class="bible-reader-nav-hint">◀ Previous Chapter</span>
+                <span class="bible-reader-nav-title" id="bible-prev-ch-title">—</span>
+              </button>
+              <button type="button" class="bible-reader-nav-card next" id="btn-bible-next-ch-card">
+                <span class="bible-reader-nav-hint">Next Chapter ▶</span>
+                <span class="bible-reader-nav-title" id="bible-next-ch-title">—</span>
+              </button>
+            </div>
+            <button type="button" class="ergonomic-btn" id="btn-bible-return-catalog-bottom" style="width: 100%; justify-content: center;">
+              📜 Browse All 73 Books of the Bible
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ====================================================================
            VIEW 2: 365-DAY CURRICULUM EXPLORER
            ==================================================================== -->
       <section id="view-curriculum" class="hidden">
@@ -649,10 +746,13 @@
 
     <!-- Bottom Tab Navigation -->
     <nav class="bottom-tab-nav" aria-label="Primary App Navigation">
-      <button type="button" class="tab-nav-btn active" data-nav-tab="sanctuary">
+      <button type="button" class="tab-nav-btn active" data-nav-tab="sanctuary" title="Daily 365 BIY Reading">
         <span>📖 Sanctuary</span>
       </button>
-      <button type="button" class="tab-nav-btn" data-nav-tab="curriculum">
+      <button type="button" class="tab-nav-btn" data-nav-tab="bible" title="Catholic Bible Books & Chapters">
+        <span>📜 Bible</span>
+      </button>
+      <button type="button" class="tab-nav-btn" data-nav-tab="curriculum" title="365-Day Curriculum Map">
         <span>🗓️ 365 Plan</span>
       </button>
       <button type="button" class="tab-nav-btn" data-nav-tab="fellowship">
@@ -779,8 +879,22 @@
     </div>
   </div>
 
+  <!-- Canonical Chapter Selector Modal Sheet -->
+  <div class="modal-backdrop centered-modal-wrap hidden" id="bible-chapter-modal" role="dialog" aria-modal="true" aria-labelledby="bible-chapter-modal-title">
+    <div class="bible-chapter-sheet-card">
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+        <div>
+          <h3 id="bible-chapter-modal-title" style="margin: 0; font-size: 1.15rem; color: var(--text-primary);">Book Title</h3>
+          <div id="bible-chapter-modal-subtitle" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">Select Chapter</div>
+        </div>
+        <button type="button" class="verse-icon-btn" id="btn-close-chapter-modal" aria-label="Close chapter selector">✕</button>
+      </div>
+      <div class="bible-chapter-grid" id="bible-modal-chapter-grid"></div>
+    </div>
+  </div>
+
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.5';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.6';
 
     window.selectJumpDay = (d) => selectDay(d);
 

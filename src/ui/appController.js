@@ -69,6 +69,11 @@ import {
   onSecurityTelemetry,
   sanitizeUserString
 } from '../domain/securityEngine.js';
+import {
+  initCanonicalBibleView,
+  renderBibleView,
+  openCanonicalChapter
+} from './canonicalBibleController.js';
 
 const appState = {
   theme: localStorage.getItem('ephphatha_theme') || 'dark', // Default to soothing Warm Dusk (#1E2430)
@@ -124,6 +129,12 @@ export async function bootstrapEphphathaApp() {
 
   // 7. Bind Top Header, Navigation, Modals, and Inspector Controls
   bindGlobalControls();
+
+  // 8. Initialize Canonical Catholic Bible Navigator (73 Books)
+  initCanonicalBibleView({ audioEngine });
+  if (typeof window !== 'undefined') {
+    window.openCanonicalChapter = openCanonicalChapter;
+  }
 
   // Initialize inspector state based on screen width
   const shell = document.getElementById('workspace-shell');
@@ -1927,7 +1938,7 @@ function initLectioDivinaWidget() {
 
 function switchMainTab(tabName) {
   appState.activeTab = tabName;
-  const views = ['sanctuary', 'curriculum', 'fellowship', 'vault'];
+  const views = ['sanctuary', 'bible', 'curriculum', 'fellowship', 'vault'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.classList.toggle('hidden', v !== tabName);
@@ -1936,7 +1947,9 @@ function switchMainTab(tabName) {
     btn.classList.toggle('active', btn.getAttribute('data-nav-tab') === tabName);
   });
 
-  if (tabName === 'fellowship') {
+  if (tabName === 'bible') {
+    renderBibleView();
+  } else if (tabName === 'fellowship') {
     const activeCode = getActiveCohortCode();
     if (activeCode && navigator.onLine) {
       fetchCohortByInviteCode(activeCode).then(() => renderFellowshipView()).catch(() => {});
