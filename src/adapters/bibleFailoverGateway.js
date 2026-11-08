@@ -280,18 +280,19 @@ export async function getPocChapterVerses(pocId, chapterNum) {
 
 /**
  * Preload Tier-3 Cloud Mirror (`data/scripture_fallback_vault.json`) and seed Tier-4 IndexedDB Vault
- * Overwrites any legacy truncated 8-verse records in IndexedDB with the full sequential chapters.
+ * Overwrites any legacy non-POC records in IndexedDB with the official POC Catholic Bible text.
  */
 export async function initScriptureVault() {
   try {
-    const res = await fetch('./data/scripture_fallback_vault.json?v=3.2.1');
+    const res = await fetch('./data/scripture_fallback_vault.json?v=3.3.5');
     if (res.ok) {
       fallbackVaultMemory = await res.json();
       const passages = fallbackVaultMemory.passages || {};
       for (const [refKey, passageData] of Object.entries(passages)) {
         await putRecord('scripture_cache', {
           id: refKey,
-          ...passageData
+          ...passageData,
+          translation_ml: 'POC'
         });
       }
     }
@@ -458,25 +459,11 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3500);
 
-      // 1a. If pre-verified full sequential passage is in the local/CDN v3.2.0 vault, serve all sequential verses immediately
-      const vaultCheck = fallbackVaultMemory?.passages?.[passageRef];
-      if (vaultCheck && Array.isArray(vaultCheck.verses) && vaultCheck.verses.length > 0) {
-        clearTimeout(timer);
-        const validated = validateScripturePayload({
-          ...vaultCheck,
-          reference_ml: passageRefMl || vaultCheck.reference_ml
-        });
-        await putRecord('scripture_cache', { id: passageRef, ...validated });
-        const elapsed = performance.now() - tStart;
-        emitFailoverTelemetry(1, 'TIER 1: Primary Online Multilingual Gateway', 'HEALTHY', passageRef, elapsed);
-        return { ...validated, activeTier: 1, tierBadge: 'Tier 1 • Primary Multilingual Gateway', latencyMs: elapsed };
-      }
-
-      // 1b. If full sequential passage is already cached in IndexedDB (>8 verses or complete chapter), serve or refresh
+      // Fetch fresh sequential passage with official POC Bible text
       const fullPayload = await fetchFullSequentialFromMultilingualGateway(passageRef, passageRefMl, controller.signal);
       clearTimeout(timer);
 
-      const validated = validateScripturePayload(fullPayload);
+      const validated = validateScripturePayload({ ...fullPayload, translation_ml: 'POC' });
       await putRecord('scripture_cache', { id: passageRef, ...validated });
       const elapsed = performance.now() - tStart;
       emitFailoverTelemetry(1, 'TIER 1: Primary Online Multilingual Gateway', 'HEALTHY', passageRef, elapsed);
@@ -498,7 +485,7 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
       const mirrorPayload = await fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, controller.signal);
       clearTimeout(timer);
 
-      const validated = validateScripturePayload(mirrorPayload);
+      const validated = validateScripturePayload({ ...mirrorPayload, translation_ml: 'POC' });
       await putRecord('scripture_cache', { id: passageRef, ...validated });
       const elapsed = performance.now() - tStart;
       emitFailoverTelemetry(2, 'TIER 2: Secondary Public Scripture Mirror', 'FAILOVER_ACTIVE', passageRef, elapsed, 'Tier 1 -> Tier 2 Switch');
@@ -516,12 +503,12 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
   if (!circuitBreakerState.forceTier3Fail) {
     try {
       if (!fallbackVaultMemory) {
-        const res = await fetch('./data/scripture_fallback_vault.json?v=3.2.1');
+        const res = await fetch('./data/scripture_fallback_vault.json?v=3.3.5');
         if (res.ok) fallbackVaultMemory = await res.json();
       }
       if (fallbackVaultMemory?.passages) {
         const matched = fallbackVaultMemory.passages[passageRef] || buildDeterministicPassageFromVault(passageRef, passageRefMl);
-        const validated = validateScripturePayload(matched);
+        const validated = validateScripturePayload({ ...matched, translation_ml: 'POC' });
         await putRecord('scripture_cache', { id: passageRef, ...validated });
         const elapsed = performance.now() - tStart;
         emitFailoverTelemetry(3, 'TIER 3: Google Drive Cloud Text Mirror', 'FAILOVER_ACTIVE', passageRef, elapsed, 'Served from Drive CDN Vault');
@@ -543,10 +530,10 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
 function serveFromTier4OfflineVault(passageRef, passageRefMl, tStart, reason) {
   const vaultDirect = fallbackVaultMemory?.passages?.[passageRef];
   const cached = getRecordSync('scripture_cache', passageRef);
-  // Prefer full vault entry if cached version was an older partial cache
-  const passageObj = (vaultDirect && (!cached || (cached.verses?.length || 0) < vaultDirect.verses.length))
-    ? vaultDirect
-    : (cached || vaultDirect || buildDeterministicPassageFromVault(passageRef, passageRefMl));
+  const isCachedPoc = cached?.translation_ml === 'POC' || (cached?.verses?.[1]?.ml && !cached.verses[1].ml.includes('പാഴായും'));
+  const passageObj = (cached && isCachedPoc)
+    ? cached
+    : (vaultDirect || buildDeterministicPassageFromVault(passageRef, passageRefMl));
   const validated = validateScripturePayload(passageObj);
   const elapsed = performance.now() - tStart;
 

@@ -28,6 +28,7 @@ import {
   syncMemberProgressToActiveCohort
 } from '../adapters/fellowshipGateway.js';
 import {
+  clearStore,
   deleteRecord,
   getAllRecordsMapSync,
   getAllRecordsSync,
@@ -96,6 +97,10 @@ export async function bootstrapEphphathaApp() {
 
   // 2. Initialize Local-First IndexedDB Vault (<5ms) & Tier-3/4 Scripture Vault
   await initLocalVault();
+  if (localStorage.getItem('ephphatha_poc_scripture_v335') !== 'true') {
+    await clearStore('scripture_cache');
+    localStorage.setItem('ephphatha_poc_scripture_v335', 'true');
+  }
   await initScriptureVault();
   initBackgroundSyncLifecycle();
 

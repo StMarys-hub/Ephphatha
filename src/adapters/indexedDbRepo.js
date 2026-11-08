@@ -186,6 +186,19 @@ export async function deleteRecord(storeName, id) {
   return { deletedId: strId, latencyMs: Number(elapsed.toFixed(2)) };
 }
 
+export async function clearStore(storeName) {
+  if (memoryCache[storeName]) {
+    memoryCache[storeName] = {};
+    mirrorStoreToLocalStorage(storeName);
+  }
+  if (singleton.dbInstance) {
+    try {
+      const tx = singleton.dbInstance.transaction(storeName, 'readwrite');
+      tx.objectStore(storeName).clear();
+    } catch (_) { /* ignore */ }
+  }
+}
+
 export function getRecordSync(storeName, id) {
   return memoryCache[storeName]?.[String(id)] || null;
 }
