@@ -43,7 +43,7 @@ import {
   initBackgroundSyncLifecycle,
   onSyncStatusChange
 } from '../adapters/syncWorkerClient.js';
-import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js';
+import { buildFull365Curriculum, calculateGraceStreak, getPeriodTokens } from '../domain/periods.js';
 import {
   getGoogleSheetsSyncUrl,
   setGoogleSheetsSyncUrl,
@@ -72,7 +72,8 @@ import {
 import {
   initCanonicalBibleView,
   renderBibleView,
-  openCanonicalChapter
+  openCanonicalChapter,
+  applyLanguageModeToReader
 } from './canonicalBibleController.js';
 
 const appState = {
@@ -82,8 +83,10 @@ const appState = {
   inspectorOpen: window.innerWidth >= 1100, // Closed by default on mobile / tablets
   selectedDay: Number(localStorage.getItem('ephphatha_selected_day')) || 1,
   activeReadingSlot: 'narrative', // 'narrative' | 'supplemental' | 'psalm_wisdom'
-  langMode: 'bilingual', // 'bilingual' | 'en' | 'ml'
-  showLatinVulgate: true,
+  langMode: localStorage.getItem('ephphatha_lang_mode') || 'bilingual', // 'bilingual' | 'en' | 'ml'
+  showLatinVulgate: localStorage.getItem('ephphatha_show_latin') === 'true', // Default to false
+  preferredBibleVersion: localStorage.getItem('ephphatha_preferred_bible_version') || 'POC',
+  verseWeight: localStorage.getItem('ephphatha_verse_weight') || 'strong',
   periods: [],
   scheduleByDay: {},
   currentPassageData: null,
@@ -99,6 +102,7 @@ export async function bootstrapEphphathaApp() {
   // 1. Apply eye-soothing theme (#FAF7F2 Parchment or #1E2430 Warm Dusk — Never #000000) & Font Scale
   applyTheme(appState.theme);
   applyFontScale(appState.fontScale);
+  applyTypographyAndLanguagePreferences();
 
   // 2. Initialize Local-First IndexedDB Vault (<5ms) & Tier-3/4 Scripture Vault
   await initLocalVault();
@@ -108,6 +112,15 @@ export async function bootstrapEphphathaApp() {
   }
   await initScriptureVault();
   initBackgroundSyncLifecycle();
+
+  // 3. Audio Continuous Autoplay: When daily audio finishes, advance to next day and auto-play
+  audioEngine.onEnded(async (finishedDay) => {
+    if (appState.selectedDay < 365) {
+      const nextDay = appState.selectedDay + 1;
+      await selectDay(nextDay);
+      audioEngine.play();
+    }
+  });
 
   // 3. Load saved biometric profile if present
   const savedProfile = localStorage.getItem('ephphatha_biometric_profile_v3');
@@ -180,6 +193,7 @@ async function initGoogleSheetsSyncOnBoot() {
         if (cloudRes.user?.activeCohortCode && !getActiveCohortCode()) {
           setActiveCohortCode(cloudRes.user.activeCohortCode);
         }
+        restoreUserSettingsFromCloudProfile(cloudRes.user);
         refreshGraceStreakHeader();
         renderCurriculumMapView();
         renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
@@ -318,9 +332,17 @@ function applyTheme(themeMode) {
 
 function applyPeriodColorTokens(period) {
   if (!period) return;
-  document.documentElement.style.setProperty('--period-color', period.accent_hex);
-  const softBg = appState.theme === 'dark' ? period.bg_soft_dark : period.bg_soft_light;
-  document.documentElement.style.setProperty('--period-bg-soft', softBg);
+  const isDark = appState.theme === 'dark';
+  const tokens = getPeriodTokens(period.id, isDark);
+  document.documentElement.style.setProperty('--period-color', tokens.accent);
+  document.documentElement.style.setProperty('--period-text', tokens.text);
+  document.documentElement.style.setProperty('--period-bg-soft', tokens.bgSoft);
+}
+
+export function applyTypographyAndLanguagePreferences() {
+  document.documentElement.setAttribute('data-verse-weight', appState.verseWeight || 'strong');
+  document.body.setAttribute('data-lang-pref', appState.langMode || 'bilingual');
+  document.body.classList.toggle('show-latin-vulgata', Boolean(appState.showLatinVulgate));
 }
 
 function applyFontScale(scaleStr) {
@@ -515,14 +537,41 @@ function renderDayHeroCard(daySchedule) {
   }
 }
 
+let activeScriptureAbortController = null;
+
 async function loadActiveReadingSlot(daySchedule) {
   const slotKey = appState.activeReadingSlot;
   const refEn = daySchedule.readings[slotKey] || daySchedule.readings.narrative;
   const refMl = daySchedule.readings[`${slotKey}_ml`] || '';
 
-  const passageData = await fetchPassageWithFailover(refEn, refMl);
-  appState.currentPassageData = passageData;
-  renderScriptureVerses(passageData);
+  // 1. Instant Cache Render: Check IndexedDB synchronously/instantly (<1ms)
+  // This completely eliminates any app freeze or lag during rapid day switching!
+  const cached = getRecordSync('scripture_cache', refEn);
+  if (cached && cached.verses?.length) {
+    appState.currentPassageData = cached;
+    renderScriptureVerses(cached);
+  }
+
+  // 2. Abort prior in-flight fetch
+  if (activeScriptureAbortController) {
+    try { activeScriptureAbortController.abort(); } catch (_) {}
+  }
+  activeScriptureAbortController = new AbortController();
+
+  try {
+    const passageData = await fetchPassageWithFailover(refEn, refMl, {
+      signal: activeScriptureAbortController.signal,
+      preferredVersion: appState.preferredBibleVersion
+    });
+    if (passageData) {
+      appState.currentPassageData = passageData;
+      renderScriptureVerses(passageData);
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.warn('Scripture fetch error:', err);
+    }
+  }
 }
 
 function renderScriptureVerses(passageData) {
@@ -1348,11 +1397,6 @@ function syncFullscreenUiState() {
     fsBtn.textContent = isFs ? '🗗' : '⛶';
     fsBtn.title = isFs ? 'Exit Full Screen' : 'Enter Full Screen (Hide Address Bar)';
   }
-  const mobileBar = document.getElementById('mobile-fullscreen-bar');
-  if (mobileBar) {
-    const isMobileViewport = window.innerWidth <= 900 || ('ontouchstart' in window);
-    mobileBar.classList.toggle('hidden', isFs || !isMobileViewport);
-  }
 }
 
 function bindGlobalControls() {
@@ -1361,29 +1405,14 @@ function bindGlobalControls() {
     applyTheme(appState.theme === 'dark' ? 'light' : 'dark');
   });
 
-  // Full-Screen App Mode (Hide Mobile Browser Address Bar) & Native PWA Install Prompt
+  // Full-Screen App Mode (Toggle cleanly via header button)
   document.getElementById('btn-toggle-fullscreen')?.addEventListener('click', () => {
     toggleFullScreenAppMode();
-  });
-  document.getElementById('btn-banner-fullscreen')?.addEventListener('click', () => {
-    enterFullScreenAppMode();
   });
   document.addEventListener('fullscreenchange', syncFullscreenUiState);
   document.addEventListener('webkitfullscreenchange', syncFullscreenUiState);
   window.addEventListener('resize', syncFullscreenUiState);
   syncFullscreenUiState();
-
-  // Auto-enter Full Screen on first user tap on mobile browser tabs (hides bottom address bar immediately)
-  const isMobileTouch = window.innerWidth <= 900 || ('ontouchstart' in window);
-  if (isMobileTouch && !isRunningStandaloneOrFullscreen()) {
-    const autoFsOnFirstTap = (evt) => {
-      // Do not hijack if tapping Exit Fullscreen
-      if (evt.target?.closest?.('#btn-toggle-fullscreen')) return;
-      enterFullScreenAppMode();
-      document.removeEventListener('click', autoFsOnFirstTap);
-    };
-    document.addEventListener('click', autoFsOnFirstTap, { once: true });
-  }
 
   // Capture Native Android/Chrome PWA Install Prompt (`beforeinstallprompt`)
   let deferredInstallPrompt = null;
@@ -1513,14 +1542,29 @@ function bindGlobalControls() {
       pushTelemetryLog('GDRIVE_AUDIO_ID_BOUND', `Bound Day ${appState.selectedDay} to Google Drive ID: ${cleanId}`);
     }
   });
-  document.getElementById('btn-prev-day')?.addEventListener('click', () => {
-    selectDay(Math.max(1, appState.selectedDay - 1));
+  // Day Navigation with Auto-Play Continuity (If playing, immediately plays new day)
+  document.getElementById('btn-prev-day')?.addEventListener('click', async () => {
+    if (appState.selectedDay <= 1) return;
+    const wasPlaying = audioEngine.isPlaying;
+    await selectDay(appState.selectedDay - 1);
+    if (wasPlaying) {
+      audioEngine.play();
+    }
   });
-  document.getElementById('btn-next-day')?.addEventListener('click', () => {
-    selectDay(Math.min(365, appState.selectedDay + 1));
+  document.getElementById('btn-next-day')?.addEventListener('click', async () => {
+    if (appState.selectedDay >= 365) return;
+    const wasPlaying = audioEngine.isPlaying;
+    await selectDay(appState.selectedDay + 1);
+    if (wasPlaying) {
+      audioEngine.play();
+    }
   });
-  document.getElementById('day-select-dropdown')?.addEventListener('change', (e) => {
-    selectDay(Number(e.target.value));
+  document.getElementById('day-select-dropdown')?.addEventListener('change', async (e) => {
+    const wasPlaying = audioEngine.isPlaying;
+    await selectDay(Number(e.target.value));
+    if (wasPlaying) {
+      audioEngine.play();
+    }
   });
 
   // Mark Day Complete (<5ms Optimistic IndexedDB write)
@@ -1765,6 +1809,83 @@ function bindGlobalControls() {
     });
   });
 
+  // Drawer Settings: 1. Primary Bible Translation (Persisted to Profile & Cloud)
+  const selBibleVer = document.getElementById('select-primary-bible-version');
+  if (selBibleVer) {
+    selBibleVer.value = appState.preferredBibleVersion;
+    selBibleVer.addEventListener('change', async (e) => {
+      const ver = e.target.value;
+      appState.preferredBibleVersion = ver;
+      localStorage.setItem('ephphatha_preferred_bible_version', ver);
+      if (appState.userProfile) {
+        appState.userProfile.preferredBibleVersion = ver;
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(appState.userProfile));
+        const localMap = getAllRecordsMapSync('progress');
+        syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
+      }
+      showCloudSyncToast(`📖 Bible: ${ver}`);
+      await loadActiveReadingSlot(appState.scheduleByDay[appState.selectedDay]);
+    });
+  }
+
+  // Drawer Settings: 2. Default Scripture Display Languages
+  const selReadingLang = document.getElementById('select-reading-languages');
+  if (selReadingLang) {
+    selReadingLang.value = appState.langMode;
+    selReadingLang.addEventListener('change', (e) => {
+      const mode = e.target.value;
+      appState.langMode = mode;
+      localStorage.setItem('ephphatha_lang_mode', mode);
+      applyTypographyAndLanguagePreferences();
+      if (appState.userProfile) {
+        appState.userProfile.langPreference = mode;
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(appState.userProfile));
+        const localMap = getAllRecordsMapSync('progress');
+        syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
+      }
+      renderScriptureVerses(appState.currentPassageData);
+      applyLanguageModeToReader();
+    });
+  }
+
+  // Drawer Settings: 3. Show Latin Nova Vulgata (Default: OFF)
+  const chkLatin = document.getElementById('chk-show-latin-vulgate');
+  if (chkLatin) {
+    chkLatin.checked = Boolean(appState.showLatinVulgate);
+    chkLatin.addEventListener('change', (e) => {
+      const show = e.target.checked;
+      appState.showLatinVulgate = show;
+      localStorage.setItem('ephphatha_show_latin', String(show));
+      applyTypographyAndLanguagePreferences();
+      if (appState.userProfile) {
+        appState.userProfile.showLatinVulgate = show;
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(appState.userProfile));
+        const localMap = getAllRecordsMapSync('progress');
+        syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
+      }
+      renderScriptureVerses(appState.currentPassageData);
+      applyLanguageModeToReader();
+    });
+  }
+
+  // Drawer Settings: 4. Scripture Typography Weight
+  const selWeight = document.getElementById('select-verse-weight');
+  if (selWeight) {
+    selWeight.value = appState.verseWeight || 'strong';
+    selWeight.addEventListener('change', (e) => {
+      const weight = e.target.value;
+      appState.verseWeight = weight;
+      localStorage.setItem('ephphatha_verse_weight', weight);
+      applyTypographyAndLanguagePreferences();
+      if (appState.userProfile) {
+        appState.userProfile.verseWeight = weight;
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(appState.userProfile));
+        const localMap = getAllRecordsMapSync('progress');
+        syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
+      }
+    });
+  }
+
   // Optional Developer Custom URL Override
   document.getElementById('btn-save-sheets-sync-url')?.addEventListener('click', async () => {
     const input = document.getElementById('input-sheets-sync-url');
@@ -1957,6 +2078,35 @@ function switchMainTab(tabName) {
   }
 }
 
+function restoreUserSettingsFromCloudProfile(user) {
+  if (!user) return;
+  if (user.preferredBibleVersion) {
+    appState.preferredBibleVersion = user.preferredBibleVersion;
+    localStorage.setItem('ephphatha_preferred_bible_version', appState.preferredBibleVersion);
+    const selVer = document.getElementById('select-primary-bible-version');
+    if (selVer) selVer.value = appState.preferredBibleVersion;
+  }
+  if (user.langPreference) {
+    appState.langMode = user.langPreference;
+    localStorage.setItem('ephphatha_lang_mode', appState.langMode);
+    const selLang = document.getElementById('select-reading-languages');
+    if (selLang) selLang.value = appState.langMode;
+  }
+  if (user.showLatinVulgate !== undefined) {
+    appState.showLatinVulgate = Boolean(user.showLatinVulgate);
+    localStorage.setItem('ephphatha_show_latin', String(appState.showLatinVulgate));
+    const chk = document.getElementById('chk-show-latin-vulgate');
+    if (chk) chk.checked = appState.showLatinVulgate;
+  }
+  if (user.verseWeight) {
+    appState.verseWeight = user.verseWeight;
+    localStorage.setItem('ephphatha_verse_weight', appState.verseWeight);
+    const selW = document.getElementById('select-verse-weight');
+    if (selW) selW.value = appState.verseWeight;
+  }
+  applyTypographyAndLanguagePreferences();
+}
+
 async function executeCloudLoginAndRestore(displayNameOrId) {
   const profile = await authenticateWithDeviceBiometrics(displayNameOrId);
   appState.userProfile = profile;
@@ -1982,6 +2132,7 @@ async function executeCloudLoginAndRestore(displayNameOrId) {
         await fetchCohortByInviteCode(cloudRes.user.activeCohortCode).catch(() => {});
       }
 
+      restoreUserSettingsFromCloudProfile(cloudRes.user);
       refreshGraceStreakHeader();
       renderCurriculumMapView();
       renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
@@ -2075,7 +2226,7 @@ function renderUserProfileBadge() {
     const shortName = name.split(' ')[0];
 
     if (headerBtn) {
-      headerBtn.textContent = `👤 ${shortName}`;
+      headerBtn.innerHTML = `👤 <span class="user-name-text">${shortName}</span>`;
       headerBtn.title = `Signed in as ${name} (Click to manage account)`;
     }
 
@@ -2093,7 +2244,7 @@ function renderUserProfileBadge() {
     setText('drawer-user-streak', `${streak.streakDays} Days`);
   } else {
     if (headerBtn) {
-      headerBtn.textContent = '👤 Sign In';
+      headerBtn.innerHTML = `👤 <span class="user-name-text">Sign In</span>`;
       headerBtn.title = 'Sign In or Create Account';
     }
     if (signedInCard) signedInCard.classList.add('hidden');

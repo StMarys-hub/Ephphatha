@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.3.1" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.3.7" />
 </head>
 <body>
   <!-- ========================================================================
@@ -60,15 +60,6 @@
       </div>
     </div>
   </header>
-
-  <!-- Mobile Full-Screen & Native App Install Bar (Auto-hides once in Full Screen or Installed App mode) -->
-  <div class="mobile-fullscreen-bar hidden" id="mobile-fullscreen-bar">
-    <span class="mobile-fs-label">📱 App Mode (No Address Bar):</span>
-    <div class="mobile-fs-actions">
-      <button type="button" class="mobile-fs-btn primary" id="btn-banner-fullscreen">⛶ Full Screen</button>
-      <button type="button" class="mobile-fs-btn hidden" id="btn-banner-install-pwa">📲 Install App</button>
-    </div>
-  </div>
 
   <!-- ========================================================================
        PRIMARY WORKSPACE CANVAS (>78% Viewport Priority)
@@ -219,16 +210,21 @@
             </div>
           </div>
 
-          <!-- Search & Filter Controls -->
+          <!-- Quick Search & 1-Tap Book Jump Controls -->
           <div class="bible-search-row">
-            <input
-              type="text"
-              id="bible-search-input"
-              class="bible-search-input"
-              placeholder="🔍 Search books (e.g. Luke, തോബിത്, Psalm, Romans...)"
-              autocomplete="off"
-            />
-            <button type="button" class="verse-icon-btn hidden" id="btn-clear-bible-search" title="Clear search">✕</button>
+            <div class="bible-search-input-wrap">
+              <input
+                type="text"
+                id="bible-search-input"
+                class="bible-search-input"
+                placeholder="🔍 Quick Search (e.g. Luke, തോബിത്, Psalm, Romans...)"
+                autocomplete="off"
+              />
+              <button type="button" class="verse-icon-btn hidden" id="btn-clear-bible-search" title="Clear search">✕</button>
+            </div>
+            <select id="bible-quick-book-dropdown" class="bible-quick-book-select" aria-label="1-Tap Jump to Any Book of the Bible">
+              <option value="">⚡ Jump to Book (All 73 Books)...</option>
+            </select>
           </div>
 
           <!-- Category Filter Pills -->
@@ -252,11 +248,10 @@
             <button type="button" class="verse-icon-btn" id="btn-bible-back-to-catalog" title="Return to Books Catalog">
               ◀ Books
             </button>
-            <div style="display: flex; align-items: center; gap: 4px;">
+            <div class="bible-reader-center-cluster">
               <button type="button" class="verse-icon-btn" id="btn-bible-prev-ch-mini" title="Previous Chapter">◀</button>
-              <div class="bible-reader-title-badge" id="bible-reader-title-badge">
-                Genesis 1 • ഉൽപത്തി 1
-              </div>
+              <select id="bible-reader-book-select" class="bible-reader-book-picker" aria-label="Switch Book"></select>
+              <select id="bible-reader-ch-select" class="bible-reader-ch-picker" aria-label="Switch Chapter"></select>
               <button type="button" class="verse-icon-btn" id="btn-bible-next-ch-mini" title="Next Chapter">▶</button>
             </div>
             <div class="language-pill-group" style="margin: 0;">
@@ -606,7 +601,50 @@
         </div>
       </div>
 
-      <!-- 2. Audio & Reading Preferences -->
+      <!-- 2. Scripture Translation & Language Display Settings -->
+      <div class="drawer-section">
+        <div class="context-item-label">Scripture Translation &amp; Languages</div>
+        
+        <div style="margin-top: 8px;">
+          <label class="auth-input-label" for="select-primary-bible-version">Primary Bible Translation (Saved to Account)</label>
+          <select id="select-primary-bible-version" class="sanctuary-input">
+            <option value="POC">POC Bible — പി.ഒ.സി. (Official Catholic Malayalam + English)</option>
+            <option value="RSV2CE">RSV-2CE (Revised Standard Version Catholic Edition)</option>
+            <option value="BSB">BSB (Berean Standard Bible)</option>
+            <option value="WEB">WEB (World English Bible)</option>
+          </select>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <label class="auth-input-label" for="select-reading-languages">Default Display Languages</label>
+          <select id="select-reading-languages" class="sanctuary-input">
+            <option value="bilingual">Bilingual: English + Malayalam (Default)</option>
+            <option value="ml">Malayalam Only (പി.ഒ.സി. ബൈബിൾ മാത്രം)</option>
+            <option value="en">English Only</option>
+          </select>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <label class="auth-input-label" for="select-verse-weight">Scripture Text Weight (Typography)</label>
+          <select id="select-verse-weight" class="sanctuary-input">
+            <option value="strong">Sturdy &amp; Strong (High Contrast Readability — Recommended)</option>
+            <option value="regular">Regular Weight</option>
+            <option value="bold">Extra Bold (Deep Contrast)</option>
+          </select>
+        </div>
+
+        <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-size: 0.84rem; color: var(--text-primary); font-weight: 600;">Ancient Latin Vulgate</div>
+            <div style="font-size: 0.74rem; color: var(--text-secondary);">Show Nova Vulgata under verses (Default: Off)</div>
+          </div>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="chk-show-latin-vulgate" style="width: 18px; height: 18px;" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 3. Audio & Reading Preferences -->
       <div class="drawer-section">
         <div class="context-item-label">Audio Narration &amp; Preferences</div>
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
@@ -894,7 +932,7 @@
   </div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.6';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.7';
 
     window.selectJumpDay = (d) => selectDay(d);
 

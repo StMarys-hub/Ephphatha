@@ -127,6 +127,72 @@ export const DEFAULT_PERIODS = [
 ];
 
 /**
+ * High-Contrast Accessible Theme Tokens across all 12 Periods
+ * Ensures WCAG AA compliance (contrast >= 4.5:1, AAA >= 7:1) in both Dark Mode (Warm Dusk) and Bright Mode (Parchment).
+ * Period 6 (Royal Kingdom) uses radiant amethyst lavender in dark mode and regal royal purple in light mode.
+ */
+export const PERIOD_THEME_TOKENS = {
+  1: {
+    light: { accent: '#0284C7', text: '#0369A1', bgSoft: '#E0F2FE' },
+    dark:  { accent: '#38BDF8', text: '#7DD3FC', bgSoft: 'rgba(56, 189, 248, 0.16)' }
+  },
+  2: {
+    light: { accent: '#9F1239', text: '#881337', bgSoft: '#FFE4E6' },
+    dark:  { accent: '#FB7185', text: '#FDA4AF', bgSoft: 'rgba(251, 113, 133, 0.16)' }
+  },
+  3: {
+    light: { accent: '#B91C1C', text: '#991B1B', bgSoft: '#FEE2E2' },
+    dark:  { accent: '#F87171', text: '#FCA5A5', bgSoft: 'rgba(248, 113, 113, 0.16)' }
+  },
+  4: {
+    light: { accent: '#9A3412', text: '#7C2D12', bgSoft: '#FFEDD5' },
+    dark:  { accent: '#FB923C', text: '#FDBA74', bgSoft: 'rgba(251, 146, 60, 0.16)' }
+  },
+  5: {
+    light: { accent: '#15803D', text: '#166534', bgSoft: '#DCFCE7' },
+    dark:  { accent: '#4ADE80', text: '#86EFAC', bgSoft: 'rgba(74, 222, 128, 0.16)' }
+  },
+  6: {
+    // Period 6: Royal Kingdom - Radiant amethyst lavender in dark mode; regal royal purple in light mode
+    light: { accent: '#7E22CE', text: '#581C87', bgSoft: '#F3E8FF' },
+    dark:  { accent: '#C084FC', text: '#E9D5FF', bgSoft: 'rgba(192, 132, 252, 0.18)' }
+  },
+  7: {
+    light: { accent: '#334155', text: '#1E293B', bgSoft: '#E2E8F0' },
+    dark:  { accent: '#94A3B8', text: '#CBD5E1', bgSoft: 'rgba(148, 163, 184, 0.16)' }
+  },
+  8: {
+    light: { accent: '#0369A1', text: '#075985', bgSoft: '#E0F2FE' },
+    dark:  { accent: '#38BDF8', text: '#7DD3FC', bgSoft: 'rgba(56, 189, 248, 0.16)' }
+  },
+  9: {
+    light: { accent: '#B45309', text: '#92400E', bgSoft: '#FEF3C7' },
+    dark:  { accent: '#FBBF24', text: '#FCD34D', bgSoft: 'rgba(251, 191, 36, 0.16)' }
+  },
+  10: {
+    light: { accent: '#C2410C', text: '#9A3412', bgSoft: '#FFEDD5' },
+    dark:  { accent: '#FB923C', text: '#FDBA74', bgSoft: 'rgba(251, 146, 60, 0.16)' }
+  },
+  11: {
+    light: { accent: '#A16207', text: '#854D0E', bgSoft: '#FEF9C3' },
+    dark:  { accent: '#FACC15', text: '#FEF08A', bgSoft: 'rgba(250, 204, 21, 0.16)' }
+  },
+  12: {
+    light: { accent: '#1D4ED8', text: '#1E40AF', bgSoft: '#DBEAFE' },
+    dark:  { accent: '#60A5FA', text: '#BFDBFE', bgSoft: 'rgba(96, 165, 250, 0.16)' }
+  }
+};
+
+/**
+ * Returns accessible contrast-optimized color tokens for a given period ID.
+ */
+export function getPeriodTokens(periodId, isDark = true) {
+  const pId = Number(periodId) || 1;
+  const pTokens = PERIOD_THEME_TOKENS[pId] || PERIOD_THEME_TOKENS[1];
+  return isDark ? pTokens.dark : pTokens.light;
+}
+
+/**
  * Deterministically builds all 365 days of the curriculum, merging online overrides
  * from `schedule_manifest_v3.json` with algorithmic canonical mapping across the 12 periods.
  */

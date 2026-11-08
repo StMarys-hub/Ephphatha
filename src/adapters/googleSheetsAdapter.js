@@ -204,7 +204,11 @@ export async function syncUserDataToGoogleSheet(userProfile, progressMap) {
       streakDays: Number(userProfile.streakDays || 0),
       graceShields: Number(userProfile.graceShields !== undefined ? userProfile.graceShields : 2),
       activeCohortCode: userProfile.activeCohortCode || localStorage.getItem('ephphatha_active_cohort_code_v3') || '',
-      lastActiveDay: Number(userProfile.selectedDay || localStorage.getItem('ephphatha_selected_day') || 1)
+      lastActiveDay: Number(userProfile.selectedDay || localStorage.getItem('ephphatha_selected_day') || 1),
+      preferredBibleVersion: userProfile.preferredBibleVersion || localStorage.getItem('ephphatha_preferred_bible_version') || 'POC',
+      langPreference: userProfile.langPreference || localStorage.getItem('ephphatha_lang_mode') || 'bilingual',
+      verseWeight: userProfile.verseWeight || localStorage.getItem('ephphatha_verse_weight') || 'strong',
+      showLatinVulgate: userProfile.showLatinVulgate !== undefined ? userProfile.showLatinVulgate : (localStorage.getItem('ephphatha_show_latin') === 'true')
     },
     progress: progressMap ? Object.values(progressMap) : []
   };

@@ -263,10 +263,17 @@ export async function getPocChapterVerses(pocId, chapterNum) {
           pocBookCache.set(key, bookData);
         }
       } else {
-        const res = await fetch(`./data/poc/${pocId}.json`);
-        if (res.ok) {
-          const bookData = await res.json();
-          pocBookCache.set(key, bookData);
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 2000);
+        try {
+          const res = await fetch(`./data/poc/${pocId}.json`, { signal: ctrl.signal });
+          clearTimeout(timer);
+          if (res.ok) {
+            const bookData = await res.json();
+            pocBookCache.set(key, bookData);
+          }
+        } catch (_) {
+          clearTimeout(timer);
         }
       }
     } catch (_) {
@@ -302,21 +309,32 @@ export async function initScriptureVault() {
 }
 
 /**
- * Fetches full sequential chapters in English (BSB/RSV2CE), Malayalam (Official POC Bible), and Latin (VULG)
+ * Fetches full sequential chapters in English (BSB/RSV2CE/WEB), Malayalam (Official POC Bible), and Latin (VULG)
  * from the Primary Multilingual Gateway (`bolls.life`) paired with local POC Catholic Bible vault.
  */
-async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRefMl, signal) {
+async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRefMl, signal, preferredVersion = '') {
   const segments = parsePassageSegments(passageRef);
   const allVerses = [];
   let cueIndex = 0;
+  const userVersion = preferredVersion || (typeof localStorage !== 'undefined' ? localStorage.getItem('ephphatha_preferred_bible_version') : '') || 'POC';
+  const showLatin = typeof localStorage !== 'undefined' && localStorage.getItem('ephphatha_show_latin') === 'true';
 
   for (const seg of segments) {
-    const enTrans = seg.bookId > 66 ? 'RSV2CE' : 'BSB';
-    const [enRes, pocVerses, laRes] = await Promise.all([
+    let enTrans = 'BSB';
+    if (userVersion === 'RSV2CE' || seg.bookId > 66) enTrans = 'RSV2CE';
+    else if (userVersion === 'WEB') enTrans = 'WEB';
+    else enTrans = seg.bookId > 66 ? 'RSV2CE' : 'BSB';
+
+    const reqPromises = [
       fetch(`https://bolls.life/get-text/${enTrans}/${seg.bookId}/${seg.chapter}/`, { signal }),
-      getPocChapterVerses(seg.pocId, seg.chapter).catch(() => null),
-      fetch(`https://bolls.life/get-text/VULG/${seg.bookId}/${seg.chapter}/`, { signal }).catch(() => null)
-    ]);
+      getPocChapterVerses(seg.pocId, seg.chapter).catch(() => null)
+    ];
+
+    if (showLatin) {
+      reqPromises.push(fetch(`https://bolls.life/get-text/VULG/${seg.bookId}/${seg.chapter}/`, { signal }).catch(() => null));
+    }
+
+    const [enRes, pocVerses, laRes] = await Promise.all(reqPromises);
 
     if (!enRes || !enRes.ok) {
       throw new Error(`Multilingual Gateway HTTP ${enRes ? enRes.status : 'ERR'}`);
@@ -437,8 +455,9 @@ async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, 
 /**
  * Executes the 4-Tier Failover Pipeline to fetch a complete, sequential bilingual passage.
  */
-export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
+export async function fetchPassageWithFailover(passageRef, passageRefMl = '', options = {}) {
   const tStart = performance.now();
+  const preferredVersion = options.preferredVersion || (typeof localStorage !== 'undefined' ? localStorage.getItem('ephphatha_preferred_bible_version') : 'POC');
 
   // Check rate limiter first
   const rateCheck = checkRateLimit(`fetch_scripture:${passageRef}`);
@@ -459,8 +478,13 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 3500);
 
-      // Fetch fresh sequential passage with official POC Bible text
-      const fullPayload = await fetchFullSequentialFromMultilingualGateway(passageRef, passageRefMl, controller.signal);
+      // Link external abort signal if provided
+      if (options.signal) {
+        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+
+      // Fetch fresh sequential passage with official POC Bible text & user-preferred English version
+      const fullPayload = await fetchFullSequentialFromMultilingualGateway(passageRef, passageRefMl, controller.signal, preferredVersion);
       clearTimeout(timer);
 
       const validated = validateScripturePayload({ ...fullPayload, translation_ml: 'POC' });

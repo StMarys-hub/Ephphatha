@@ -69,9 +69,7 @@ export class EphphathaAudioEngine {
     });
 
     this.htmlAudio.addEventListener('ended', () => {
-      if (this.usingEdgeStream) {
-        this.pause();
-      }
+      this.triggerTrackEnded();
     });
 
     this.htmlAudio.addEventListener('error', () => {
@@ -95,6 +93,20 @@ export class EphphathaAudioEngine {
     this.oscillators = [];
     this.tickInterval = null;
     this.listeners = new Set();
+    this.endedListeners = new Set();
+  }
+
+  onEnded(fn) {
+    this.endedListeners.add(fn);
+    return () => this.endedListeners.delete(fn);
+  }
+
+  triggerTrackEnded() {
+    const finishedDay = this.currentDay;
+    this.pause();
+    this.endedListeners.forEach(fn => {
+      try { fn(finishedDay); } catch (_) { /* ignore */ }
+    });
   }
 
   onStateChange(fn) {
@@ -253,7 +265,7 @@ export class EphphathaAudioEngine {
     this.tickInterval = setInterval(() => {
       this.currentTimeSec = Math.min(this.durationSec, this.currentTimeSec + (0.5 * this.playbackRate));
       if (this.currentTimeSec >= this.durationSec) {
-        this.pause();
+        this.triggerTrackEnded();
       }
       this.emit();
     }, 500);

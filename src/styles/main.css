@@ -150,15 +150,14 @@ body {
 .brand-cluster {
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: max-content;
 }
 
 .brand-emblem {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   background: var(--period-color);
   color: #FFFFFF;
@@ -170,16 +169,25 @@ body {
   flex-shrink: 0;
 }
 
+.brand-titles {
+  flex-shrink: 0;
+}
+
 .brand-titles h1 {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 5px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+}
+
+.brand-titles h1 span:first-child {
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-block;
 }
 
 .brand-ml {
@@ -237,48 +245,9 @@ body {
   background: var(--period-bg-soft);
 }
 
-/* Mobile Full-Screen & Native PWA Install Banner */
+/* Mobile Full-Screen Bar Retired (Second Full Screen Option Removed as Requested) */
 .mobile-fullscreen-bar {
-  max-width: 960px;
-  margin: 6px 8px 0 8px;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--period-bg-soft);
-  border: 1px solid var(--period-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: nowrap;
-}
-
-.mobile-fs-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mobile-fs-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.mobile-fs-btn {
-  height: 28px;
-  padding: 0 10px;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--period-color);
-  background: var(--bg-elevated-card);
-  color: var(--text-primary);
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
+  display: none !important;
 }
 
 .mobile-fs-btn.primary {
@@ -482,10 +451,11 @@ body {
 }
 
 .episode-title-ml {
-  font-size: 0.98rem;
-  font-weight: 600;
-  color: var(--period-color);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--period-text, var(--period-color));
   margin-bottom: 8px;
+  line-height: 1.5;
 }
 
 /* Collapsible Context Accordion */
@@ -792,25 +762,59 @@ body {
 .verse-text-en {
   font-family: var(--font-serif);
   font-size: 1.08rem;
-  line-height: 1.6;
+  line-height: 1.68;
   color: var(--text-primary);
+  font-weight: 550; /* Sturdy & Strong for superior reading comfort */
+  letter-spacing: 0.005em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .verse-text-ml {
   font-family: var(--font-malayalam);
-  font-size: 0.98rem;
-  line-height: 1.85 !important;
+  font-size: 1.02rem;
+  line-height: 1.95 !important;
   color: var(--text-primary);
+  font-weight: 600; /* Sturdy & Strong for official POC Malayalam text */
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.verse-text-la {
+/* User configurable typography weight */
+html[data-verse-weight="regular"] .verse-text-en { font-weight: 400; }
+html[data-verse-weight="regular"] .verse-text-ml { font-weight: 400; }
+html[data-verse-weight="strong"] .verse-text-en  { font-weight: 550; }
+html[data-verse-weight="strong"] .verse-text-ml  { font-weight: 600; }
+html[data-verse-weight="bold"] .verse-text-en    { font-weight: 700; }
+html[data-verse-weight="bold"] .verse-text-ml    { font-weight: 700; }
+
+.verse-text-la,
+.canonical-verse-la {
   font-family: var(--font-serif);
   font-style: italic;
-  font-size: 0.84rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
   color: var(--text-secondary);
   margin-top: 6px;
   border-top: 1px dashed var(--border-subtle);
   padding-top: 4px;
+}
+
+/* Latin Vulgate text hidden by default unless explicitly toggled in Settings */
+body:not(.show-latin-vulgata) .verse-text-la,
+body:not(.show-latin-vulgata) .canonical-verse-la {
+  display: none !important;
+}
+
+/* Language display preference modes */
+body[data-lang-pref="ml"] .verse-text-en,
+body[data-lang-pref="ml"] .canonical-verse-en {
+  display: none !important;
+}
+body[data-lang-pref="en"] .verse-text-ml,
+body[data-lang-pref="en"] .canonical-verse-ml {
+  display: none !important;
 }
 
 /* ============================================================================
@@ -1736,23 +1740,66 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bible-search-input-wrap {
+  flex: 1;
+  min-width: 200px;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .bible-search-input {
-  flex: 1;
+  width: 100%;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: inherit;
   font-size: 0.85rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
   outline: none;
   transition: border-color var(--transition-fast);
 }
 
 .bible-search-input:focus {
   border-color: var(--period-color);
+  box-shadow: 0 0 0 2px var(--period-bg-soft);
+}
+
+.bible-quick-book-select {
+  flex-shrink: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.55rem 0.65rem;
+  outline: none;
+  cursor: pointer;
+  max-width: 220px;
+  transition: border-color var(--transition-fast);
+}
+
+.bible-quick-book-select:focus {
+  border-color: var(--period-color);
+}
+
+@media (max-width: 520px) {
+  .bible-search-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .bible-search-input-wrap,
+  .bible-quick-book-select {
+    width: 100%;
+    max-width: none;
+  }
 }
 
 .bible-filter-pills {
@@ -1927,18 +1974,47 @@ body {
 /* Reader Navigation Toolbar */
 .bible-reader-toolbar {
   position: sticky;
-  top: 56px;
+  top: 52px;
   z-index: 20;
   background: var(--bg-elevated-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 0.5rem 0.75rem;
+  padding: 0.45rem 0.65rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
   margin-bottom: 0.75rem;
   box-shadow: var(--shadow-sm);
+  flex-wrap: nowrap;
+}
+
+.bible-reader-center-cluster {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
+.bible-reader-book-picker,
+.bible-reader-ch-picker {
+  background: var(--bg-subtle-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 6px;
+  outline: none;
+  cursor: pointer;
+  max-width: 140px;
+}
+
+.bible-reader-ch-picker {
+  max-width: 65px;
 }
 
 .bible-reader-title-badge {

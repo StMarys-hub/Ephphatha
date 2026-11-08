@@ -32,7 +32,7 @@ let deps = {
 export function initCanonicalBibleView(dependencies = {}) {
   deps = { ...deps, ...dependencies };
 
-  // 1. Search Input Filter
+  // 1. Search Input Filter & Enter Key Quick Jump
   const searchInput = document.getElementById('bible-search-input');
   const clearSearchBtn = document.getElementById('btn-clear-bible-search');
 
@@ -44,6 +44,15 @@ export function initCanonicalBibleView(dependencies = {}) {
     renderBibleCatalogGrid();
   });
 
+  searchInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const matched = filterCanonicalBooks(canonicalState.searchQuery, canonicalState.activeFilter);
+      if (matched.length === 1) {
+        openBibleChapterModal(matched[0]);
+      }
+    }
+  });
+
   clearSearchBtn?.addEventListener('click', () => {
     if (searchInput) searchInput.value = '';
     canonicalState.searchQuery = '';
@@ -51,6 +60,9 @@ export function initCanonicalBibleView(dependencies = {}) {
     renderBibleCatalogGrid();
     searchInput?.focus();
   });
+
+  // Populate Quick-Jump Dropdown in Catalog and Reader Toolbar
+  populateQuickBookDropdowns();
 
   // 2. Category Filter Pills
   document.querySelectorAll('#bible-filter-pills [data-bible-filter]').forEach(pill => {
@@ -269,10 +281,29 @@ export async function openCanonicalChapter(pocId, chapterNum) {
   const readerPane = document.getElementById('bible-reader-pane');
   if (readerPane) readerPane.classList.remove('hidden');
 
-  // Update Toolbar Title Badge
+  // Update Toolbar Title Badge & Quick Selectors
   const titleBadge = document.getElementById('bible-reader-title-badge');
   if (titleBadge) {
     titleBadge.textContent = `${book.en} ${ch} • ${book.ml} ${ch}`;
+  }
+
+  const readerBookSelect = document.getElementById('bible-reader-book-select');
+  const readerChSelect = document.getElementById('bible-reader-ch-select');
+  if (readerBookSelect) {
+    readerBookSelect.value = String(book.pocId);
+  }
+  if (readerChSelect) {
+    readerChSelect.innerHTML = '';
+    for (let c = 1; c <= book.chapters; c++) {
+      const opt = document.createElement('option');
+      opt.value = String(c);
+      opt.textContent = `Ch ${c}`;
+      readerChSelect.appendChild(opt);
+    }
+    readerChSelect.value = String(ch);
+    readerChSelect.onchange = (e) => {
+      openCanonicalChapter(book.pocId, Number(e.target.value));
+    };
   }
 
   // Calculate Next & Previous Continuous Navigation
@@ -510,11 +541,13 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
       body.appendChild(mlP);
     }
 
-    // Latin Nova Vulgata Text
+    // Latin Nova Vulgata Text (Rendered only if Latin is enabled by user)
+    const showLatin = localStorage.getItem('ephphatha_show_latin') === 'true';
     if (v.la) {
       const laP = document.createElement('p');
       laP.className = 'verse-text-latin canonical-verse-la';
       laP.innerHTML = `<em>Vulgata:</em> "${v.la}"`;
+      if (!showLatin) laP.style.display = 'none';
       body.appendChild(laP);
     }
 
@@ -525,7 +558,7 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
   applyLanguageModeToReader();
 }
 
-function applyLanguageModeToReader() {
+export function applyLanguageModeToReader() {
   const mode = canonicalState.langMode;
   document.querySelectorAll('.canonical-verse-en').forEach(el => {
     el.style.display = (mode === 'bilingual' || mode === 'en') ? 'block' : 'none';
@@ -533,7 +566,69 @@ function applyLanguageModeToReader() {
   document.querySelectorAll('.canonical-verse-ml').forEach(el => {
     el.style.display = (mode === 'bilingual' || mode === 'ml') ? 'block' : 'none';
   });
+  const showLatin = localStorage.getItem('ephphatha_show_latin') === 'true';
   document.querySelectorAll('.canonical-verse-la').forEach(el => {
-    el.style.display = (mode === 'bilingual' || mode === 'en') ? 'block' : 'none';
+    el.style.display = showLatin ? 'block' : 'none';
   });
+}
+
+/**
+ * Populates Quick-Jump Book selector dropdown in Catalog & Reader Toolbar
+ */
+function populateQuickBookDropdowns() {
+  const quickSelect = document.getElementById('bible-quick-book-dropdown');
+  const readerBookSelect = document.getElementById('bible-reader-book-select');
+
+  const groups = [
+    { label: 'Pentateuch / Torah (5)', filter: b => b.pocId >= 1 && b.pocId <= 5 },
+    { label: 'Historical Books (16)', filter: b => b.category === 'Historical' },
+    { label: 'Wisdom & Poetry (7)', filter: b => b.category === 'Wisdom' },
+    { label: 'Prophetic Books (18)', filter: b => b.category === 'Prophets' },
+    { label: 'Gospels & Acts (5)', filter: b => b.category === 'Gospel' || b.en === 'Acts' },
+    { label: 'Epistles & Letters (21)', filter: b => b.category === 'Epistle' },
+    { label: 'Apocalypse / Revelation (1)', filter: b => b.en === 'Revelation' }
+  ];
+
+  if (quickSelect) {
+    quickSelect.innerHTML = '<option value="">⚡ Jump to Book (All 73 Books)...</option>';
+    groups.forEach(g => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = g.label;
+      CANONICAL_BIBLE_BOOKS.filter(g.filter).forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = String(b.pocId);
+        opt.textContent = `${b.pocId}. ${b.en} (${b.ml}) — ${b.chapters} ch`;
+        optgroup.appendChild(opt);
+      });
+      quickSelect.appendChild(optgroup);
+    });
+
+    quickSelect.addEventListener('change', (e) => {
+      const pocId = Number(e.target.value);
+      if (pocId) {
+        const book = getCanonicalBookByPocId(pocId);
+        if (book) {
+          openBibleChapterModal(book);
+          quickSelect.value = '';
+        }
+      }
+    });
+  }
+
+  if (readerBookSelect) {
+    readerBookSelect.innerHTML = '';
+    CANONICAL_BIBLE_BOOKS.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = String(b.pocId);
+      opt.textContent = `${b.en} • ${b.ml}`;
+      readerBookSelect.appendChild(opt);
+    });
+
+    readerBookSelect.addEventListener('change', (e) => {
+      const pocId = Number(e.target.value);
+      if (pocId) {
+        openCanonicalChapter(pocId, 1);
+      }
+    });
+  }
 }
