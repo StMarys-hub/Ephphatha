@@ -1290,7 +1290,7 @@ function isRunningStandaloneOrFullscreen() {
     document.webkitFullscreenElement ||
     window.matchMedia('(display-mode: fullscreen)').matches ||
     window.matchMedia('(display-mode: standalone)').matches ||
-    window.navigator.standalone === true
+    window.navigator?.standalone === true
   );
 }
 
@@ -1759,11 +1759,6 @@ function bindGlobalControls() {
   document.getElementById('btn-test-sheets-connection')?.addEventListener('click', async () => {
     const test = await testGoogleSheetsConnection();
     alert(test.ok ? `✅ Cloud Backend Online!` : `Status: ${test.error}`);
-  });
-      setText('sheets-sync-status-badge', '✅ Master DB Online');
-    } else {
-      alert(`Connection failed: ${test.error}\n\nMake sure the Google Apps Script Web App is deployed with "Execute as: Me" and "Who has access: Anyone".`);
-    }
   });
 
   // Failover Simulator Controls inside Telemetry Inspector
