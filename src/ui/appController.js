@@ -353,7 +353,8 @@ function applyFontScale(scaleStr) {
 
   const fontBtn = document.getElementById('btn-font-scaler');
   if (fontBtn) {
-    fontBtn.textContent = valid === '100' ? 'AA' : `AA ${valid}%`;
+    fontBtn.innerHTML = `AA<span class="scale-pct-label">${valid === '100' ? '' : ' ' + valid + '%'}</span>`;
+    fontBtn.title = `Text Size: ${valid}% (Click to cycle 100%, 112%, 125%)`;
   }
 }
 
@@ -550,6 +551,18 @@ async function loadActiveReadingSlot(daySchedule) {
   if (cached && cached.verses?.length) {
     appState.currentPassageData = cached;
     renderScriptureVerses(cached);
+  } else {
+    // Show polite loading skeleton if nothing cached yet
+    const versesList = document.getElementById('verses-list');
+    if (versesList && !versesList.children.length) {
+      versesList.innerHTML = `
+        <div class="verse-card" style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
+          <div style="font-size: 1.25rem; margin-bottom: 0.5rem;">📖</div>
+          <p style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">Opening ${refEn}...</p>
+          <p style="font-size: 0.8rem;">Loading POC Malayalam & Catholic Canon...</p>
+        </div>
+      `;
+    }
   }
 
   // 2. Abort prior in-flight fetch
@@ -563,13 +576,27 @@ async function loadActiveReadingSlot(daySchedule) {
       signal: activeScriptureAbortController.signal,
       preferredVersion: appState.preferredBibleVersion
     });
-    if (passageData) {
+    if (passageData && passageData.verses?.length) {
       appState.currentPassageData = passageData;
       renderScriptureVerses(passageData);
     }
   } catch (err) {
     if (err.name !== 'AbortError') {
       console.warn('Scripture fetch error:', err);
+      const versesList = document.getElementById('verses-list');
+      if (versesList && (!appState.currentPassageData?.verses?.length)) {
+        versesList.innerHTML = `
+          <div class="verse-card" style="text-align: center; padding: 2rem 1rem;">
+            <div style="font-size: 1.25rem; margin-bottom: 0.5rem;">⚠️</div>
+            <p style="font-weight: 600;">Unable to load ${refEn}</p>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">Please check your connection or tap reload.</p>
+            <button type="button" class="ergonomic-btn primary" id="btn-err-retry-passage" style="margin: 0 auto;">🔄 Retry</button>
+          </div>
+        `;
+        document.getElementById('btn-err-retry-passage')?.addEventListener('click', () => {
+          loadActiveReadingSlot(daySchedule);
+        });
+      }
     }
   }
 }
@@ -577,12 +604,17 @@ async function loadActiveReadingSlot(daySchedule) {
 function renderScriptureVerses(passageData) {
   if (!passageData) return;
 
-  const totalVerses = passageData.verses?.length || 0;
-  setText('reader-active-ref', `${passageData.reference_en} • ${passageData.reference_ml || ''} (${totalVerses} Verses)`);
+  const totalVerses = Array.isArray(passageData.verses) ? passageData.verses.length : 0;
+  setText('reader-active-ref', `${passageData.reference_en || ''} • ${passageData.reference_ml || ''} (${totalVerses} Verses)`);
   const tierEl = document.getElementById('reader-tier-badge');
   if (tierEl) {
-    tierEl.textContent = `Tier ${passageData.activeTier || 1}`;
-    tierEl.title = `${passageData.tierBadge} (${passageData.latencyMs.toFixed(1)}ms)`;
+    const tierNum = passageData.activeTier || 1;
+    const badgeText = passageData.tierBadge || `Tier ${tierNum} • Canonical Vault`;
+    const latencyStr = (typeof passageData.latencyMs === 'number' && !Number.isNaN(passageData.latencyMs))
+      ? `${passageData.latencyMs.toFixed(1)}ms`
+      : '<1ms';
+    tierEl.textContent = `Tier ${tierNum}`;
+    tierEl.title = `${badgeText} (${latencyStr})`;
   }
 
   // Render Quick-Jump Verse Pills
@@ -593,18 +625,38 @@ function renderScriptureVerses(passageData) {
   jumpBar.textContent = '';
   versesList.textContent = '';
 
-  const bookmarksMap = getAllRecordsMapSync('bookmarks');
-  const distinctChapters = new Set(passageData.verses.map(v => v.chapter).filter(Boolean));
-  const hasMultipleChapters = distinctChapters.size > 1;
-  let lastRenderedChapter = null;
+  if (!Array.isArray(passageData.verses) || passageData.verses.length === 0) {
+    const emptyNotice = document.createElement('div');
+    emptyNotice.className = 'empty-verses-notice';
+    emptyNotice.style.cssText = 'text-align: center; padding: 2.5rem 1rem; color: var(--text-secondary);';
+    emptyNotice.innerHTML = `
+      <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.75rem;">📖 Loading Scripture...</p>
+      <p style="font-size: 0.84rem; margin-bottom: 1rem;">Retrieving full chapter verses from POC Malayalam and BSB Catholic canonical vault.</p>
+      <button type="button" class="ergonomic-btn primary" id="btn-retry-verses-load" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 6px;">
+        <span>🔄 Reload Chapter</span>
+      </button>
+    `;
+    versesList.appendChild(emptyNotice);
+    document.getElementById('btn-retry-verses-load')?.addEventListener('click', () => {
+      const schedule = appState.scheduleByDay[appState.selectedDay];
+      if (schedule) loadActiveReadingSlot(schedule);
+    });
+    return;
+  }
 
-  passageData.verses.forEach((v, idx) => {
-    const chKey = v.chapter ? `${v.chapter}_` : '';
-    const verseDomId = `verse-card-${chKey}${v.verse}`;
-    const bookmarkId = `bm_d${appState.selectedDay}_${passageData.reference_en}_${chKey}v${v.verse}`;
-    const isBookmarked = Boolean(bookmarksMap[bookmarkId]);
-    const displayRefEn = v.ref_en || (v.chapter ? `${passageData.reference_en.replace(/\s+\d+.*$/, '')} ${v.chapter}:${v.verse}` : `${passageData.reference_en} : ${v.verse}`);
-    const displayRefMl = v.ref_ml || passageData.reference_ml || '';
+  try {
+    const bookmarksMap = getAllRecordsMapSync('bookmarks') || {};
+    const distinctChapters = new Set((passageData.verses || []).map(v => v.chapter).filter(Boolean));
+    const hasMultipleChapters = distinctChapters.size > 1;
+    let lastRenderedChapter = null;
+
+    passageData.verses.forEach((v, idx) => {
+      const chKey = v.chapter ? `${v.chapter}_` : '';
+      const verseDomId = `verse-card-${chKey}${v.verse}`;
+      const bookmarkId = `bm_d${appState.selectedDay}_${passageData.reference_en}_${chKey}v${v.verse}`;
+      const isBookmarked = Boolean(bookmarksMap[bookmarkId]);
+      const displayRefEn = v.ref_en || (v.chapter ? `${(passageData.reference_en || '').replace(/\s+\d+.*$/, '')} ${v.chapter}:${v.verse}` : `${passageData.reference_en || ''} : ${v.verse}`);
+      const displayRefMl = v.ref_ml || passageData.reference_ml || '';
 
     // Render Chapter Section Header when transitioning chapters in a multi-chapter reading
     if (hasMultipleChapters && v.chapter && v.chapter !== lastRenderedChapter) {
@@ -731,6 +783,9 @@ function renderScriptureVerses(passageData) {
 
     versesList.appendChild(card);
   });
+} catch (renderErr) {
+  console.error('Error rendering scripture verses:', renderErr);
+}
 }
 
 async function toggleVerseBookmark(bookmarkId, refEn, refMl, verseObj) {

@@ -196,12 +196,6 @@ body {
   color: var(--text-secondary);
 }
 
-@media (max-width: 480px) {
-  .brand-ml {
-    display: none;
-  }
-}
-
 .streak-pill {
   height: 30px;
   padding: 0 8px;
@@ -219,14 +213,14 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
 .icon-action-btn {
-  height: 36px;
-  min-width: 36px;
-  padding: 0 8px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 6px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
   background: var(--bg-elevated-card);
@@ -238,6 +232,72 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .top-header {
+    padding: calc(4px + env(safe-area-inset-top, 0px)) 6px 4px 6px;
+  }
+  .header-inner {
+    gap: 4px;
+    justify-content: space-between;
+  }
+  .brand-cluster {
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .brand-emblem {
+    width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+  .brand-titles h1 {
+    font-size: 0.96rem;
+  }
+  .brand-ml {
+    display: none !important;
+  }
+  #header-streak-count {
+    display: none !important; /* Hide streak from crowded header on mobile; full streak in Sanctuary */
+  }
+  #header-cloud-sync-pill {
+    display: none !important;
+  }
+  .header-actions {
+    gap: 3px;
+    flex-shrink: 0;
+  }
+  .icon-action-btn {
+    height: 32px;
+    min-width: 32px;
+    width: 32px;
+    max-width: 32px;
+    padding: 0;
+    font-size: 0.74rem;
+  }
+  #btn-font-scaler {
+    font-size: 0.74rem;
+    padding: 0;
+  }
+  .scale-pct-label {
+    display: none !important;
+  }
+  .user-account-btn {
+    height: 32px;
+    min-width: 32px;
+    width: 32px;
+    max-width: 32px;
+    padding: 0;
+    justify-content: center;
+  }
+  .user-account-btn .user-name-text {
+    display: none !important; /* Display clean 👤 avatar pill on mobile so Setting gear is always visible */
+  }
+  #btn-open-settings-drawer {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+  }
 }
 
 .icon-action-btn:hover {

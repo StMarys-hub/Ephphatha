@@ -110,10 +110,11 @@ export function onFailoverEvent(listener) {
   return () => failoverListeners.delete(listener);
 }
 
-function emitFailoverTelemetry(tierNumber, tierName, status, passageRef, latencyMs, reason = '') {
+function emitFailoverTelemetry(tierNumber, tierName, status, passageRef, latencyMs = 0, reason = '') {
+  const safeLatency = typeof latencyMs === 'number' && !Number.isNaN(latencyMs) ? latencyMs : 0;
   circuitBreakerState.lastActiveTier = tierNumber;
   circuitBreakerState.lastTierName = tierName;
-  circuitBreakerState.lastLatencyMs = Number(latencyMs.toFixed(1));
+  circuitBreakerState.lastLatencyMs = Number(safeLatency.toFixed(1));
 
   const evt = {
     id: `fo_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -122,7 +123,7 @@ function emitFailoverTelemetry(tierNumber, tierName, status, passageRef, latency
     tierName,
     status,
     passageRef,
-    latencyMs: Number(latencyMs.toFixed(1)),
+    latencyMs: Number(safeLatency.toFixed(1)),
     reason
   };
 
@@ -299,7 +300,10 @@ export async function initScriptureVault() {
         await putRecord('scripture_cache', {
           id: refKey,
           ...passageData,
-          translation_ml: 'POC'
+          translation_ml: 'POC',
+          activeTier: 4,
+          tierBadge: 'Tier 4 • Offline Vault Ready (0ms)',
+          latencyMs: 0
         });
       }
     }
