@@ -1,10 +1,10 @@
 /**
  * EPHPHATHA ADAPTER LAYER: 4-TIER CIRCUIT-BREAKER BIBLE TEXT FAILOVER PIPELINE
  * Guarantees 99.999% Full-Chapter Sequential Scripture Availability across
- * English (BSB / RSV2CE / WEB), Malayalam (MOV / POC Bible), and Latin Vulgate (VULG).
+ * English (BSB / RSV2CE / WEB), Malayalam (POC Bible - പി.ഒ.സി. ബൈബിൾ), and Latin Vulgate (VULG).
  *
- * TIER 1: Primary Online Multilingual Bible Gateway (Bolls Life BSB + MOV + VULG & Full Vault, Timeout: 3500ms)
- * TIER 2: Secondary Public Scripture Mirror API (bible-api.com Full Chapter Range, Timeout: 3500ms)
+ * TIER 1: Primary Online Multilingual Bible Gateway (BSB/RSV2CE + POC Malayalam + VULG, Timeout: 3500ms)
+ * TIER 2: Secondary Public Scripture Mirror API (bible-api.com Full Chapter Range + POC Mirror, Timeout: 3500ms)
  * TIER 3: Google Drive Cloud Text Mirror (/00_System_Manifest_And_DB/scripture_fallback_vault.json)
  * TIER 4: Local IndexedDB & Service Worker Offline Scripture Vault (0ms "Offline Ready")
  */
@@ -14,82 +14,83 @@ import { getRecordSync, putRecord } from './indexedDbRepo.js';
 
 let fallbackVaultMemory = null;
 const failoverListeners = new Set();
+const pocBookCache = new Map();
 
-// Canonical 73-Book Mapping for Full-Chapter Sequential Retrieval (Bolls Life + Malayalam + Catholic Canon)
+// Canonical 73-Book Catholic Canon Mapping (Bolls Life + Official POC Malayalam Bible 1..73)
 const CANONICAL_BOOKS = [
-  { id: 1, en: 'Genesis', aliases: ['gen'], ml: 'ഉൽപത്തി' },
-  { id: 2, en: 'Exodus', aliases: ['exo', 'ex'], ml: 'പുറപ്പാട്' },
-  { id: 3, en: 'Leviticus', aliases: ['lev'], ml: 'ലേവ്യാപുസ്തകം' },
-  { id: 4, en: 'Numbers', aliases: ['num'], ml: 'സംഖ്യാപുസ്തകം' },
-  { id: 5, en: 'Deuteronomy', aliases: ['deut', 'dt'], ml: 'ആവര്‍ത്തനപുസ്തകം' },
-  { id: 6, en: 'Joshua', aliases: ['josh', 'jos'], ml: 'യോശുവ' },
-  { id: 7, en: 'Judges', aliases: ['judg', 'jdg'], ml: 'ന്യായാധിപന്മാര്‍' },
-  { id: 8, en: 'Ruth', aliases: ['ru'], ml: 'രൂത്ത്' },
-  { id: 9, en: '1 Samuel', aliases: ['1 sam', '1sam'], ml: '1 ശമൂവേൽ' },
-  { id: 10, en: '2 Samuel', aliases: ['2 sam', '2sam'], ml: '2 ശമൂവേൽ' },
-  { id: 11, en: '1 Kings', aliases: ['1 kgs', '1kgs'], ml: '1 രാജാക്കന്മാര്‍' },
-  { id: 12, en: '2 Kings', aliases: ['2 kgs', '2kgs'], ml: '2 രാജാക്കന്മാര്‍' },
-  { id: 13, en: '1 Chronicles', aliases: ['1 chr', '1chr'], ml: '1 ദിനവൃത്താന്തം' },
-  { id: 14, en: '2 Chronicles', aliases: ['2 chr', '2chr'], ml: '2 ദിനവൃത്താന്തം' },
-  { id: 15, en: 'Ezra', aliases: ['ezr'], ml: 'എസ്രാ' },
-  { id: 16, en: 'Nehemiah', aliases: ['neh'], ml: 'നെഹെമ്യാവ്' },
-  { id: 17, en: 'Esther', aliases: ['est'], ml: 'എസ്ഥേര്‍' },
-  { id: 18, en: 'Job', aliases: ['jb'], ml: 'ജോബ്' },
-  { id: 19, en: 'Psalms', aliases: ['psalm', 'ps', 'psa'], ml: 'സങ്കീർത്തനങ്ങൾ' },
-  { id: 20, en: 'Proverbs', aliases: ['prov', 'prv'], ml: 'സദൃശവാക്യങ്ങള്‍' },
-  { id: 21, en: 'Ecclesiastes', aliases: ['eccl', 'ecc'], ml: 'സഭാപ്രസംഗി' },
-  { id: 22, en: 'Song of Solomon', aliases: ['song', 'cant'], ml: 'ഉത്തമഗീതം' },
-  { id: 23, en: 'Isaiah', aliases: ['isa', 'is'], ml: 'യെശയ്യാവ്' },
-  { id: 24, en: 'Jeremiah', aliases: ['jer'], ml: 'യിരെമ്യാവ്' },
-  { id: 25, en: 'Lamentations', aliases: ['lam'], ml: 'വിലാപങ്ങള്‍' },
-  { id: 26, en: 'Ezekiel', aliases: ['ezek', 'ezk'], ml: 'യെഹെസ്കേൽ' },
-  { id: 27, en: 'Daniel', aliases: ['dan', 'dn'], ml: 'ദാനീയേൽ' },
-  { id: 28, en: 'Hosea', aliases: ['hos'], ml: 'ഹോശേയ' },
-  { id: 29, en: 'Joel', aliases: ['jl'], ml: 'യോവേൽ' },
-  { id: 30, en: 'Amos', aliases: ['am'], ml: 'ആമോസ്' },
-  { id: 31, en: 'Obadiah', aliases: ['obad', 'ob'], ml: 'ഓബദ്യാവ്' },
-  { id: 32, en: 'Jonah', aliases: ['jon'], ml: 'യോനാ' },
-  { id: 33, en: 'Micah', aliases: ['mic'], ml: 'മീഖാ' },
-  { id: 34, en: 'Nahum', aliases: ['nah'], ml: 'നഹൂം' },
-  { id: 35, en: 'Habakkuk', aliases: ['hab'], ml: 'ഹബക്കൂക്' },
-  { id: 36, en: 'Zephaniah', aliases: ['zeph', 'zep'], ml: 'സെഫന്യാവ്' },
-  { id: 37, en: 'Haggai', aliases: ['hag'], ml: 'ഹഗ്ഗായി' },
-  { id: 38, en: 'Zechariah', aliases: ['zech', 'zec'], ml: 'സെഖര്യാവ്' },
-  { id: 39, en: 'Malachi', aliases: ['mal'], ml: 'മലാഖി' },
-  { id: 40, en: 'Matthew', aliases: ['matt', 'mt'], ml: 'മത്തായി' },
-  { id: 41, en: 'Mark', aliases: ['mk', 'mrk'], ml: 'മര്‍ക്കൊസ്' },
-  { id: 42, en: 'Luke', aliases: ['lk', 'luk'], ml: 'ലൂക്കൊസ്' },
-  { id: 43, en: 'John', aliases: ['jn', 'jhn'], ml: 'യോഹന്നാന്‍' },
-  { id: 44, en: 'Acts', aliases: ['acts of the apostles', 'act'], ml: 'അപ്പൊ. പ്രവൃത്തികള്‍' },
-  { id: 45, en: 'Romans', aliases: ['rom', 'rm'], ml: 'റോമര്‍' },
-  { id: 46, en: '1 Corinthians', aliases: ['1 cor', '1cor'], ml: '1 കൊരിന്ത്യര്‍' },
-  { id: 47, en: '2 Corinthians', aliases: ['2 cor', '2cor'], ml: '2 കൊരിന്ത്യര്‍' },
-  { id: 48, en: 'Galatians', aliases: ['gal'], ml: 'ഗലാത്യര്‍' },
-  { id: 49, en: 'Ephesians', aliases: ['eph'], ml: 'എഫെസ്യര്‍' },
-  { id: 50, en: 'Philippians', aliases: ['phil', 'php'], ml: 'ഫിലിപ്പിയര്‍' },
-  { id: 51, en: 'Colossians', aliases: ['col'], ml: 'കൊലൊസ്സ്യര്‍' },
-  { id: 52, en: '1 Thessalonians', aliases: ['1 thess', '1thess'], ml: '1 തെസ്സലൊനീക്യര്‍' },
-  { id: 53, en: '2 Thessalonians', aliases: ['2 thess', '2thess'], ml: '2 തെസ്സലൊനീക്യര്‍' },
-  { id: 54, en: '1 Timothy', aliases: ['1 tim', '1tim'], ml: '1 തിമൊഥെയൊസ്' },
-  { id: 55, en: '2 Timothy', aliases: ['2 tim', '2tim'], ml: '2 തിമൊഥെയൊസ്' },
-  { id: 56, en: 'Titus', aliases: ['tit'], ml: 'തീത്തൊസിന്' },
-  { id: 57, en: 'Philemon', aliases: ['phlm', 'phm'], ml: 'ഫിലേമൊന്' },
-  { id: 58, en: 'Hebrews', aliases: ['heb'], ml: 'എബ്രായര്‍' },
-  { id: 59, en: 'James', aliases: ['jas', 'jm'], ml: 'യാക്കോബ്' },
-  { id: 60, en: '1 Peter', aliases: ['1 pet', '1pet'], ml: '1 പത്രൊസ്' },
-  { id: 61, en: '2 Peter', aliases: ['2 pet', '2pet'], ml: '2 പത്രൊസ്' },
-  { id: 62, en: '1 John', aliases: ['1 jn', '1jn'], ml: '1 യോഹന്നാന്‍' },
-  { id: 63, en: '2 John', aliases: ['2 jn', '2jn'], ml: '2 യോഹന്നാന്‍' },
-  { id: 64, en: '3 John', aliases: ['3 jn', '3jn'], ml: '3 യോഹന്നാന്‍' },
-  { id: 65, en: 'Jude', aliases: ['jud'], ml: 'യൂദാ' },
-  { id: 66, en: 'Revelation', aliases: ['rev', 'rv'], ml: 'വെളിപ്പാട്' },
-  { id: 68, en: 'Tobit', aliases: ['tob'], ml: 'തോബിത്' },
-  { id: 69, en: 'Judith', aliases: ['jdt'], ml: 'യൂദിത്ത്' },
-  { id: 70, en: 'Wisdom', aliases: ['wis'], ml: 'ജ്ഞാനം' },
-  { id: 71, en: 'Sirach', aliases: ['sir', 'ecclesiasticus'], ml: 'പ്രഭാഷകൻ' },
-  { id: 73, en: 'Baruch', aliases: ['bar'], ml: 'ബാറൂക്ക്' },
-  { id: 74, en: '1 Maccabees', aliases: ['1 macc', '1macc'], ml: '1 മക്കബായർ' },
-  { id: 75, en: '2 Maccabees', aliases: ['2 macc', '2macc'], ml: '2 മക്കബായർ' }
+  { id: 1, pocId: 1, en: 'Genesis', aliases: ['gen'], ml: 'ഉൽപത്തി' },
+  { id: 2, pocId: 2, en: 'Exodus', aliases: ['exo', 'ex'], ml: 'പുറപ്പാട്' },
+  { id: 3, pocId: 3, en: 'Leviticus', aliases: ['lev'], ml: 'ലേവ്യർ' },
+  { id: 4, pocId: 4, en: 'Numbers', aliases: ['num'], ml: 'സംഖ്യ' },
+  { id: 5, pocId: 5, en: 'Deuteronomy', aliases: ['deut', 'dt'], ml: 'നിയമാവർത്തനം' },
+  { id: 6, pocId: 6, en: 'Joshua', aliases: ['josh', 'jos'], ml: 'ജോഷ്വാ' },
+  { id: 7, pocId: 7, en: 'Judges', aliases: ['judg', 'jdg'], ml: 'ന്യായാധിപന്മാർ' },
+  { id: 8, pocId: 8, en: 'Ruth', aliases: ['ru'], ml: 'റൂത്ത്' },
+  { id: 9, pocId: 9, en: '1 Samuel', aliases: ['1 sam', '1sam'], ml: '1 സാമുവൽ' },
+  { id: 10, pocId: 10, en: '2 Samuel', aliases: ['2 sam', '2sam'], ml: '2 സാമുവൽ' },
+  { id: 11, pocId: 11, en: '1 Kings', aliases: ['1 kgs', '1kgs'], ml: '1 രാജാക്കന്മാർ' },
+  { id: 12, pocId: 12, en: '2 Kings', aliases: ['2 kgs', '2kgs'], ml: '2 രാജാക്കന്മാർ' },
+  { id: 13, pocId: 13, en: '1 Chronicles', aliases: ['1 chr', '1chr'], ml: '1 ദിനവൃത്താന്തം' },
+  { id: 14, pocId: 14, en: '2 Chronicles', aliases: ['2 chr', '2chr'], ml: '2 ദിനവൃത്താന്തം' },
+  { id: 15, pocId: 15, en: 'Ezra', aliases: ['ezr'], ml: 'എസ്രാ' },
+  { id: 16, pocId: 16, en: 'Nehemiah', aliases: ['neh'], ml: 'നെഹമിയ' },
+  { id: 68, pocId: 17, en: 'Tobit', aliases: ['tob'], ml: 'തോബിത്' },
+  { id: 69, pocId: 18, en: 'Judith', aliases: ['jdt'], ml: 'യൂദിത്ത്' },
+  { id: 17, pocId: 19, en: 'Esther', aliases: ['est'], ml: 'എസ്തേർ' },
+  { id: 74, pocId: 20, en: '1 Maccabees', aliases: ['1 macc', '1macc'], ml: '1 മക്കബായർ' },
+  { id: 75, pocId: 21, en: '2 Maccabees', aliases: ['2 macc', '2macc'], ml: '2 മക്കബായർ' },
+  { id: 18, pocId: 22, en: 'Job', aliases: ['jb'], ml: 'ജോബ്' },
+  { id: 19, pocId: 23, en: 'Psalms', aliases: ['psalm', 'ps', 'psa'], ml: 'സങ്കീർത്തനങ്ങൾ' },
+  { id: 20, pocId: 24, en: 'Proverbs', aliases: ['prov', 'prv'], ml: 'സുഭാഷിതങ്ങൾ' },
+  { id: 21, pocId: 25, en: 'Ecclesiastes', aliases: ['eccl', 'ecc'], ml: 'സഭാപ്രസംഗകൻ' },
+  { id: 22, pocId: 26, en: 'Song of Solomon', aliases: ['song', 'cant'], ml: 'ഉത്തമഗീതം' },
+  { id: 70, pocId: 27, en: 'Wisdom', aliases: ['wis'], ml: 'ജ്ഞാനം' },
+  { id: 71, pocId: 28, en: 'Sirach', aliases: ['sir', 'ecclesiasticus'], ml: 'പ്രഭാഷകൻ' },
+  { id: 23, pocId: 29, en: 'Isaiah', aliases: ['isa', 'is'], ml: 'ഏശയ്യാ' },
+  { id: 24, pocId: 30, en: 'Jeremiah', aliases: ['jer'], ml: 'ജെറെമിയ' },
+  { id: 25, pocId: 31, en: 'Lamentations', aliases: ['lam'], ml: 'വിലാപങ്ങൾ' },
+  { id: 73, pocId: 32, en: 'Baruch', aliases: ['bar'], ml: 'ബാറൂക്ക്' },
+  { id: 26, pocId: 33, en: 'Ezekiel', aliases: ['ezek', 'ezk'], ml: 'എസെക്കിയേൽ' },
+  { id: 27, pocId: 34, en: 'Daniel', aliases: ['dan', 'dn'], ml: 'ദാനീയേൽ' },
+  { id: 28, pocId: 35, en: 'Hosea', aliases: ['hos'], ml: 'ഹോസിയാ' },
+  { id: 29, pocId: 36, en: 'Joel', aliases: ['jl'], ml: 'യോവേൽ' },
+  { id: 30, pocId: 37, en: 'Amos', aliases: ['am'], ml: 'ആമോസ്' },
+  { id: 31, pocId: 38, en: 'Obadiah', aliases: ['obad', 'ob'], ml: 'ഒബാദിയ' },
+  { id: 32, pocId: 39, en: 'Jonah', aliases: ['jon'], ml: 'യോനാ' },
+  { id: 33, pocId: 40, en: 'Micah', aliases: ['mic'], ml: 'മീഖാ' },
+  { id: 34, pocId: 41, en: 'Nahum', aliases: ['nah'], ml: 'നാഹും' },
+  { id: 35, pocId: 42, en: 'Habakkuk', aliases: ['hab'], ml: 'ഹബക്കുക്ക്' },
+  { id: 36, pocId: 43, en: 'Zephaniah', aliases: ['zeph', 'zep'], ml: 'സെഫാനിയ' },
+  { id: 37, pocId: 44, en: 'Haggai', aliases: ['hag'], ml: 'ഹഗ്ഗായി' },
+  { id: 38, pocId: 45, en: 'Zechariah', aliases: ['zech', 'zec'], ml: 'സഖറിയാ' },
+  { id: 39, pocId: 46, en: 'Malachi', aliases: ['mal'], ml: 'മലാക്കി' },
+  { id: 40, pocId: 47, en: 'Matthew', aliases: ['matt', 'mt'], ml: 'മത്തായി' },
+  { id: 41, pocId: 48, en: 'Mark', aliases: ['mk', 'mrk'], ml: 'മർക്കോസ്' },
+  { id: 42, pocId: 49, en: 'Luke', aliases: ['lk', 'luk'], ml: 'ലൂക്കാ' },
+  { id: 43, pocId: 50, en: 'John', aliases: ['jn', 'jhn'], ml: 'യോഹന്നാൻ' },
+  { id: 44, pocId: 51, en: 'Acts', aliases: ['acts of the apostles', 'act'], ml: 'അപ്പ. പ്രവർത്തനങ്ങൾ' },
+  { id: 45, pocId: 52, en: 'Romans', aliases: ['rom', 'rm'], ml: 'റോമാ' },
+  { id: 46, pocId: 53, en: '1 Corinthians', aliases: ['1 cor', '1cor'], ml: '1 കൊറിന്തോസ്' },
+  { id: 47, pocId: 54, en: '2 Corinthians', aliases: ['2 cor', '2cor'], ml: '2 കൊറിന്തോസ്' },
+  { id: 48, pocId: 55, en: 'Galatians', aliases: ['gal'], ml: 'ഗലാത്തിയാ' },
+  { id: 49, pocId: 56, en: 'Ephesians', aliases: ['eph'], ml: 'എഫേസോസ്' },
+  { id: 50, pocId: 57, en: 'Philippians', aliases: ['phil', 'php'], ml: 'ഫിലിപ്പി' },
+  { id: 51, pocId: 58, en: 'Colossians', aliases: ['col'], ml: 'കൊളോസോസ്' },
+  { id: 52, pocId: 59, en: '1 Thessalonians', aliases: ['1 thess', '1thess'], ml: '1 തെസലോനിക്കാ' },
+  { id: 53, pocId: 60, en: '2 Thessalonians', aliases: ['2 thess', '2thess'], ml: '2 തെസലോനിക്കാ' },
+  { id: 54, pocId: 61, en: '1 Timothy', aliases: ['1 tim', '1tim'], ml: '1 തിമോത്തേയോസ്' },
+  { id: 55, pocId: 62, en: '2 Timothy', aliases: ['2 tim', '2tim'], ml: '2 തിമോത്തേയോസ്' },
+  { id: 56, pocId: 63, en: 'Titus', aliases: ['tit'], ml: 'തീത്തോസ്' },
+  { id: 57, pocId: 64, en: 'Philemon', aliases: ['phlm', 'phm'], ml: 'ഫിലെമോൻ' },
+  { id: 58, pocId: 65, en: 'Hebrews', aliases: ['heb'], ml: 'ഹെബ്രായർ' },
+  { id: 59, pocId: 66, en: 'James', aliases: ['jas', 'jm'], ml: 'യാക്കോബ്' },
+  { id: 60, pocId: 67, en: '1 Peter', aliases: ['1 pet', '1pet'], ml: '1 പത്രോസ്' },
+  { id: 61, pocId: 68, en: '2 Peter', aliases: ['2 pet', '2pet'], ml: '2 പത്രോസ്' },
+  { id: 62, pocId: 69, en: '1 John', aliases: ['1 jn', '1jn'], ml: '1 യോഹന്നാൻ' },
+  { id: 63, pocId: 70, en: '2 John', aliases: ['2 jn', '2jn'], ml: '2 യോഹന്നാൻ' },
+  { id: 64, pocId: 71, en: '3 John', aliases: ['3 jn', '3jn'], ml: '3 യോഹന്നാൻ' },
+  { id: 65, pocId: 72, en: 'Jude', aliases: ['jud'], ml: 'യുദാസ്' },
+  { id: 66, pocId: 73, en: 'Revelation', aliases: ['rev', 'rv'], ml: 'വെളിപാട്' }
 ];
 
 // Interactive Circuit-Breaker Simulation Flags
@@ -195,6 +196,7 @@ export function parsePassageSegments(passageRef) {
       // Verse range within chapter (e.g. "Psalm 105:1–15" or "Mark 7:31–37")
       segments.push({
         bookId: bookInfo.id,
+        pocId: bookInfo.pocId,
         bookEn: bookInfo.en === 'Psalms' ? 'Psalm' : bookInfo.en,
         bookMl: bookInfo.ml,
         chapter: chStart,
@@ -207,6 +209,7 @@ export function parsePassageSegments(passageRef) {
       for (let ch = chStart; ch <= maxCh; ch++) {
         segments.push({
           bookId: bookInfo.id,
+          pocId: bookInfo.pocId,
           bookEn: bookInfo.en === 'Psalms' ? 'Psalm' : bookInfo.en,
           bookMl: bookInfo.ml,
           chapter: ch,
@@ -218,6 +221,7 @@ export function parsePassageSegments(passageRef) {
       // Single full chapter (e.g. "Psalm 104" or "Genesis 11")
       segments.push({
         bookId: bookInfo.id,
+        pocId: bookInfo.pocId,
         bookEn: bookInfo.en === 'Psalms' ? 'Psalm' : bookInfo.en,
         bookMl: bookInfo.ml,
         chapter: chStart,
@@ -230,6 +234,7 @@ export function parsePassageSegments(passageRef) {
   if (segments.length === 0) {
     segments.push({
       bookId: 1,
+      pocId: 1,
       bookEn: 'Genesis',
       bookMl: 'ഉൽപത്തി',
       chapter: 1,
@@ -238,6 +243,39 @@ export function parsePassageSegments(passageRef) {
     });
   }
   return segments;
+}
+
+/**
+ * Loads full sequential verses in Malayalam from the official Catholic POC Bible (പി.ഒ.സി. ബൈബിൾ).
+ * Caches in memory and leverages browser cache / Service Worker for 0ms retrieval.
+ */
+export async function getPocChapterVerses(pocId, chapterNum) {
+  if (!pocId) return null;
+  const key = String(pocId);
+  if (!pocBookCache.has(key)) {
+    try {
+      if (typeof window === 'undefined') {
+        const fs = await import('fs');
+        const path = await import('path');
+        const p = path.resolve(process.cwd(), `data/poc/${pocId}.json`);
+        if (fs.existsSync(p)) {
+          const bookData = JSON.parse(fs.readFileSync(p, 'utf8'));
+          pocBookCache.set(key, bookData);
+        }
+      } else {
+        const res = await fetch(`./data/poc/${pocId}.json`);
+        if (res.ok) {
+          const bookData = await res.json();
+          pocBookCache.set(key, bookData);
+        }
+      }
+    } catch (_) {
+      // offline or relative path fallback
+    }
+  }
+  const book = pocBookCache.get(key);
+  if (!book || !book.chapters) return null;
+  return book.chapters[String(chapterNum)] || null;
 }
 
 /**
@@ -263,8 +301,8 @@ export async function initScriptureVault() {
 }
 
 /**
- * Fetches full sequential chapters in English (BSB/RSV2CE), Malayalam (MOV), and Latin (VULG)
- * from the Primary Multilingual Gateway (`bolls.life`).
+ * Fetches full sequential chapters in English (BSB/RSV2CE), Malayalam (Official POC Bible), and Latin (VULG)
+ * from the Primary Multilingual Gateway (`bolls.life`) paired with local POC Catholic Bible vault.
  */
 async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRefMl, signal) {
   const segments = parsePassageSegments(passageRef);
@@ -273,11 +311,9 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
 
   for (const seg of segments) {
     const enTrans = seg.bookId > 66 ? 'RSV2CE' : 'BSB';
-    const [enRes, mlRes, laRes] = await Promise.all([
+    const [enRes, pocVerses, laRes] = await Promise.all([
       fetch(`https://bolls.life/get-text/${enTrans}/${seg.bookId}/${seg.chapter}/`, { signal }),
-      seg.bookId <= 66
-        ? fetch(`https://bolls.life/get-text/MOV/${seg.bookId}/${seg.chapter}/`, { signal }).catch(() => null)
-        : Promise.resolve(null),
+      getPocChapterVerses(seg.pocId, seg.chapter).catch(() => null),
       fetch(`https://bolls.life/get-text/VULG/${seg.bookId}/${seg.chapter}/`, { signal }).catch(() => null)
     ]);
 
@@ -286,14 +322,29 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
     }
 
     const enArr = await enRes.json();
-    const mlArr = mlRes && mlRes.ok ? await mlRes.json() : [];
     const laArr = laRes && laRes.ok ? await laRes.json() : [];
 
     if (!Array.isArray(enArr) || enArr.length === 0) {
       throw new Error(`Empty chapter payload for ${seg.bookEn} ${seg.chapter}`);
     }
 
-    const mlMap = new Map(mlArr.map(x => [Number(x.verse), cleanVerseHtml(x.text)]));
+    // Tier 1 Malayalam: Official POC Catholic Bible (പി.ഒ.സി. ബൈബിൾ)
+    let mlArr = [];
+    if (!pocVerses || pocVerses.length === 0) {
+      // Secondary fallback to online MOV only if POC chapter file was unavailable
+      if (seg.bookId <= 66) {
+        try {
+          const mlRes = await fetch(`https://bolls.life/get-text/MOV/${seg.bookId}/${seg.chapter}/`, { signal });
+          if (mlRes && mlRes.ok) mlArr = await mlRes.json();
+        } catch (_) {}
+      }
+    }
+
+    const mlMap = new Map(
+      pocVerses && pocVerses.length > 0
+        ? pocVerses.map((txt, idx) => [idx + 1, cleanVerseHtml(txt)])
+        : mlArr.map(x => [Number(x.verse), cleanVerseHtml(x.text)])
+    );
     const laMap = new Map(laArr.map(x => [Number(x.verse), cleanVerseHtml(x.text)]));
 
     // Sort verses in strict numerical ascending order (1, 2, 3, ... N)
@@ -329,7 +380,7 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
 }
 
 /**
- * Fetches full sequential chapters from Secondary Mirror (`bible-api.com`) without artificial limits.
+ * Fetches full sequential chapters from Secondary Mirror (`bible-api.com`) with POC Malayalam mirroring.
  */
 async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, signal) {
   const segments = parsePassageSegments(passageRef);
@@ -341,7 +392,10 @@ async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, 
     const queryStr = seg.vStart !== null
       ? `${seg.bookEn} ${seg.chapter}:${seg.vStart}-${seg.vEnd}`
       : `${seg.bookEn} ${seg.chapter}`;
-    const res = await fetch(`https://bible-api.com/${encodeURIComponent(queryStr)}?translation=web`, { signal });
+    const [res, pocVerses] = await Promise.all([
+      fetch(`https://bible-api.com/${encodeURIComponent(queryStr)}?translation=web`, { signal }),
+      getPocChapterVerses(seg.pocId, seg.chapter).catch(() => null)
+    ]);
     if (!res.ok) throw new Error(`Secondary Mirror HTTP ${res.status}`);
 
     const json = await res.json();
@@ -356,6 +410,7 @@ async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, 
       const exactVault = vaultMatch?.verses?.find(vv => Number(vv.chapter || seg.chapter) === chNum && Number(vv.verse) === vNum);
       const refEnLabel = `${seg.bookEn} ${chNum}:${vNum}`;
       const refMlLabel = `${seg.bookMl} ${chNum}:${vNum}`;
+      const pocVerseText = pocVerses && pocVerses[vNum - 1] ? cleanVerseHtml(pocVerses[vNum - 1]) : null;
 
       allVerses.push({
         chapter: chNum,
@@ -363,7 +418,7 @@ async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, 
         ref_en: refEnLabel,
         ref_ml: refMlLabel,
         en: cleanVerseHtml(v.text),
-        ml: exactVault?.ml || `[${refMlLabel}]`,
+        ml: pocVerseText || exactVault?.ml || `[${refMlLabel}]`,
         la: exactVault?.la || '',
         audio_cue_sec: cueIndex * 12
       });
@@ -391,7 +446,7 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '') {
   }
 
   // If Airplane / Offline Mode is active or forced
-  if (!navigator.onLine || circuitBreakerState.forceOfflineMode) {
+  if ((typeof navigator !== 'undefined' && navigator.onLine === false) || circuitBreakerState.forceOfflineMode) {
     return serveFromTier4OfflineVault(passageRef, passageRefMl, tStart, 'Device Offline / Airplane Mode');
   }
 
