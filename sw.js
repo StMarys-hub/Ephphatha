@@ -4,7 +4,7 @@
  * preserving 100% offline readiness in Tier 4.
  */
 
-const CACHE_NAME = 'ephphatha-sanctuary-v3.3.1';
+const CACHE_NAME = 'ephphatha-sanctuary-v3.3.2';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -21,6 +21,7 @@ const CORE_ASSETS = [
   './src/adapters/indexedDbRepo.js',
   './src/adapters/bibleFailoverGateway.js',
   './src/adapters/fellowshipGateway.js',
+  './src/adapters/googleSheetsAdapter.js',
   './src/adapters/audioEngine.js',
   './src/adapters/syncWorkerClient.js',
   './data/schedule_manifest_v3.json',

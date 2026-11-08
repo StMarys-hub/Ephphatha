@@ -24,6 +24,10 @@ import {
   putRecord
 } from './indexedDbRepo.js';
 import { enqueueCloudSyncMutation } from './syncWorkerClient.js';
+import {
+  fetchCohortFromGoogleSheet,
+  syncCohortToGoogleSheet
+} from './googleSheetsAdapter.js';
 
 const INVITE_CODE_REGEX = /^[A-Z2-9]{6,10}$/;
 const INVITE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -301,6 +305,18 @@ export async function fetchCohortByInviteCode(rawCode) {
     return { cohort: localCached || null, source: 'OFFLINE_CACHE' };
   }
 
+  // 1. Check Google Sheets Master DB for live multi-user updates
+  try {
+    const sheetCohort = await fetchCohortFromGoogleSheet(code);
+    if (sheetCohort && sheetCohort.inviteCode === code) {
+      const merged = mergeCohortSnapshots(localCached, sheetCohort);
+      await putRecord('fellowships', merged);
+      return { cohort: merged, source: 'GOOGLE_SHEETS_MASTER_DB' };
+    }
+  } catch (_) {
+    // Continue to Edge Worker / Local Server endpoints
+  }
+
   const endpoints = [
     `${getEdgeBaseUrl()}/fellowship/${encodeURIComponent(code)}`
   ];
@@ -359,6 +375,15 @@ export async function persistAndSyncCohort(cohort, mutationType = 'COHORT_SYNC')
   const writeRes = await putRecord('fellowships', cohort);
   broadcastChannel?.postMessage({ type: 'COHORT_UPDATED', cohort });
   notifyCohortListeners(cohort, 'LOCAL_WRITE');
+
+  // Push updates directly to Google Sheets Master DB for persistent multi-user sync
+  syncCohortToGoogleSheet(cohort).then(updated => {
+    if (updated) {
+      const merged = mergeCohortSnapshots(cohort, updated);
+      putRecord('fellowships', merged);
+      notifyCohortListeners(merged, 'GOOGLE_SHEETS_SYNC');
+    }
+  }).catch(() => {});
 
   const accessToken = await deriveCohortAccessToken(check.code);
   const signedEnvelope = await signSyncPayload({

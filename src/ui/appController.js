@@ -44,6 +44,16 @@ import {
 } from '../adapters/syncWorkerClient.js';
 import { buildFull365Curriculum, calculateGraceStreak } from '../domain/periods.js';
 import {
+  getGoogleSheetsSyncUrl,
+  setGoogleSheetsSyncUrl,
+  isGoogleSheetsConfigured,
+  testGoogleSheetsConnection,
+  loginAndRetrieveUserData,
+  syncUserDataToGoogleSheet,
+  syncDayProgressToGoogleSheet,
+  onGoogleSheetsSyncStatus
+} from '../adapters/googleSheetsAdapter.js';
+import {
   LECTIO_DIVINA_STEPS,
   generateAndDownloadVerseCard,
   mergeCrdtShardMaps,
@@ -123,6 +133,73 @@ export async function bootstrapEphphathaApp() {
   renderCurriculumMapView();
   renderVaultView();
   renderUserProfileBadge();
+
+  // 9. Initialize Google Sheets Master Database sync & multi-user live polling
+  initGoogleSheetsSyncOnBoot();
+}
+
+async function initGoogleSheetsSyncOnBoot() {
+  const sheetsInput = document.getElementById('input-sheets-sync-url');
+  if (sheetsInput) {
+    sheetsInput.value = getGoogleSheetsSyncUrl();
+  }
+  updateSheetsSyncStatusBadge();
+
+  onGoogleSheetsSyncStatus(snapshot => {
+    updateSheetsSyncStatusBadge(snapshot);
+  });
+
+  // If user profile is already saved and online, retrieve latest cloud data in background
+  const identity = getLocalMemberIdentity();
+  const userName = appState.userProfile?.displayName || identity.name;
+  if (userName && navigator.onLine) {
+    try {
+      const cloudRes = await loginAndRetrieveUserData(userName, appState.userProfile?.credentialIdHex);
+      if (cloudRes.found && cloudRes.progressMap) {
+        const localProgress = getAllRecordsMapSync('progress');
+        const mergeResult = mergeCrdtShardMaps(localProgress, cloudRes.progressMap);
+        for (const rec of Object.values(mergeResult.merged)) {
+          await putRecord('progress', rec);
+        }
+        if (cloudRes.user?.activeCohortCode && !getActiveCohortCode()) {
+          setActiveCohortCode(cloudRes.user.activeCohortCode);
+        }
+        refreshGraceStreakHeader();
+        renderCurriculumMapView();
+        renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
+        const note = document.getElementById('user-profile-status-note');
+        if (note) {
+          note.textContent = `✓ Cloud Sync Active: ${userName} (${cloudRes.completedCount} days synced)`;
+          note.style.color = 'var(--text-accent)';
+        }
+      }
+    } catch (_) { /* offline / graceful degradation */ }
+  }
+
+  // Multi-user Fellowship periodic polling (every 25 seconds when on Fellowship tab)
+  setInterval(async () => {
+    if (appState.activeTab === 'fellowship' && navigator.onLine && !appState.forceShowCohortGateway) {
+      const code = getActiveCohortCode();
+      if (code) {
+        try {
+          await fetchCohortByInviteCode(code);
+          renderFellowshipView();
+        } catch (_) { /* ignore background poll errors */ }
+      }
+    }
+  }, 25000);
+}
+
+function updateSheetsSyncStatusBadge(snapshot) {
+  const badge = document.getElementById('sheets-sync-status-badge');
+  if (!badge) return;
+  if (isGoogleSheetsConfigured()) {
+    badge.textContent = snapshot?.status === 'CONNECTED' ? '✅ Google Sheet: Connected' : '☁️ Google Sheet: Active';
+    badge.style.color = 'var(--text-accent)';
+  } else {
+    badge.textContent = 'Google Sheet: Direct / Edge Proxy';
+    badge.style.color = 'var(--text-secondary)';
+  }
 }
 
 async function loadDynamicCurriculumManifest() {
@@ -1450,6 +1527,19 @@ function bindGlobalControls() {
     renderCurriculumMapView();
     await syncMemberProgressToActiveCohort(getCurrentProgressMetrics());
 
+    // Sync Day Progress to Google Sheets Backend asynchronously
+    const identity = getLocalMemberIdentity();
+    const userId = appState.userProfile?.credentialIdHex || identity.memberId;
+    const inviteCode = getActiveCohortCode();
+    syncDayProgressToGoogleSheet({
+      userId,
+      dayNumber: appState.selectedDay,
+      completed: nextCompleted,
+      audioTimestampSec: Math.floor(audioEngine.currentTimeSec),
+      inviteCode,
+      memberMetrics: getCurrentProgressMetrics()
+    }).catch(() => {});
+
     await enqueueCloudSyncMutation('MARK_DAY_COMPLETE', 'appDataFolder/progress_log.json', {
       dayNumber: appState.selectedDay,
       completed: nextCompleted
@@ -1500,15 +1590,102 @@ function bindGlobalControls() {
     });
   });
 
-  // Passwordless Device Biometric Login inside Settings Drawer
+  // Passwordless Device Biometric Login & Cloud Restore inside Settings Drawer
   document.getElementById('btn-trigger-biometric-login')?.addEventListener('click', async () => {
     const nameInput = document.getElementById('input-biometric-name');
     const nameVal = nameInput?.value || 'Ephphatha Pilgrim';
-    const profile = await authenticateWithDeviceBiometrics(nameVal);
-    appState.userProfile = profile;
-    renderUserProfileBadge();
-    // Re-load journal with hardware credential key
-    await loadDayJournalEntry(appState.selectedDay, appState.scheduleByDay[appState.selectedDay]);
+    await executeCloudLoginAndRestore(nameVal);
+  });
+
+  // Manual Cloud Progress Retrieval Button
+  document.getElementById('btn-retrieve-cloud-data')?.addEventListener('click', async () => {
+    const nameInput = document.getElementById('input-biometric-name');
+    const identity = getLocalMemberIdentity();
+    const queryName = nameInput?.value || appState.userProfile?.displayName || identity.name || 'Ephphatha Pilgrim';
+
+    setText('user-profile-status-note', '🔄 Querying Google Sheet Master DB...');
+    try {
+      const res = await loginAndRetrieveUserData(queryName, appState.userProfile?.credentialIdHex);
+      if (res.found && res.progressMap) {
+        const localProgress = getAllRecordsMapSync('progress');
+        const mergeResult = mergeCrdtShardMaps(localProgress, res.progressMap);
+        for (const rec of Object.values(mergeResult.merged)) {
+          await putRecord('progress', rec);
+        }
+        if (res.user?.activeCohortCode) {
+          setActiveCohortCode(res.user.activeCohortCode);
+        }
+        refreshGraceStreakHeader();
+        renderCurriculumMapView();
+        renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
+        renderFellowshipView();
+        alert(`✓ Retrieved from Google Sheet: ${res.completedCount} completed days, Streak: ${res.user?.streakDays || 0}d.`);
+        setText('user-profile-status-note', `✓ Restored ${res.completedCount} completed days for ${queryName}`);
+      } else {
+        alert(`No existing cloud record found for "${queryName}". Your local progress will be backed up when you tap "Backup to Cloud".`);
+        setText('user-profile-status-note', `No prior cloud record found for ${queryName}`);
+      }
+    } catch (err) {
+      alert(`Could not retrieve cloud data: ${err.message || 'Check connection'}`);
+    }
+  });
+
+  // Manual Backup to Google Sheet Button
+  document.getElementById('btn-sync-all-to-sheet')?.addEventListener('click', async () => {
+    const identity = getLocalMemberIdentity();
+    const profile = appState.userProfile || {
+      displayName: identity.name || 'Ephphatha Pilgrim',
+      credentialIdHex: identity.memberId,
+      authMethod: 'Local Profile'
+    };
+    setText('user-profile-status-note', '🔄 Uploading progress to Google Sheets...');
+    try {
+      const localMap = getAllRecordsMapSync('progress');
+      const synced = await syncUserDataToGoogleSheet(profile, localMap);
+      if (synced) {
+        alert(`✓ Successfully backed up ${synced.savedProgressCount || Object.keys(localMap).length} days to Google Sheets Master DB!`);
+        setText('user-profile-status-note', `✓ Backed up ${synced.savedProgressCount || Object.keys(localMap).length} days to Google Sheet`);
+      } else {
+        alert('Could not sync to Google Sheet. Please check the Web App URL in settings.');
+      }
+    } catch (err) {
+      alert(`Backup error: ${err.message}`);
+    }
+  });
+
+  // Save Google Sheets Web App URL
+  document.getElementById('btn-save-sheets-sync-url')?.addEventListener('click', async () => {
+    const input = document.getElementById('input-sheets-sync-url');
+    const val = (input?.value || '').trim();
+    if (!val) {
+      setGoogleSheetsSyncUrl('');
+      updateSheetsSyncStatusBadge();
+      alert('Google Sheets Web App URL cleared. App will use Edge Proxy.');
+      return;
+    }
+    setGoogleSheetsSyncUrl(val);
+    setText('sheets-sync-status-badge', 'Testing Connection...');
+    const test = await testGoogleSheetsConnection(val);
+    if (test.ok) {
+      alert(`✅ Connected to Google Sheet: "${test.data?.spreadsheetTitle || 'Ephphatha_Master_DB'}"!`);
+      setText('sheets-sync-status-badge', `✅ Connected: ${test.data?.spreadsheetTitle || 'Master DB'}`);
+    } else {
+      alert(`⚠️ Saved URL, but connection test reported: ${test.error}`);
+      setText('sheets-sync-status-badge', '⚠️ Saved (Check Permissions)');
+    }
+  });
+
+  // Test Google Sheets Connection Button
+  document.getElementById('btn-test-sheets-connection')?.addEventListener('click', async () => {
+    const input = document.getElementById('input-sheets-sync-url');
+    const val = (input?.value || getGoogleSheetsSyncUrl() || '').trim();
+    const test = await testGoogleSheetsConnection(val);
+    if (test.ok) {
+      alert(`✅ Google Sheet Master DB is ONLINE!\nTitle: ${test.data?.spreadsheetTitle || 'Master DB'}\nID: ${test.data?.spreadsheetId || 'Active'}`);
+      setText('sheets-sync-status-badge', '✅ Master DB Online');
+    } else {
+      alert(`Connection failed: ${test.error}\n\nMake sure the Google Apps Script Web App is deployed with "Execute as: Me" and "Who has access: Anyone".`);
+    }
   });
 
   // Failover Simulator Controls inside Telemetry Inspector
@@ -1680,17 +1857,91 @@ function switchMainTab(tabName) {
   document.querySelectorAll('[data-nav-tab]').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-nav-tab') === tabName);
   });
+
+  if (tabName === 'fellowship') {
+    const activeCode = getActiveCohortCode();
+    if (activeCode && navigator.onLine) {
+      fetchCohortByInviteCode(activeCode).then(() => renderFellowshipView()).catch(() => {});
+    }
+  }
+}
+
+async function executeCloudLoginAndRestore(displayNameOrId) {
+  const profile = await authenticateWithDeviceBiometrics(displayNameOrId);
+  appState.userProfile = profile;
+  renderUserProfileBadge();
+
+  // Try retrieving user progress & active cohort from Google Sheets Master DB
+  const queryKey = profile.displayName || displayNameOrId;
+  setText('user-profile-status-note', `🔄 Querying Google Sheet for "${queryKey}"...`);
+
+  try {
+    const cloudRes = await loginAndRetrieveUserData(queryKey, profile.credentialIdHex);
+
+    if (cloudRes.found && cloudRes.progressMap) {
+      const localProgress = getAllRecordsMapSync('progress');
+      const mergeResult = mergeCrdtShardMaps(localProgress, cloudRes.progressMap);
+
+      for (const rec of Object.values(mergeResult.merged)) {
+        await putRecord('progress', rec);
+      }
+
+      if (cloudRes.user?.activeCohortCode) {
+        setActiveCohortCode(cloudRes.user.activeCohortCode);
+        await fetchCohortByInviteCode(cloudRes.user.activeCohortCode).catch(() => {});
+      }
+
+      refreshGraceStreakHeader();
+      renderCurriculumMapView();
+      renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
+      pushTelemetryLog('CLOUD_LOGIN_RESTORED', `Restored ${cloudRes.completedCount} completed days & active cohort for ${cloudRes.user.displayName}`);
+
+      const note = document.getElementById('user-profile-status-note');
+      if (note) {
+        note.textContent = `✓ Cloud Sync Active: ${cloudRes.user.displayName} (${cloudRes.completedCount} days synced)`;
+        note.style.color = 'var(--text-accent)';
+      }
+      alert(`✓ Welcome back, ${cloudRes.user.displayName}!\nRestored ${cloudRes.completedCount} completed reading days and active fellowship cohort from Google Sheet.`);
+    } else {
+      // New user or no records found yet in cloud -> push local progress to cloud
+      const localMap = getAllRecordsMapSync('progress');
+      await syncUserDataToGoogleSheet(profile, localMap);
+      const note = document.getElementById('user-profile-status-note');
+      if (note) {
+        note.textContent = `✓ Connected: ${profile.displayName} (Profile registered in Google Sheets)`;
+        note.style.color = 'var(--text-accent)';
+      }
+      pushTelemetryLog('CLOUD_USER_REGISTERED', `Registered profile ${profile.displayName} in Google Sheets`);
+    }
+  } catch (err) {
+    pushTelemetryLog('CLOUD_LOGIN_OFFLINE', `Local login completed: ${err.message}`);
+  }
+
+  // Re-load journal with hardware credential key
+  await loadDayJournalEntry(appState.selectedDay, appState.scheduleByDay[appState.selectedDay]);
+  renderFellowshipView();
+  return profile;
 }
 
 function renderUserProfileBadge() {
   const btn = document.getElementById('btn-trigger-biometric-login');
-  if (!btn) return;
+  const note = document.getElementById('user-profile-status-note');
   if (appState.userProfile) {
-    btn.textContent = `🔐 ${appState.userProfile.displayName} (${appState.userProfile.credentialIdHex.slice(0, 6)})`;
-    btn.className = 'ergonomic-btn primary-period';
+    if (btn) {
+      btn.textContent = `🔐 ${appState.userProfile.displayName} (${appState.userProfile.credentialIdHex ? appState.userProfile.credentialIdHex.slice(0, 6) : 'Passkey'})`;
+      btn.className = 'ergonomic-btn primary-period';
+    }
+    if (note) {
+      note.textContent = `✓ Signed in: ${appState.userProfile.displayName} (${appState.userProfile.authMethod || 'Passkey'})`;
+    }
   } else {
-    btn.textContent = '🔑 Sign In';
-    btn.className = 'ergonomic-btn primary-period';
+    if (btn) {
+      btn.textContent = '🔑 Sign In';
+      btn.className = 'ergonomic-btn primary-period';
+    }
+    if (note) {
+      note.textContent = 'Device Profile: Active (Local IndexedDB Vault)';
+    }
   }
 }
 

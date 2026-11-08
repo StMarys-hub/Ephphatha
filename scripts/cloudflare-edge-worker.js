@@ -255,7 +255,27 @@ export default {
       }
 
       if (request.method === 'GET') {
-        const stored = edgeCohortMemoryStore.get(rawCode) || null;
+        let stored = edgeCohortMemoryStore.get(rawCode) || null;
+
+        // Attempt fetch from persistent Google Sheets Master DB if configured
+        const sheetsUrl = env.GOOGLE_SHEETS_WEBAPP_URL || request.headers.get('X-Google-Sheet-Url');
+        if (sheetsUrl) {
+          try {
+            const sheetRes = await fetch(sheetsUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'getCohort', payload: { inviteCode: rawCode } })
+            });
+            if (sheetRes.ok) {
+              const sheetData = await sheetRes.json();
+              if (sheetData?.data?.cohort) {
+                stored = sheetData.data.cohort;
+                edgeCohortMemoryStore.set(rawCode, stored);
+              }
+            }
+          } catch (_) { /* fallback to memory store */ }
+        }
+
         if (!stored) {
           return new Response(JSON.stringify({ error: 'Cohort not found', inviteCode: rawCode }), {
             status: 404,
@@ -327,8 +347,56 @@ export default {
         };
 
         edgeCohortMemoryStore.set(rawCode, sanitizedCohort);
+
+        // Asynchronously persist to Google Sheets Master DB if configured
+        const sheetsUrl = env.GOOGLE_SHEETS_WEBAPP_URL || request.headers.get('X-Google-Sheet-Url');
+        if (sheetsUrl) {
+          try {
+            fetch(sheetsUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'saveCohort', payload: { cohort: sanitizedCohort } })
+            }).catch(() => {});
+          } catch (_) { /* ignore background persist errors */ }
+        }
+
         return new Response(JSON.stringify({ cohort: sanitizedCohort }), {
           status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    // ========================================================================
+    // ROUTE 4: Google Sheets Master Database Proxy (`/api/sheet-proxy`)
+    // Connects client requests directly to Google Apps Script Web App without CORS
+    // ========================================================================
+    if (url.pathname === '/api/sheet-proxy') {
+      const body = await request.json().catch(() => ({}));
+      const sheetsUrl = body.sheetUrl || request.headers.get('X-Google-Sheet-Url') || env.GOOGLE_SHEETS_WEBAPP_URL;
+
+      if (!sheetsUrl) {
+        return new Response(JSON.stringify({ ok: false, error: 'No Google Sheets Web App URL provided or configured in worker' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      try {
+        const upstream = await fetch(sheetsUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(body)
+        });
+
+        const upstreamData = await upstream.json().catch(() => ({ ok: false, error: 'Non-JSON response from Google Sheets' }));
+        return new Response(JSON.stringify(upstreamData), {
+          status: upstream.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ ok: false, error: `Upstream error: ${err.message}` }), {
+          status: 502,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }

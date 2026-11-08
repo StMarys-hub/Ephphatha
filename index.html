@@ -464,7 +464,10 @@
 
       <!-- 1. Account & Biometric Passkey Login -->
       <div class="drawer-section">
-        <div class="context-item-label">1. Pilgrim Profile & Passwordless Passkey</div>
+        <div class="context-item-label">1. Pilgrim Profile & Cloud Account</div>
+        <div class="drawer-mono-note" id="user-profile-status-note">
+          Device Profile: Active (Local IndexedDB Vault)
+        </div>
         <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
           <input
             type="text"
@@ -476,11 +479,47 @@
             🔑 Sign In
           </button>
         </div>
+        <div style="display: flex; gap: 0.4rem; margin-top: 0.45rem;">
+          <button type="button" class="verse-icon-btn" id="btn-retrieve-cloud-data" style="flex: 1;" title="Download all saved progress &amp; cohort data from Google Sheet">
+            📥 Retrieve Cloud Data
+          </button>
+          <button type="button" class="verse-icon-btn" id="btn-sync-all-to-sheet" style="flex: 1;" title="Save all local progress, streak &amp; notes to Google Sheet">
+            🔄 Backup to Cloud
+          </button>
+        </div>
       </div>
 
-      <!-- 2. Google Drive Audio ID / Folder Configuration -->
+      <!-- 2. Google Sheets Master Database & Multi-User Sync -->
       <div class="drawer-section">
-        <div class="context-item-label">2. Audio Stream Source (Current Day / Drive Folder)</div>
+        <div class="context-item-label">2. Google Sheets Backend &amp; Multi-User Sync</div>
+        <div class="drawer-mono-note">
+          Persists all reading logs, streak, logins, and syncs Fellowship Cohorts across multiple users in real-time.
+        </div>
+        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
+          <input
+            type="url"
+            id="input-sheets-sync-url"
+            class="sanctuary-input"
+            style="padding: 0.45rem 0.65rem; font-size: 0.8rem;"
+            placeholder="Paste Google Apps Script Web App URL (https://script.google.com/macros/s/.../exec)" />
+        </div>
+        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
+          <button type="button" class="ergonomic-btn primary-period" id="btn-save-sheets-sync-url">
+            🔗 Connect Sheet
+          </button>
+          <button type="button" class="verse-icon-btn" id="btn-test-sheets-connection">
+            ⚡ Test Status
+          </button>
+        </div>
+        <div style="margin-top: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+          <span class="crypto-badge" id="sheets-sync-status-badge">Google Sheet: Disconnected</span>
+          <a href="./setup-guide.html#step-google-sheet" class="verse-icon-btn" style="text-decoration: none;">📘 1-Min Setup Guide</a>
+        </div>
+      </div>
+
+      <!-- 3. Google Drive Audio ID / Folder Configuration -->
+      <div class="drawer-section">
+        <div class="context-item-label">3. Audio Stream Source (Current Day / Drive Folder)</div>
         <div class="drawer-mono-note" id="hero-gdrive-node">
           📁 /01_Early_World/
         </div>

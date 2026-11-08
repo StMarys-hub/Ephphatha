@@ -80,61 +80,77 @@
 
   <main class="guide-container">
     <!-- STEP 1: AUTOMATED GOOGLE DRIVE FOLDER & SHEET PROVISIONING -->
-    <section class="step-card">
+    <section class="step-card" id="step-google-sheet">
       <div class="section-header-row">
-        <h2>Step 1: Automated Google Drive Folder & Master DB Provisioning</h2>
-        <span class="crypto-badge">1-Click Google Apps Script</span>
+        <h2>Step 1: Deploy Google Sheets Master DB Web App (Multi-User Cloud Sync & Login Restore)</h2>
+        <span class="crypto-badge">Google Apps Script Web App</span>
       </div>
       <p style="color: var(--text-secondary); font-size: 0.9rem;">
-        Instead of manually creating 14 folders and configuring spreadsheet columns, run this Google Apps Script once to automatically generate <code>Ephphatha_Cloud_Root/</code>, <code>00_System_Manifest_And_DB/</code>, all 12 Salvation History Period folders (<code>01_Early_World</code> through <code>12_The_Church</code>), and the relational <code>Ephphatha_Master_DB</code> Google Sheet.
+        This Google Apps Script turns your Google Sheet (<code>Ephphatha_Master_DB</code>) into a serverless real-time database. It automatically creates 6 relational tabs (<code>Users</code>, <code>Progress_Logs</code>, <code>Fellowship_Cohorts</code>, <code>Cohort_Members</code>, <code>Cohort_Reflections</code>, <code>Cohort_Prayers</code>), saves user progress, restores reading progress when users log in on any device, and synchronizes Fellowship Cohort reflections &amp; prayer requests across multiple users.
       </p>
 
       <ol class="step-list">
-        <li>Open <a href="https://script.google.com" target="_blank" rel="noopener" style="color: var(--period-color);">https://script.google.com</a> and click <strong>New Project</strong>.</li>
-        <li>Click <strong>Copy Script</strong> below and paste it into the editor, replacing any existing code.</li>
-        <li>Click <strong>Run (▶)</strong> on <code>provisionEphphathaGoogleDriveHierarchy</code> and grant Drive/Sheets permission when prompted.</li>
-        <li>Copy the output JSON from the Execution Log (contains your Folder IDs and Master Sheet ID).</li>
+        <li>Open your Google Sheet (or go to <a href="https://script.google.com" target="_blank" rel="noopener" style="color: var(--period-color);">https://script.google.com</a> and click <strong>New Project</strong>).</li>
+        <li>Click <strong>Copy Script</strong> below and paste it into the Apps Script editor, replacing any existing code.</li>
+        <li>Click <strong>Deploy (top right) → New deployment</strong>:
+          <ul style="margin-left: 1.25rem; margin-top: 0.25rem;">
+            <li><strong>Select type (⚙️ icon):</strong> Web app</li>
+            <li><strong>Description:</strong> Ephphatha Master DB Sync Engine</li>
+            <li><strong>Execute as:</strong> Me (your Google account)</li>
+            <li><strong>Who has access:</strong> <strong>Anyone</strong> (allows the web app &amp; Edge proxy to sync)</li>
+          </ul>
+        </li>
+        <li>Click <strong>Deploy</strong>, authorize permissions, and <strong>Copy the Web App URL</strong> (looks like <code>https://script.google.com/macros/s/.../exec</code>).</li>
+        <li>Open Ephphatha → Tap <strong>⚙️ Settings → Section 2 (Google Sheets Backend)</strong> → Paste your Web App URL and tap <strong>🔗 Connect Sheet</strong>!</li>
       </ol>
 
       <div class="code-block-wrap">
-        <button type="button" class="copy-btn" onclick="copyCode('code-gas', this)">📋 Copy Script</button>
-        <pre class="code-block" id="code-gas">function provisionEphphathaGoogleDriveHierarchy() {
-  var rootFolder = getOrCreateFolder_(DriveApp.getRootFolder(), 'Ephphatha_Cloud_Root');
-  var periodFolders = [
-    '00_System_Manifest_And_DB',
-    '01_Early_World', '02_Patriarchs', '03_Egypt_And_Exodus',
-    '04_Desert_Wanderings', '05_Conquest_And_Judges', '06_Royal_Kingdom',
-    '07_Divided_Kingdom', '08_Exile', '09_Return',
-    '10_Maccabean_Revolt', '11_Messianic_Fulfillment', '12_The_Church'
-  ];
+        <button type="button" class="copy-btn" onclick="copyCode('code-gas', this)">📋 Copy Web App Script</button>
+        <pre class="code-block" id="code-gas">/**
+ * EPHPHATHA MASTER DATABASE & REAL-TIME MULTI-USER CLOUD SYNC ENGINE
+ * Paste this into Google Apps Script and Deploy as a Web App (Access: Anyone).
+ */
+const SHEET_NAMES = { USERS: 'Users', PROGRESS: 'Progress_Logs', COHORTS: 'Fellowship_Cohorts', MEMBERS: 'Cohort_Members', REFLECTIONS: 'Cohort_Reflections', PRAYERS: 'Cohort_Prayers' };
+const SHEET_HEADERS = {
+  Users: ['user_id', 'display_name', 'email_or_contact', 'auth_method', 'streak_days', 'grace_shields', 'active_cohort_code', 'last_active_day', 'updated_at'],
+  Progress_Logs: ['user_id', 'day_number', 'completed', 'audio_timestamp_sec', 'updated_at'],
+  Fellowship_Cohorts: ['cohort_id', 'invite_code', 'cohort_name', 'created_by_user_id', 'created_at', 'updated_at'],
+  Cohort_Members: ['invite_code', 'member_id', 'name', 'role', 'current_day', 'completed_count', 'streak_days', 'activity_status', 'encouragements', 'updated_at'],
+  Cohort_Reflections: ['invite_code', 'reflection_id', 'author_id', 'author_name', 'day_number', 'passage_ref', 'content', 'amen_count', 'created_at'],
+  Cohort_Prayers: ['invite_code', 'prayer_id', 'author_id', 'author_name', 'is_anonymous', 'category', 'content', 'praying_count', 'is_answered', 'created_at']
+};
 
-  var folderManifest = {};
-  periodFolders.forEach(function(name) {
-    var sub = getOrCreateFolder_(rootFolder, name);
-    folderManifest[name] = { id: sub.getId(), url: sub.getUrl() };
-  });
-
-  var systemFolder = DriveApp.getFolderById(folderManifest['00_System_Manifest_And_DB'].id);
-  var ss = SpreadsheetApp.create('Ephphatha_Master_DB');
-  DriveApp.getFileById(ss.getId()).moveTo(systemFolder);
-
-  var users = ss.getActiveSheet();
-  users.setName('Users');
-  users.appendRow(['user_id', 'display_name', 'auth_method', 'streak_days', 'grace_shields', 'updated_at']);
-
-  var cohorts = ss.insertSheet('Fellowship_Cohorts');
-  cohorts.appendRow(['cohort_id', 'cohort_name', 'invite_code', 'member_name', 'member_contact', 'status', 'amens_count', 'updated_at']);
-
-  var logs = ss.insertSheet('Progress_Logs');
-  logs.appendRow(['log_id', 'user_id', 'day_number', 'completed', 'audio_timestamp_sec', 'hmac_signature', 'synced_at']);
-
-  Logger.log(JSON.stringify({ rootId: rootFolder.getId(), masterSheetId: ss.getId(), folders: folderManifest }, null, 2));
+function doGet(e) { return handleRequest_(e ? e.parameter : {}, null); }
+function doPost(e) {
+  var p = e ? e.parameter : {}, body = p;
+  if (e && e.postData && e.postData.contents) {
+    try { body = JSON.parse(e.postData.contents); } catch(_) { body = p; }
+  }
+  return handleRequest_(p, body);
 }
 
-function getOrCreateFolder_(parent, name) {
-  var iter = parent.getFoldersByName(name);
-  return iter.hasNext() ? iter.next() : parent.createFolder(name);
-}</pre>
+function handleRequest_(p, b) {
+  var action = (p.action || (b && b.action) || 'ping').toLowerCase();
+  var payload = b && b.payload ? b.payload : (b || p);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    for (var k in SHEET_HEADERS) {
+      if (!ss.getSheetByName(k)) { var s = ss.insertSheet(k); s.appendRow(SHEET_HEADERS[k]); s.setFrozenRows(1); }
+    }
+    var res = { ok: true, action: action, timestamp: new Date().toISOString() };
+    if (action === 'ping') { res.spreadsheetTitle = ss.getName(); res.spreadsheetId = ss.getId(); }
+    else if (action === 'login' || action === 'getuser') { res.data = handleGetUser_(ss, payload); }
+    else if (action === 'syncuser' || action === 'saveuser') { res.data = handleSaveUser_(ss, payload); }
+    else if (action === 'getcohort') { res.data = handleGetCohort_(ss, payload); }
+    else if (action === 'savecohort') { res.data = handleSaveCohort_(ss, payload); }
+    else if (action === 'syncprogress') { res.data = handleSyncProgress_(ss, payload); }
+    return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// See scripts/google-sheets-backend.gs for full helper implementations</pre>
       </div>
     </section>
 

@@ -90,7 +90,110 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Isolated Fellowship Cohort API (`/api/fellowship/<INVITE_CODE>`)
+  // Google Sheets Master Database Proxy Route (`/api/sheet-proxy`)
+  if (rawPathname === '/api/sheet-proxy') {
+    let bodyStr = '';
+    req.on('data', chunk => {
+      if (bodyStr.length < 500000) bodyStr += chunk;
+    });
+    req.on('end', () => {
+      try {
+        const body = JSON.parse(bodyStr || '{}');
+        const targetUrl = body.sheetUrl || req.headers['x-google-sheet-url'] || process.env.GOOGLE_SHEETS_WEBAPP_URL;
+
+        if (targetUrl) {
+          // Proxy directly to external Google Apps Script
+          const parsedUrl = new URL(targetUrl);
+          const postData = JSON.stringify(body);
+          const client = parsedUrl.protocol === 'https:' ? https : http;
+
+          const options = {
+            hostname: parsedUrl.hostname,
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8',
+              'Content-Length': Buffer.byteLength(postData)
+            }
+          };
+
+          const pReq = client.request(options, (pRes) => {
+            let replyData = '';
+            pRes.on('data', d => replyData += d);
+            pRes.on('end', () => {
+              res.writeHead(pRes.statusCode || 200, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+              });
+              res.end(replyData);
+            });
+          });
+          pReq.on('error', err => {
+            res.writeHead(502, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+            res.end(JSON.stringify({ ok: false, error: err.message }));
+          });
+          pReq.write(postData);
+          pReq.end();
+          return;
+        }
+
+        // Local Server Mock DB Fallback if no external Google Sheet URL
+        const action = (body.action || '').toLowerCase();
+        const payload = body.payload || {};
+
+        if (action === 'ping') {
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, spreadsheetTitle: 'Ephphatha Local Server Mock DB' }));
+          return;
+        }
+
+        if (action === 'login' || action === 'getuser') {
+          const userKey = (payload.displayName || payload.userId || '').toLowerCase();
+          const saved = global.__LOCAL_USER_DB__?.[userKey] || null;
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, data: { found: Boolean(saved), user: saved?.user, progressMap: saved?.progressMap || {}, completedCount: Object.keys(saved?.progressMap || {}).length } }));
+          return;
+        }
+
+        if (action === 'syncuser' || action === 'saveuser') {
+          if (!global.__LOCAL_USER_DB__) global.__LOCAL_USER_DB__ = {};
+          const user = payload.user || {};
+          const userKey = (user.displayName || user.userId || 'default').toLowerCase();
+          const progMap = {};
+          (payload.progress || []).forEach(p => { progMap[String(p.dayNumber || p.id)] = p; });
+          global.__LOCAL_USER_DB__[userKey] = { user, progressMap: progMap };
+
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, data: { userId: user.userId, savedProgressCount: Object.keys(progMap).length } }));
+          return;
+        }
+
+        if (action === 'getcohort') {
+          const code = (payload.inviteCode || '').toUpperCase().trim();
+          const cohort = localCohortStore.get(code) || null;
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, data: { found: Boolean(cohort), cohort } }));
+          return;
+        }
+
+        if (action === 'savecohort') {
+          const cohort = payload.cohort || {};
+          const code = (cohort.inviteCode || '').toUpperCase().trim();
+          if (code) localCohortStore.set(code, cohort);
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, data: { found: true, cohort } }));
+          return;
+        }
+
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
+    return;
+  }
   if (rawPathname.startsWith('/api/fellowship/')) {
     const rawCode = rawPathname.replace('/api/fellowship/', '').toUpperCase().trim();
     if (!/^[A-Z2-9]{6,10}$/.test(rawCode)) {

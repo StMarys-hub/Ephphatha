@@ -64,25 +64,44 @@ function getOrCreateFolder_(parentFolder, name) {
 function createMasterDatabaseSheet_(systemFolder) {
   var existing = systemFolder.getFilesByName('Ephphatha_Master_DB');
   if (existing.hasNext()) {
-    return SpreadsheetApp.openById(existing.next().getId());
+    var existingSs = SpreadsheetApp.openById(existing.next().getId());
+    ensureMasterSchemaTabs_(existingSs);
+    return existingSs;
   }
 
   var ss = SpreadsheetApp.create('Ephphatha_Master_DB');
   var file = DriveApp.getFileById(ss.getId());
   file.moveTo(systemFolder);
 
-  // Configure relational tabs
-  var usersSheet = ss.getActiveSheet();
-  usersSheet.setName('Users');
-  usersSheet.appendRow(['user_id', 'display_name', 'auth_method', 'streak_days', 'grace_shields', 'updated_at']);
-
-  var cohortsSheet = ss.insertSheet('Fellowship_Cohorts');
-  cohortsSheet.appendRow(['cohort_id', 'cohort_name', 'invite_code', 'member_name', 'member_contact', 'status', 'amens_count', 'updated_at']);
-
-  var logsSheet = ss.insertSheet('Progress_Logs');
-  logsSheet.appendRow(['log_id', 'user_id', 'day_number', 'completed', 'audio_timestamp_sec', 'hmac_signature', 'synced_at']);
-
+  ensureMasterSchemaTabs_(ss);
   return ss;
+}
+
+function ensureMasterSchemaTabs_(ss) {
+  var schema = {
+    'Users': ['user_id', 'display_name', 'email_or_contact', 'auth_method', 'streak_days', 'grace_shields', 'active_cohort_code', 'last_active_day', 'updated_at'],
+    'Progress_Logs': ['user_id', 'day_number', 'completed', 'audio_timestamp_sec', 'updated_at'],
+    'Fellowship_Cohorts': ['cohort_id', 'invite_code', 'cohort_name', 'created_by_user_id', 'created_at', 'updated_at'],
+    'Cohort_Members': ['invite_code', 'member_id', 'name', 'role', 'current_day', 'completed_count', 'streak_days', 'activity_status', 'encouragements', 'updated_at'],
+    'Cohort_Reflections': ['invite_code', 'reflection_id', 'author_id', 'author_name', 'day_number', 'passage_ref', 'content', 'amen_count', 'created_at'],
+    'Cohort_Prayers': ['invite_code', 'prayer_id', 'author_id', 'author_name', 'is_anonymous', 'category', 'content', 'praying_count', 'is_answered', 'created_at']
+  };
+
+  var firstSheet = ss.getActiveSheet();
+  if (firstSheet && firstSheet.getName() === 'Sheet1') {
+    firstSheet.setName('Users');
+    firstSheet.appendRow(schema['Users']);
+    firstSheet.setFrozenRows(1);
+  }
+
+  for (var tabName in schema) {
+    var sheet = ss.getSheetByName(tabName);
+    if (!sheet) {
+      sheet = ss.insertSheet(tabName);
+      sheet.appendRow(schema[tabName]);
+      sheet.setFrozenRows(1);
+    }
+  }
 }
 
 /**
