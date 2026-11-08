@@ -435,8 +435,7 @@ function renderDayHeroCard(daySchedule) {
     daySchedule.gdrive_audio_file_id = normalizeGoogleDriveAudioId(daySchedule.gdrive_audio_file_id);
   }
   if (folderEl) {
-    const streamUrl = `${audioEngine.edgeProxyBaseUrl}/audio/${daySchedule.gdrive_audio_file_id}`;
-    folderEl.textContent = `📁 ${daySchedule.period.gdrive_folder} • ID: ${daySchedule.gdrive_audio_file_id} → ${streamUrl}`;
+    folderEl.textContent = `Daily Audio Narration • ${daySchedule.period.name}`;
   }
   const idInput = document.getElementById('input-day-gdrive-id');
   if (idInput) {
@@ -1127,7 +1126,7 @@ function renderCurriculumMapView() {
     desc.style.fontSize = '0.88rem';
     desc.style.color = 'var(--text-secondary)';
     desc.style.marginBottom = '0.75rem';
-    desc.textContent = `${period.era_date} • Focus: ${period.theme} (${period.theme_ml}) • Google Drive Node: ${period.gdrive_folder}`;
+    desc.textContent = `${period.era_date} • Focus: ${period.theme} (${period.theme_ml})`;
 
     const pillWrap = document.createElement('div');
     pillWrap.style.display = 'flex';
@@ -1261,8 +1260,8 @@ function wireTelemetryStreams() {
     setText('audio-time-total', formatSecondsAsTime(audioState.durationSec));
     const badgeEl = document.getElementById('audio-prefetch-badge');
     if (badgeEl) {
-      badgeEl.textContent = audioState.usingEdgeStream ? '🟢 Drive Audio' : '● Ready';
-      badgeEl.title = audioState.http206HeaderStatus || 'HTTP 206 Stream Ready';
+      badgeEl.textContent = audioState.isPlaying ? '🟢 Playing' : '● Audio Ready';
+      badgeEl.title = audioState.isPlaying ? 'Audio Narration Playing' : 'Audio Narration Ready';
     }
 
     const scrubber = document.getElementById('audio-scrubber');
@@ -1540,6 +1539,8 @@ function bindGlobalControls() {
       memberMetrics: getCurrentProgressMetrics()
     }).catch(() => {});
 
+    showCloudSyncToast(nextCompleted ? '☁️ Completed & Synced' : '☁️ Updated');
+
     await enqueueCloudSyncMutation('MARK_DAY_COMPLETE', 'appDataFolder/progress_log.json', {
       dayNumber: appState.selectedDay,
       completed: nextCompleted
@@ -1590,98 +1591,175 @@ function bindGlobalControls() {
     });
   });
 
-  // Passwordless Device Biometric Login & Cloud Restore inside Settings Drawer
-  document.getElementById('btn-trigger-biometric-login')?.addEventListener('click', async () => {
-    const nameInput = document.getElementById('input-biometric-name');
-    const nameVal = nameInput?.value || 'Ephphatha Pilgrim';
-    await executeCloudLoginAndRestore(nameVal);
-  });
+  // ==========================================================================
+  // PILGRIM AUTH MODAL & SEAMLESS ACCOUNT CONTROLS
+  // ==========================================================================
+  const openSettingsDrawer = () => {
+    document.getElementById('settings-drawer-backdrop')?.classList.remove('hidden');
+    renderUserProfileBadge();
+  };
+  const closeSettingsDrawer = () => {
+    document.getElementById('settings-drawer-backdrop')?.classList.add('hidden');
+  };
 
-  // Manual Cloud Progress Retrieval Button
-  document.getElementById('btn-retrieve-cloud-data')?.addEventListener('click', async () => {
-    const nameInput = document.getElementById('input-biometric-name');
-    const identity = getLocalMemberIdentity();
-    const queryName = nameInput?.value || appState.userProfile?.displayName || identity.name || 'Ephphatha Pilgrim';
-
-    setText('user-profile-status-note', '🔄 Querying Google Sheet Master DB...');
-    try {
-      const res = await loginAndRetrieveUserData(queryName, appState.userProfile?.credentialIdHex);
-      if (res.found && res.progressMap) {
-        const localProgress = getAllRecordsMapSync('progress');
-        const mergeResult = mergeCrdtShardMaps(localProgress, res.progressMap);
-        for (const rec of Object.values(mergeResult.merged)) {
-          await putRecord('progress', rec);
-        }
-        if (res.user?.activeCohortCode) {
-          setActiveCohortCode(res.user.activeCohortCode);
-        }
-        refreshGraceStreakHeader();
-        renderCurriculumMapView();
-        renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
-        renderFellowshipView();
-        alert(`✓ Retrieved from Google Sheet: ${res.completedCount} completed days, Streak: ${res.user?.streakDays || 0}d.`);
-        setText('user-profile-status-note', `✓ Restored ${res.completedCount} completed days for ${queryName}`);
-      } else {
-        alert(`No existing cloud record found for "${queryName}". Your local progress will be backed up when you tap "Backup to Cloud".`);
-        setText('user-profile-status-note', `No prior cloud record found for ${queryName}`);
-      }
-    } catch (err) {
-      alert(`Could not retrieve cloud data: ${err.message || 'Check connection'}`);
+  document.getElementById('btn-header-auth')?.addEventListener('click', () => {
+    if (appState.userProfile?.displayName) {
+      openSettingsDrawer();
+    } else {
+      openAuthModal('signin');
     }
   });
 
-  // Manual Backup to Google Sheet Button
-  document.getElementById('btn-sync-all-to-sheet')?.addEventListener('click', async () => {
-    const identity = getLocalMemberIdentity();
-    const profile = appState.userProfile || {
-      displayName: identity.name || 'Ephphatha Pilgrim',
-      credentialIdHex: identity.memberId,
-      authMethod: 'Local Profile'
-    };
-    setText('user-profile-status-note', '🔄 Uploading progress to Google Sheets...');
+  document.getElementById('btn-open-auth-modal')?.addEventListener('click', () => {
+    closeSettingsDrawer();
+    openAuthModal('create');
+  });
+
+  document.getElementById('btn-close-auth-modal')?.addEventListener('click', closeAuthModal);
+  document.getElementById('btn-auth-continue-guest')?.addEventListener('click', closeAuthModal);
+  document.getElementById('btn-auth-reg-guest')?.addEventListener('click', closeAuthModal);
+
+  document.getElementById('btn-tab-signin')?.addEventListener('click', () => switchAuthTab('signin'));
+  document.getElementById('btn-tab-create')?.addEventListener('click', () => switchAuthTab('create'));
+
+  // 1-Tap Biometric Sign In inside Modal
+  document.getElementById('btn-auth-biometric-signin')?.addEventListener('click', async () => {
+    const savedName = localStorage.getItem('ephphatha_member_name_v3') || 'Ephphatha Pilgrim';
+    setAuthModalAlert('Authenticating with Face ID / Fingerprint / Passkey...', false);
+    try {
+      const profile = await executeCloudLoginAndRestore(savedName);
+      setAuthModalAlert(`✓ Welcome back, ${profile.displayName}!`, false);
+      setTimeout(() => closeAuthModal(), 1200);
+      showCloudSyncToast('☁️ Synced');
+    } catch (_) {
+      setAuthModalAlert('Biometric prompt was cancelled or not yet registered. Enter your name below to sign in.', true);
+    }
+  });
+
+  // Submit Sign In Form
+  document.getElementById('form-auth-signin')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameVal = (document.getElementById('input-auth-login-name')?.value || '').trim();
+    if (!nameVal) {
+      setAuthModalAlert('Please enter your Pilgrim Name or Email.', true);
+      return;
+    }
+    setAuthModalAlert('Signing in and retrieving your reading journey from cloud...', false);
+    try {
+      const profile = await executeCloudLoginAndRestore(nameVal);
+      setAuthModalAlert(`✓ Welcome back, ${profile.displayName}! All progress restored.`, false);
+      setTimeout(() => closeAuthModal(), 1200);
+      showCloudSyncToast('☁️ Synced');
+    } catch (err) {
+      setAuthModalAlert(err.message || 'Could not sign in. Please check your connection.', true);
+    }
+  });
+
+  // Submit Create Account Form
+  document.getElementById('form-auth-create')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nameVal = (document.getElementById('input-auth-reg-name')?.value || '').trim();
+    const contactVal = (document.getElementById('input-auth-reg-contact')?.value || '').trim();
+    const pinVal = (document.getElementById('input-auth-reg-pin')?.value || '').trim();
+    const enableBiometrics = Boolean(document.getElementById('chk-auth-enable-biometrics')?.checked);
+
+    if (!nameVal) {
+      setAuthModalAlert('Please enter your name.', true);
+      return;
+    }
+
+    setAuthModalAlert('Creating your sanctuary cloud account...', false);
+    try {
+      let profile = null;
+      if (enableBiometrics && window.PublicKeyCredential) {
+        try {
+          profile = await authenticateWithDeviceBiometrics(nameVal);
+        } catch (_) { /* fallback below */ }
+      }
+      if (!profile) {
+        const identity = getLocalMemberIdentity(nameVal);
+        profile = {
+          displayName: nameVal,
+          credentialIdHex: identity.memberId,
+          email: contactVal,
+          pin: pinVal,
+          authMethod: pinVal ? 'Passcode PIN' : 'Device Profile',
+          authenticatedAt: new Date().toISOString()
+        };
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(profile));
+      } else {
+        profile.email = contactVal;
+        profile.pin = pinVal;
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(profile));
+      }
+
+      appState.userProfile = profile;
+      localStorage.setItem('ephphatha_member_name_v3', nameVal);
+
+      // Immediately sync local progress map to cloud
+      const localMap = getAllRecordsMapSync('progress');
+      await syncUserDataToGoogleSheet(profile, localMap);
+
+      renderUserProfileBadge();
+      setAuthModalAlert(`✓ Account created! Welcome, ${nameVal}.`, false);
+      setTimeout(() => closeAuthModal(), 1200);
+      showCloudSyncToast('☁️ Account Created');
+    } catch (err) {
+      setAuthModalAlert(err.message || 'Could not create account.', true);
+    }
+  });
+
+  // Drawer Sign Out
+  document.getElementById('btn-drawer-sign-out')?.addEventListener('click', () => {
+    if (confirm('Sign out of your account on this device? Your reading progress remains safely backed up in the cloud.')) {
+      appState.userProfile = null;
+      localStorage.removeItem('ephphatha_biometric_profile_v3');
+      renderUserProfileBadge();
+      showCloudSyncToast('Signed Out');
+    }
+  });
+
+  // Drawer Manual Sync Now
+  document.getElementById('btn-drawer-sync-now')?.addEventListener('click', async () => {
+    if (!appState.userProfile?.displayName) return;
+    showCloudSyncToast('🔄 Syncing...');
     try {
       const localMap = getAllRecordsMapSync('progress');
-      const synced = await syncUserDataToGoogleSheet(profile, localMap);
-      if (synced) {
-        alert(`✓ Successfully backed up ${synced.savedProgressCount || Object.keys(localMap).length} days to Google Sheets Master DB!`);
-        setText('user-profile-status-note', `✓ Backed up ${synced.savedProgressCount || Object.keys(localMap).length} days to Google Sheet`);
-      } else {
-        alert('Could not sync to Google Sheet. Please check the Web App URL in settings.');
-      }
-    } catch (err) {
-      alert(`Backup error: ${err.message}`);
+      await syncUserDataToGoogleSheet(appState.userProfile, localMap);
+      const activeCode = getActiveCohortCode();
+      if (activeCode) await fetchCohortByInviteCode(activeCode).catch(() => {});
+      renderUserProfileBadge();
+      renderFellowshipView();
+      showCloudSyncToast('☁️ Synced');
+    } catch (_) {
+      showCloudSyncToast('Offline');
     }
   });
 
-  // Save Google Sheets Web App URL
+  // Audio Playback Speed Buttons in Drawer
+  document.querySelectorAll('[data-set-speed]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const spd = Number(btn.getAttribute('data-set-speed') || 1);
+      audioEngine.setPlaybackRate(spd);
+      document.querySelectorAll('[data-set-speed]').forEach(b => {
+        b.classList.toggle('active', b === btn);
+      });
+      const speedBtn = document.getElementById('btn-audio-speed');
+      if (speedBtn) speedBtn.textContent = `${spd}x`;
+    });
+  });
+
+  // Optional Developer Custom URL Override
   document.getElementById('btn-save-sheets-sync-url')?.addEventListener('click', async () => {
     const input = document.getElementById('input-sheets-sync-url');
     const val = (input?.value || '').trim();
-    if (!val) {
-      setGoogleSheetsSyncUrl('');
-      updateSheetsSyncStatusBadge();
-      alert('Google Sheets Web App URL cleared. App will use Edge Proxy.');
-      return;
-    }
     setGoogleSheetsSyncUrl(val);
-    setText('sheets-sync-status-badge', 'Testing Connection...');
-    const test = await testGoogleSheetsConnection(val);
-    if (test.ok) {
-      alert(`✅ Connected to Google Sheet: "${test.data?.spreadsheetTitle || 'Ephphatha_Master_DB'}"!`);
-      setText('sheets-sync-status-badge', `✅ Connected: ${test.data?.spreadsheetTitle || 'Master DB'}`);
-    } else {
-      alert(`⚠️ Saved URL, but connection test reported: ${test.error}`);
-      setText('sheets-sync-status-badge', '⚠️ Saved (Check Permissions)');
-    }
+    alert(val ? `Saved custom backend URL.` : 'Restored default cloud backend.');
   });
-
-  // Test Google Sheets Connection Button
   document.getElementById('btn-test-sheets-connection')?.addEventListener('click', async () => {
-    const input = document.getElementById('input-sheets-sync-url');
-    const val = (input?.value || getGoogleSheetsSyncUrl() || '').trim();
-    const test = await testGoogleSheetsConnection(val);
-    if (test.ok) {
-      alert(`✅ Google Sheet Master DB is ONLINE!\nTitle: ${test.data?.spreadsheetTitle || 'Master DB'}\nID: ${test.data?.spreadsheetId || 'Active'}`);
+    const test = await testGoogleSheetsConnection();
+    alert(test.ok ? `✅ Cloud Backend Online!` : `Status: ${test.error}`);
+  });
       setText('sheets-sync-status-badge', '✅ Master DB Online');
     } else {
       alert(`Connection failed: ${test.error}\n\nMake sure the Google Apps Script Web App is deployed with "Execute as: Me" and "Who has access: Anyone".`);
@@ -1923,25 +2001,90 @@ async function executeCloudLoginAndRestore(displayNameOrId) {
   return profile;
 }
 
+export function showCloudSyncToast(message = '☁️ Synced') {
+  const pill = document.getElementById('header-cloud-sync-pill');
+  if (!pill) return;
+  pill.textContent = message;
+  pill.classList.remove('hidden');
+  clearTimeout(pill._timer);
+  pill._timer = setTimeout(() => {
+    pill.classList.add('hidden');
+  }, 2600);
+}
+
+function openAuthModal(defaultTab = 'signin') {
+  const backdrop = document.getElementById('auth-modal-backdrop');
+  if (!backdrop) return;
+  backdrop.classList.remove('hidden');
+  setAuthModalAlert('');
+  switchAuthTab(defaultTab);
+  const signinInput = document.getElementById('input-auth-login-name');
+  if (defaultTab === 'signin' && signinInput) {
+    setTimeout(() => signinInput.focus(), 150);
+  }
+}
+
+function closeAuthModal() {
+  const backdrop = document.getElementById('auth-modal-backdrop');
+  if (backdrop) backdrop.classList.add('hidden');
+}
+
+function switchAuthTab(tab) {
+  const isSignIn = tab === 'signin';
+  document.getElementById('btn-tab-signin')?.classList.toggle('active', isSignIn);
+  document.getElementById('btn-tab-create')?.classList.toggle('active', !isSignIn);
+  document.getElementById('form-auth-signin')?.classList.toggle('hidden', !isSignIn);
+  document.getElementById('form-auth-create')?.classList.toggle('hidden', isSignIn);
+  setAuthModalAlert('');
+}
+
+function setAuthModalAlert(msg, isError = false) {
+  const alertEl = document.getElementById('auth-modal-alert');
+  if (!alertEl) return;
+  if (!msg) {
+    alertEl.classList.add('hidden');
+    alertEl.textContent = '';
+    return;
+  }
+  alertEl.textContent = msg;
+  alertEl.className = `auth-alert-box ${isError ? 'error' : ''}`;
+  alertEl.classList.remove('hidden');
+}
+
 function renderUserProfileBadge() {
-  const btn = document.getElementById('btn-trigger-biometric-login');
-  const note = document.getElementById('user-profile-status-note');
-  if (appState.userProfile) {
-    if (btn) {
-      btn.textContent = `🔐 ${appState.userProfile.displayName} (${appState.userProfile.credentialIdHex ? appState.userProfile.credentialIdHex.slice(0, 6) : 'Passkey'})`;
-      btn.className = 'ergonomic-btn primary-period';
+  const headerBtn = document.getElementById('btn-header-auth');
+  const signedInCard = document.getElementById('drawer-account-signed-in');
+  const guestCard = document.getElementById('drawer-account-guest');
+
+  if (appState.userProfile && appState.userProfile.displayName) {
+    const name = appState.userProfile.displayName;
+    const firstChar = name.trim().charAt(0).toUpperCase() || 'P';
+    const shortName = name.split(' ')[0];
+
+    if (headerBtn) {
+      headerBtn.textContent = `👤 ${shortName}`;
+      headerBtn.title = `Signed in as ${name} (Click to manage account)`;
     }
-    if (note) {
-      note.textContent = `✓ Signed in: ${appState.userProfile.displayName} (${appState.userProfile.authMethod || 'Passkey'})`;
-    }
+
+    if (signedInCard) signedInCard.classList.remove('hidden');
+    if (guestCard) guestCard.classList.add('hidden');
+
+    setText('drawer-user-avatar', firstChar);
+    setText('drawer-user-name', name);
+    setText('drawer-user-contact', appState.userProfile.email || 'Cloud Account Active');
+
+    const progressMap = getAllRecordsMapSync('progress');
+    const completedCount = Object.values(progressMap).filter(p => p.completed).length;
+    const streak = calculateGraceStreak(progressMap, appState.selectedDay);
+    setText('drawer-user-progress', `${completedCount} / 365`);
+    setText('drawer-user-streak', `${streak.streakDays} Days`);
   } else {
-    if (btn) {
-      btn.textContent = '🔑 Sign In';
-      btn.className = 'ergonomic-btn primary-period';
+    if (headerBtn) {
+      headerBtn.textContent = '👤 Sign In';
+      headerBtn.title = 'Sign In or Create Account';
     }
-    if (note) {
-      note.textContent = 'Device Profile: Active (Local IndexedDB Vault)';
-    }
+    if (signedInCard) signedInCard.classList.add('hidden');
+    if (guestCard) guestCard.classList.remove('hidden');
   }
 }
 

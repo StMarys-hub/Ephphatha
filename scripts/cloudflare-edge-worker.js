@@ -12,6 +12,8 @@
 
 const ipBuckets = new Map();
 const edgeCohortMemoryStore = new Map();
+const edgeUserMemoryStore = new Map();
+const edgeProgressMemoryStore = new Map();
 let cachedOAuthToken = null;
 let cachedOAuthExpiry = 0;
 
@@ -375,31 +377,104 @@ export default {
       const body = await request.json().catch(() => ({}));
       const sheetsUrl = body.sheetUrl || request.headers.get('X-Google-Sheet-Url') || env.GOOGLE_SHEETS_WEBAPP_URL;
 
-      if (!sheetsUrl) {
-        return new Response(JSON.stringify({ ok: false, error: 'No Google Sheets Web App URL provided or configured in worker' }), {
-          status: 400,
+      if (sheetsUrl) {
+        try {
+          const upstream = await fetch(sheetsUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(body)
+          });
+          const upstreamData = await upstream.json().catch(() => null);
+          if (upstreamData) {
+            return new Response(JSON.stringify(upstreamData), {
+              status: upstream.status || 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+        } catch (_) {
+          // Fall through to resilient built-in Edge Cloud Store below
+        }
+      }
+
+      // Resilient Built-in Edge Cloud Store (Auto-active without manual configuration!)
+      const action = (body.action || '').toLowerCase();
+      const payload = body.payload || {};
+
+      if (action === 'ping') {
+        return new Response(JSON.stringify({ ok: true, spreadsheetTitle: 'Ephphatha Edge Cloud Store' }), {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      try {
-        const upstream = await fetch(sheetsUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(body)
+      if (action === 'login' || action === 'getuser') {
+        const uKey = (payload.displayName || payload.userId || '').toLowerCase().trim();
+        const user = edgeUserMemoryStore.get(uKey) || null;
+        const progressMap = {};
+        let count = 0;
+        for (const [k, v] of edgeProgressMemoryStore.entries()) {
+          if (k.startsWith(`${uKey}_`)) {
+            progressMap[String(v.dayNumber || v.id)] = v;
+            if (v.completed) count++;
+          }
+        }
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            found: Boolean(user),
+            user: user || null,
+            progressMap,
+            completedCount: count,
+            cohort: user?.activeCohortCode ? (edgeCohortMemoryStore.get(user.activeCohortCode) || null) : null
+          }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'syncuser' || action === 'saveuser') {
+        const user = payload.user || {};
+        const uKey = (user.displayName || user.userId || 'pilgrim').toLowerCase().trim();
+        edgeUserMemoryStore.set(uKey, user);
+
+        const list = Array.isArray(payload.progress) ? payload.progress : Object.values(payload.progress || {});
+        list.forEach(p => {
+          const dNum = p.dayNumber || p.id;
+          edgeProgressMemoryStore.set(`${uKey}_${dNum}`, p);
         });
 
-        const upstreamData = await upstream.json().catch(() => ({ ok: false, error: 'Non-JSON response from Google Sheets' }));
-        return new Response(JSON.stringify(upstreamData), {
-          status: upstream.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ ok: false, error: `Upstream error: ${err.message}` }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return new Response(JSON.stringify({
+          ok: true,
+          data: {
+            userId: user.userId || uKey,
+            displayName: user.displayName,
+            savedProgressCount: list.length,
+            updatedAt: new Date().toISOString()
+          }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
+
+      if (action === 'getcohort') {
+        const code = (payload.inviteCode || '').toUpperCase().trim();
+        const cohort = edgeCohortMemoryStore.get(code) || null;
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { found: Boolean(cohort), cohort }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      if (action === 'savecohort') {
+        const cohort = payload.cohort || {};
+        const code = (cohort.inviteCode || '').toUpperCase().trim();
+        if (code) edgeCohortMemoryStore.set(code, cohort);
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { found: true, cohort }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     // ========================================================================

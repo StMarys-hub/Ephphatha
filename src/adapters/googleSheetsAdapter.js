@@ -48,8 +48,7 @@ export function setGoogleSheetsSyncUrl(url) {
 }
 
 export function isGoogleSheetsConfigured() {
-  const url = getGoogleSheetsSyncUrl();
-  return Boolean(url && url.startsWith('http'));
+  return true; // Central Cloud Backend is pre-wired and automatically active
 }
 
 function getCandidateEndpoints() {

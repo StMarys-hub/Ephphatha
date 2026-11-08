@@ -38,9 +38,13 @@
         <div class="streak-pill" id="header-streak-count" title="Active Reading Streak & Grace Shields">
           🔥 0d
         </div>
+        <span id="header-cloud-sync-pill" class="cloud-sync-pill hidden">☁️ Synced</span>
       </div>
 
       <div class="header-actions">
+        <button type="button" class="user-account-btn" id="btn-header-auth" title="Sign In or View Account">
+          👤 Sign In
+        </button>
         <button type="button" class="icon-action-btn" id="btn-toggle-fullscreen" title="Enter Full Screen (Hide Browser Address Bar)">
           ⛶
         </button>
@@ -462,98 +466,114 @@
         <button type="button" class="verse-icon-btn" id="btn-close-settings-drawer">✕ Close</button>
       </div>
 
-      <!-- 1. Account & Biometric Passkey Login -->
+      <!-- 1. Account & Cloud Sync Status -->
       <div class="drawer-section">
-        <div class="context-item-label">1. Pilgrim Profile & Cloud Account</div>
-        <div class="drawer-mono-note" id="user-profile-status-note">
-          Device Profile: Active (Local IndexedDB Vault)
+        <div class="context-item-label">Pilgrim Profile &amp; Cloud Sync</div>
+        
+        <!-- Signed-in State Card (shown when user is logged in) -->
+        <div id="drawer-account-signed-in" class="account-profile-summary hidden">
+          <div class="account-name-badge">
+            <div class="account-avatar" id="drawer-user-avatar">P</div>
+            <div style="flex: 1;">
+              <h4 id="drawer-user-name" style="margin: 0; font-size: 1rem; color: var(--text-primary);">Pilgrim</h4>
+              <div id="drawer-user-contact" style="font-size: 0.76rem; color: var(--text-secondary);">Local Sanctuary</div>
+            </div>
+          </div>
+          <div class="account-stats-row">
+            <div class="account-stat-box">
+              <div class="account-stat-label">Progress</div>
+              <div class="account-stat-value" id="drawer-user-progress">0 / 365</div>
+            </div>
+            <div class="account-stat-box">
+              <div class="account-stat-label">Streak</div>
+              <div class="account-stat-value" id="drawer-user-streak">0 Days</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <span style="font-size: 0.78rem; color: #2ea043; font-weight: 600;">🟢 Cloud Sync Active</span>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="verse-icon-btn" id="btn-drawer-sync-now" title="Refresh &amp; Sync Now">🔄 Sync</button>
+              <button type="button" class="verse-icon-btn" id="btn-drawer-sign-out" title="Sign out of this device" style="color: #ef4444;">🚪 Sign Out</button>
+            </div>
+          </div>
         </div>
-        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
-          <input
-            type="text"
-            id="input-biometric-name"
-            class="sanctuary-input"
-            style="padding: 0.45rem 0.65rem; font-size: 0.85rem;"
-            placeholder="Enter Pilgrim Display Name" />
-          <button type="button" class="ergonomic-btn primary-period" id="btn-trigger-biometric-login">
-            🔑 Sign In
-          </button>
-        </div>
-        <div style="display: flex; gap: 0.4rem; margin-top: 0.45rem;">
-          <button type="button" class="verse-icon-btn" id="btn-retrieve-cloud-data" style="flex: 1;" title="Download all saved progress &amp; cohort data from Google Sheet">
-            📥 Retrieve Cloud Data
-          </button>
-          <button type="button" class="verse-icon-btn" id="btn-sync-all-to-sheet" style="flex: 1;" title="Save all local progress, streak &amp; notes to Google Sheet">
-            🔄 Backup to Cloud
+
+        <!-- Signed-out State Card (shown when user is guest) -->
+        <div id="drawer-account-guest" class="account-profile-summary">
+          <p style="margin: 0; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.45;">
+            Sign in or create an account to save your 365-day reading progress and sync with your parish fellowship across all your phones, tablets, and computers.
+          </p>
+          <button type="button" class="ergonomic-btn primary-period" id="btn-open-auth-modal" style="width: 100%; justify-content: center; margin-top: 4px;">
+            ✨ Sign In or Create Account
           </button>
         </div>
       </div>
 
-      <!-- 2. Google Sheets Master Database & Multi-User Sync -->
+      <!-- 2. Audio & Reading Preferences -->
       <div class="drawer-section">
-        <div class="context-item-label">2. Google Sheets Backend &amp; Multi-User Sync</div>
-        <div class="drawer-mono-note">
-          Persists all reading logs, streak, logins, and syncs Fellowship Cohorts across multiple users in real-time.
+        <div class="context-item-label">Audio Narration &amp; Preferences</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+          <span style="font-size: 0.85rem;">Daily Audio Narration</span>
+          <span class="crypto-badge" id="audio-setting-badge">HD Stream Ready</span>
         </div>
-        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
-          <input
-            type="url"
-            id="input-sheets-sync-url"
-            class="sanctuary-input"
-            style="padding: 0.45rem 0.65rem; font-size: 0.8rem;"
-            placeholder="Paste Google Apps Script Web App URL (https://script.google.com/macros/s/.../exec)" />
-        </div>
-        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
-          <button type="button" class="ergonomic-btn primary-period" id="btn-save-sheets-sync-url">
-            🔗 Connect Sheet
-          </button>
-          <button type="button" class="verse-icon-btn" id="btn-test-sheets-connection">
-            ⚡ Test Status
-          </button>
-        </div>
-        <div style="margin-top: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
-          <span class="crypto-badge" id="sheets-sync-status-badge">Google Sheet: Disconnected</span>
-          <a href="./setup-guide.html#step-google-sheet" class="verse-icon-btn" style="text-decoration: none;">📘 1-Min Setup Guide</a>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+          <span style="font-size: 0.85rem;">Playback Speed</span>
+          <div class="lang-mode-group">
+            <button type="button" class="lang-mode-btn" data-set-speed="1">1x</button>
+            <button type="button" class="lang-mode-btn" data-set-speed="1.15">1.15x</button>
+            <button type="button" class="lang-mode-btn" data-set-speed="1.25">1.25x</button>
+          </div>
         </div>
       </div>
 
-      <!-- 3. Google Drive Audio ID / Folder Configuration -->
-      <div class="drawer-section">
-        <div class="context-item-label">3. Audio Stream Source (Current Day / Drive Folder)</div>
-        <div class="drawer-mono-note" id="hero-gdrive-node">
-          📁 /01_Early_World/
+      <!-- 3. Advanced Diagnostics (Developer Only - Collapsed by Default) -->
+      <details class="context-accordion" style="opacity: 0.75;">
+        <summary class="context-summary-trigger">
+          <span>⚙️ Advanced Diagnostics (Developer Only)</span>
+          <span class="crypto-badge" id="reader-tier-badge">Tier 1</span>
+        </summary>
+        <div class="context-body">
+          <div class="inspector-metric-grid">
+            <div class="metric-box">
+              <div class="context-item-label">Storage Latency</div>
+              <div class="metric-val" id="metric-idb-latency">0.18 ms</div>
+            </div>
+            <div class="metric-box">
+              <div class="context-item-label">Scripture Failover</div>
+              <div class="metric-val" id="metric-active-tier">Tier 1</div>
+            </div>
+            <div class="metric-box">
+              <div class="context-item-label">Rate Limiter</div>
+              <div class="metric-val" id="metric-rate-tokens">30 / 30 rpm</div>
+            </div>
+            <div class="metric-box">
+              <div class="context-item-label">Pending Sync</div>
+              <div class="metric-val" id="metric-outbox-count">0 queued</div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 4px; margin-top: 6px;">
+            <input
+              type="text"
+              id="input-day-gdrive-id"
+              class="sanctuary-input"
+              style="padding: 0.35rem 0.5rem; font-size: 0.75rem;"
+              placeholder="Override Audio ID..." />
+            <button type="button" class="verse-icon-btn" id="btn-set-day-gdrive-id">Set ID</button>
+          </div>
+          <div style="margin-top: 6px;">
+            <input
+              type="url"
+              id="input-sheets-sync-url"
+              class="sanctuary-input"
+              style="padding: 0.35rem 0.5rem; font-size: 0.75rem;"
+              placeholder="Custom Web App URL Override..." />
+            <div style="display: flex; gap: 4px; margin-top: 4px;">
+              <button type="button" class="verse-icon-btn" id="btn-save-sheets-sync-url">Save URL</button>
+              <button type="button" class="verse-icon-btn" id="btn-test-sheets-connection">Test</button>
+            </div>
+          </div>
         </div>
-        <div style="display: flex; gap: 0.4rem; margin-top: 0.4rem;">
-          <input
-            type="text"
-            id="input-day-gdrive-id"
-            class="sanctuary-input"
-            style="padding: 0.45rem 0.65rem; font-size: 0.82rem;"
-            placeholder="Paste Drive File ID, Share Link, or JSON..." />
-          <button type="button" class="ergonomic-btn" id="btn-set-day-gdrive-id">
-            🔗 Bind Audio
-          </button>
-        </div>
-
-        <div style="display: flex; gap: 0.4rem; margin-top: 0.45rem;">
-          <input
-            type="url"
-            id="input-edge-proxy-url"
-            class="sanctuary-input"
-            style="padding: 0.45rem 0.65rem; font-size: 0.8rem;"
-            value="https://ephphatha-edge-proxy.jimmymj.workers.dev" />
-          <button type="button" class="verse-icon-btn" id="btn-save-edge-proxy">
-            ☁️ Test Worker
-          </button>
-        </div>
-        <div style="margin-top: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
-          <span class="crypto-badge" id="edge-proxy-status-badge">Edge Proxy Ready</span>
-          <a href="./setup-guide.html" class="verse-icon-btn" style="text-decoration: none;">📘 Open Cloud Setup Guide</a>
-        </div>
-      </div>
-
-      <!-- 3. Advanced System Telemetry & Failover Diagnostics (Collapsed by default) -->
-      <details class="context-accordion">
+      </details>
         <summary class="context-summary-trigger">
           <span>🛡️ System Telemetry & Failover Diagnostics</span>
           <span class="crypto-badge" id="reader-tier-badge">Tier 1</span>
@@ -644,8 +664,123 @@
     </nav>
   </div>
 
+  <!-- ========================================================================
+       PILGRIM AUTHENTICATION & CLOUD SYNC MODAL (Easy Sign In & Create Account)
+       ======================================================================== -->
+  <div class="modal-backdrop centered-modal-wrap hidden" id="auth-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="auth-modal-card">
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="verse-icon-btn" id="btn-close-auth-modal" aria-label="Close dialog">✕</button>
+      </div>
+
+      <div class="auth-header">
+        <div class="auth-emblem">א</div>
+        <h3 class="auth-title" id="auth-modal-title">Ephphatha Sanctuary</h3>
+        <p class="auth-subtitle">Save your 365-day reading progress and sync with your parish fellowship across all devices.</p>
+      </div>
+
+      <div class="auth-tabs" role="tablist">
+        <button type="button" class="auth-tab-btn active" id="btn-tab-signin" role="tab">Sign In</button>
+        <button type="button" class="auth-tab-btn" id="btn-tab-create" role="tab">Create Account</button>
+      </div>
+
+      <div id="auth-modal-alert" class="auth-alert-box hidden" role="alert"></div>
+
+      <!-- PANEL 1: SIGN IN -->
+      <form id="form-auth-signin" class="auth-form">
+        <button type="button" class="auth-biometric-btn" id="btn-auth-biometric-signin">
+          👆 1-Tap Sign In with Face ID / Fingerprint
+        </button>
+
+        <div class="auth-divider">
+          <span>or sign in with your name</span>
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-input-label" for="input-auth-login-name">Pilgrim Name or Email</label>
+          <input
+            type="text"
+            id="input-auth-login-name"
+            class="sanctuary-input"
+            placeholder="Enter your name (e.g. Jimmy)"
+            autocomplete="username"
+            required />
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-input-label" for="input-auth-login-pin">4-Digit Passcode PIN (Optional)</label>
+          <input
+            type="password"
+            id="input-auth-login-pin"
+            class="sanctuary-input"
+            placeholder="4-digit PIN (e.g. 1234)"
+            inputmode="numeric"
+            maxlength="8"
+            autocomplete="current-password" />
+        </div>
+
+        <button type="submit" class="ergonomic-btn primary-period" style="justify-content: center; padding: 0.65rem;">
+          🔑 Sign In &amp; Restore My Progress
+        </button>
+
+        <button type="button" class="verse-icon-btn" id="btn-auth-continue-guest" style="width: 100%; justify-content: center; margin-top: 4px;">
+          Continue as Guest (Offline Only)
+        </button>
+      </form>
+
+      <!-- PANEL 2: CREATE ACCOUNT -->
+      <form id="form-auth-create" class="auth-form hidden">
+        <div class="auth-input-group">
+          <label class="auth-input-label" for="input-auth-reg-name">Your Display Name</label>
+          <input
+            type="text"
+            id="input-auth-reg-name"
+            class="sanctuary-input"
+            placeholder="e.g. Jimmy Mathew"
+            autocomplete="name"
+            required />
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-input-label" for="input-auth-reg-contact">Email or Mobile (Optional)</label>
+          <input
+            type="text"
+            id="input-auth-reg-contact"
+            class="sanctuary-input"
+            placeholder="e.g. jimmy@parish.org or +1 555-0192"
+            autocomplete="email" />
+        </div>
+
+        <div class="auth-input-group">
+          <label class="auth-input-label" for="input-auth-reg-pin">Create 4-Digit Passcode PIN</label>
+          <input
+            type="password"
+            id="input-auth-reg-pin"
+            class="sanctuary-input"
+            placeholder="Simple 4-digit PIN (e.g. 1234)"
+            inputmode="numeric"
+            maxlength="8"
+            autocomplete="new-password" />
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer; margin-top: 2px;">
+          <input type="checkbox" id="chk-auth-enable-biometrics" checked />
+          <span>Enable Face ID / Fingerprint for 1-tap sign in</span>
+        </label>
+
+        <button type="submit" class="ergonomic-btn primary-period" style="justify-content: center; padding: 0.65rem;">
+          ✨ Create Account &amp; Start Journey
+        </button>
+
+        <button type="button" class="verse-icon-btn" id="btn-auth-reg-guest" style="width: 100%; justify-content: center; margin-top: 4px;">
+          Continue as Guest (Offline Only)
+        </button>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.1';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.3';
 
     window.selectJumpDay = (d) => selectDay(d);
 
