@@ -3,9 +3,22 @@
   "updated_at": "2026-11-06T00:00:00Z",
   "curriculum_name": "Ephphatha: The 365-Day Salvation History Bible in a Year",
   "languages_supported": [
-    { "code": "en", "name": "English (RSV-CE / ESV)", "direction": "ltr" },
-    { "code": "ml", "name": "മലയാളം (POC Bible)", "direction": "ltr", "font": "Noto Sans Malayalam" },
-    { "code": "la", "name": "Latina (Nova Vulgata)", "direction": "ltr" }
+    {
+      "code": "en",
+      "name": "English (RSV-CE / ESV)",
+      "direction": "ltr"
+    },
+    {
+      "code": "ml",
+      "name": "മലയാളം (POC Bible)",
+      "direction": "ltr",
+      "font": "Noto Sans Malayalam"
+    },
+    {
+      "code": "la",
+      "name": "Latina (Nova Vulgata)",
+      "direction": "ltr"
+    }
   ],
   "periods": [
     {
@@ -44,7 +57,8 @@
       "gdrive_folder": "/02_Patriarchs/",
       "era_date": "c. 2000 – 1650 BC (Middle Bronze Age)",
       "geography": "Ur, Haran, Canaan (Shechem, Bethel, Hebron), Egypt",
-      "lineage": "Abraham & Sarah → Isaac & Rebekah → Jacob (Israel) → 12 Tribes (Joseph & Judah)"
+      "lineage": "Abraham & Sarah → Isaac & Rebekah → Jacob (Israel) → 12 Tribes (Joseph & Judah)",
+      "gdrive_folder_id": "16ZHzBEr5ZvjsEykT2582JeSTwqXqGA71"
     },
     {
       "id": 3,
@@ -358,6 +372,510 @@
         "reflection_prompt": "Abram stepped out without knowing every detail of the destination. What step of faith is God asking you to take this week?"
       }
     },
+    "6": {
+      "day_number": 6,
+      "episode_title": "Trust in the Lord: Abram and Melchizedek",
+      "episode_title_ml": "കർത്താവിൽ ആശ്രയിക്കുക: അബ്രാമും മെൽക്കിസെദേക്കും",
+      "readings": {
+        "narrative": "Genesis 14–15",
+        "narrative_ml": "ഉൽപത്തി 14–15",
+        "supplemental": "Job 11–12",
+        "supplemental_ml": "ജോബ് 11–12",
+        "psalm_wisdom": "Psalm 5",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 5"
+      },
+      "gdrive_audio_file_id": "1zxEaD8wxBVfsF99RwmbZzBvTKT4z7oWj",
+      "audio_duration_sec": 1380,
+      "historical_context": {
+        "era_date": "c. 2000 – 1900 BC (Middle Bronze Age)",
+        "geography": "Valley of Shaveh (King’s Valley) & Hebron",
+        "lineage": "Abram & Melchizedek (King of Salem, Priest of God Most High)",
+        "summary": "Abram rescues Lot, receives bread and wine from King-Priest Melchizedek, and trusts God’s covenant promise that his reward will be very great.",
+        "summary_ml": "ലോത്തിനെ രക്ഷിച്ച അബ്രാം സേലം രാജാവായ മെൽക്കിസെദേക്കിൽ നിന്ന് അപ്പവും വീഞ്ഞും സ്വീകരിക്കുകയും ദൈവത്തിന്റെ വാഗ്ദാനത്തിൽ ആശ്രയിക്കുകയും ചെയ്യുന്നു.",
+        "reflection_prompt": "Where is God asking you to surrender earthly security and say: \"The Lord is my shield and my exceeding great reward\"?"
+      },
+      "period_id": 2
+    },
+    "7": {
+      "day_number": 7,
+      "episode_title": "God's Covenant with Abram: The Cut Covenant & Sign of Faith",
+      "episode_title_ml": "അബ്രാമുമായുള്ള ഉടമ്പടി: വാഗ്ദാനവും വിശ്വാസവും",
+      "readings": {
+        "narrative": "Genesis 16–17",
+        "narrative_ml": "ഉൽപത്തി 16–17",
+        "supplemental": "Job 13–14",
+        "supplemental_ml": "ജോബ് 13–14",
+        "psalm_wisdom": "Psalm 6",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 6"
+      },
+      "gdrive_audio_file_id": "1cw6g9r7hBymVI_xNGkcR4qVXpEjrQjh-",
+      "audio_duration_sec": 1420,
+      "historical_context": {
+        "era_date": "c. 1990 BC",
+        "geography": "Hebron & Mamre",
+        "lineage": "Abram renamed Abraham; Sarai renamed Sarah",
+        "summary": "God renames Abram to Abraham (\"Father of a Multitude\") and Sarah (\"Princess\"), instituting the everlasting covenant seal.",
+        "summary_ml": "ദൈവം അബ്രാമിന്റെ പേര് അബ്രഹാം എന്നും സാറായിയുടെ പേര് സാറാ എന്നും മാറ്റുകയും ശാശ്വതമായ ഉടമ്പടി സ്ഥാപിക്കുകയും ചെയ്യുന്നു.",
+        "reflection_prompt": "God calls Abraham to \"walk before Me and be blameless.\" How does God’s covenant love call you to fresh fidelity today?"
+      },
+      "period_id": 2
+    },
+    "8": {
+      "day_number": 8,
+      "episode_title": "The Surrender of Abram: Three Visitors & Intercession",
+      "episode_title_ml": "അബ്രാമിന്റെ സമർപ്പണം: മൂന്ന് സന്ദർശകരും മധ്യസ്ഥപ്രാർത്ഥനയും",
+      "readings": {
+        "narrative": "Genesis 18–19",
+        "narrative_ml": "ഉൽപത്തി 18–19",
+        "supplemental": "Job 15–16",
+        "supplemental_ml": "ജോബ് 15–16",
+        "psalm_wisdom": "Psalm 7",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 7"
+      },
+      "gdrive_audio_file_id": "13jPCVTwAJM9E5l4wIpkGKsVJiiML-6zj",
+      "audio_duration_sec": 1450,
+      "historical_context": {
+        "era_date": "c. 1980 BC",
+        "geography": "Oaks of Mamre & Dead Sea Plain",
+        "lineage": "Abraham & Sarah; Lot",
+        "summary": "The Lord visits Abraham by the oaks of Mamre; Abraham stands before God as an intercessor pleading for mercy over the righteous.",
+        "summary_ml": "മംമ്രേയിലെ കരുവേലകങ്ങളുടെ അടുത്ത് കർത്താവ് അബ്രഹാമിന് പ്രത്യക്ഷപ്പെടുന്നു; നീതിമാന്മാർക്കായി അബ്രഹാം ദൈവസമക്ഷം മാധ്യസ്ഥ്യം വഹിക്കുന്നു.",
+        "reflection_prompt": "Abraham boldly bargained with God out of compassion for souls. Who in your family or parish is God asking you to intercede for today?"
+      },
+      "period_id": 2
+    },
+    "9": {
+      "day_number": 9,
+      "episode_title": "Sodom and Gomorrah: Divine Judgment and Mercy",
+      "episode_title_ml": "സൊദോമും ഗൊമോറയും: ദൈവീക നീതിയും കാരുണ്യവും",
+      "readings": {
+        "narrative": "Genesis 19–20",
+        "narrative_ml": "ഉൽപത്തി 19–20",
+        "supplemental": "Job 17–18",
+        "supplemental_ml": "ജോബ് 17–18",
+        "psalm_wisdom": "Psalm 8",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 8"
+      },
+      "gdrive_audio_file_id": "16ZyCQr8gxQ1FD_ZBnTrB5WsDbGGD2ouv",
+      "audio_duration_sec": 1390,
+      "historical_context": {
+        "era_date": "c. 1980 BC",
+        "geography": "Sodom, Zoar & the Negeb",
+        "lineage": "Lot and his daughters; Abraham in Gerar",
+        "summary": "Angels lead Lot’s family out before sulfur falls upon the plain; God remembers Abraham and spares Lot in His boundless mercy.",
+        "summary_ml": "തീയും ഗന്ധകവും പെയ്യുന്നതിന് മുമ്പ് ദൈവദൂതന്മാർ ലോത്തിനെയും കുടുംബത്തെയും രക്ഷിക്കുന്നു; ദൈവം അബ്രഹാമിനെ ഓർത്തു ലോത്തിനെ വിടുവിച്ചു.",
+        "reflection_prompt": "Lot hesitated before fleeing the city, yet the angels grasped his hand. How is God pulling your heart out of worldly entanglements today?"
+      },
+      "period_id": 2
+    },
+    "10": {
+      "day_number": 10,
+      "episode_title": "Hagar and Ishmael: The God Who Sees in the Wilderness",
+      "episode_title_ml": "ഹാഗാറും ഇസ്മായേലും: മരുഭൂമിയിൽ കാണുന്ന ദൈവം",
+      "readings": {
+        "narrative": "Genesis 21–22",
+        "narrative_ml": "ഉൽപത്തി 21–22",
+        "supplemental": "Job 19–20",
+        "supplemental_ml": "ജോബ് 19–20",
+        "psalm_wisdom": "Psalm 9",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 9"
+      },
+      "gdrive_audio_file_id": "12MR5KMRGZG8MeUpzSHRm8OuT90omGvJQ",
+      "audio_duration_sec": 1410,
+      "historical_context": {
+        "era_date": "c. 1970 BC",
+        "geography": "Beersheba Wilderness",
+        "lineage": "Hagar & Ishmael; Isaac (Son of Promise)",
+        "summary": "When water is spent in the wilderness, God hears the cry of the boy and opens Hagar’s eyes to see a well of life-giving water.",
+        "summary_ml": "മരുഭൂമിയിൽ വെള്ളം തീർന്നു കുട്ടി നിലവിളിച്ചപ്പോൾ ദൈവം അവന്റെ ശബ്ദം കേൾക്കുകയും ഹാഗാറിന്റെ കണ്ണു തുറപ്പിച്ചു നീരുറവ കാണിച്ചു കൊടുക്കുകയും ചെയ്തു.",
+        "reflection_prompt": "When you feel desolate or cast aside, remember \"El Roi\" — the God who sees you. What thirst do you need Him to quench?"
+      },
+      "period_id": 2
+    },
+    "11": {
+      "day_number": 11,
+      "episode_title": "The Sacrifice of Isaac: Mount Moriah & The Lamb Provided",
+      "episode_title_ml": "ഇസഹാക്കിന്റെ ബലി: മോറിയാ മലയും ദൈവത്തിന്റെ കുഞ്ഞാടും",
+      "readings": {
+        "narrative": "Genesis 22–23",
+        "narrative_ml": "ഉൽപത്തി 22–23",
+        "supplemental": "Job 21–22",
+        "supplemental_ml": "ജോബ് 21–22",
+        "psalm_wisdom": "Psalm 10",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 10"
+      },
+      "gdrive_audio_file_id": "1q49cWp0cnYtThIF3kgcSvtblLjEAwiBX",
+      "audio_duration_sec": 1530,
+      "historical_context": {
+        "era_date": "c. 1960 BC",
+        "geography": "Land of Moriah (Mount Moriah, Jerusalem)",
+        "lineage": "Abraham & Isaac (Type of Christ, the Beloved Son carrying wood)",
+        "summary": "Abraham ascends Moriah with his only beloved son; God halts the blade and provides a ram caught in the thicket, foreshadowing Calvary.",
+        "summary_ml": "അബ്രഹാം തന്റെ ഏക മകനായ ഇസഹാക്കിനെ യാഗം കഴിക്കാൻ കൊണ്ടുപോകുന്നു; ദൈവം അവനെ തടഞ്ഞ് കുഞ്ഞാടിനെ പകരമായി നൽകുന്നു.",
+        "reflection_prompt": "Isaac carried the wood up Moriah, prefiguring Christ carrying His Cross. What precious offering are you holding back from God’s altar?"
+      },
+      "period_id": 2
+    },
+    "12": {
+      "day_number": 12,
+      "episode_title": "Isaac and Rebekah: The Well of Prayer and Providence",
+      "episode_title_ml": "ഇസഹാക്കും റബേക്കയും: പ്രാർത്ഥനയുടെ കിണറും ദൈവപരിപാലനയും",
+      "readings": {
+        "narrative": "Genesis 24–25",
+        "narrative_ml": "ഉൽപത്തി 24–25",
+        "supplemental": "Job 23–24",
+        "supplemental_ml": "ജോബ് 23–24",
+        "psalm_wisdom": "Psalm 11",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 11"
+      },
+      "gdrive_audio_file_id": "1qfuZ-Ie612CiiGE-uWgwYWk303IsxE5j",
+      "audio_duration_sec": 1470,
+      "historical_context": {
+        "era_date": "c. 1950 BC",
+        "geography": "Aram-naharaim (Haran) & Negeb (Beer-lahai-roi)",
+        "lineage": "Abraham’s Servant (Eliezer) → Rebekah (daughter of Bethuel) → Isaac",
+        "summary": "Abraham’s servant prays at the well; Rebekah responds with generous hospitality, fulfilling God’s matrimonial providence for the covenant line.",
+        "summary_ml": "അബ്രഹാമിന്റെ ദാസൻ കിണറ്റിൻകരയിൽ പ്രാർത്ഥിക്കുന്നു; റബേക്കയുടെ ഔദാര്യത്തിലൂടെ ദൈവം ഇസഹാക്കിന് കൂട്ടുകാരിയെ നൽകി അനുഗ്രഹിക്കുന്നു.",
+        "reflection_prompt": "Isaac went out to meditate in the field at eventide when Rebekah arrived. How does silent, contemplative prayer open your life to God’s guidance?"
+      },
+      "period_id": 2
+    },
+    "13": {
+      "day_number": 13,
+      "episode_title": "Esau Sells His Birthright: Temporal Hunger vs Eternal Inheritance",
+      "episode_title_ml": "ഏസാവ് ജ്യേഷ്ഠാവകാശം വിൽക്കുന്നു: താത്കാലിക വിശപ്പും നിത്യമായ അവകാശവും",
+      "readings": {
+        "narrative": "Genesis 25–26",
+        "narrative_ml": "ഉൽപത്തി 25–26",
+        "supplemental": "Job 25–26",
+        "supplemental_ml": "ജോബ് 25–26",
+        "psalm_wisdom": "Psalm 12",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 12"
+      },
+      "gdrive_audio_file_id": "1F_ObD8Yd6mdOzYkNqmtgXfg7FmFM5dwI",
+      "audio_duration_sec": 1400,
+      "historical_context": {
+        "era_date": "c. 1930 BC",
+        "geography": "Beersheba & Gerar",
+        "lineage": "Isaac & Rebekah → Twin sons Esau & Jacob",
+        "summary": "Faint with hunger, Esau despises his birthright for a bowl of red stew; God renews the covenant oath with Isaac in Gerar.",
+        "summary_ml": "വിശപ്പുകൊണ്ട് വലഞ്ഞ ഏസാവ് ചുവന്ന പയർകൂട്ടിനായി തന്റെ ജ്യേഷ്ഠാവകാശം വിൽക്കുന്നു; ദൈവം ഇസഹാക്കുമായുള്ള ഉടമ്പടി ഉറപ്പിക്കുന്നു.",
+        "reflection_prompt": "Esau traded sacred blessings for momentary physical relief. Are you ever tempted to compromise eternal peace for temporary worldly comfort?"
+      },
+      "period_id": 2
+    },
+    "14": {
+      "day_number": 14,
+      "episode_title": "Isaac Blesses Jacob: The Stolen Blessing and the Jacob’s Ladder",
+      "episode_title_ml": "ഇസഹാക്ക് യാക്കോബിനെ അനുഗ്രഹിക്കുന്നു: സ്വർഗ്ഗത്തിലേക്ക് ചാരിയ ഏണി",
+      "readings": {
+        "narrative": "Genesis 27–28",
+        "narrative_ml": "ഉൽപത്തി 27–28",
+        "supplemental": "Job 27–28",
+        "supplemental_ml": "ജോബ് 27–28",
+        "psalm_wisdom": "Psalm 13",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 13"
+      },
+      "gdrive_audio_file_id": "1H3tpNTcnTufd4dkibQaV4VmN1ubia1qq",
+      "audio_duration_sec": 1460,
+      "historical_context": {
+        "era_date": "c. 1910 BC",
+        "geography": "Beersheba → Bethel (Luz) → Haran",
+        "lineage": "Jacob (Bearer of the Blessing)",
+        "summary": "Jacob receives the patriarchal blessing; fleeing Esau’s wrath, he sleeps at Bethel and beholds a ladder reaching to heaven with angels ascending.",
+        "summary_ml": "യാക്കോബ് അനുഗ്രഹം പ്രാപിച്ച് പലായനം ചെയ്യുമ്പോൾ, ബെഥേലിൽ വെച്ച് സ്വർഗ്ഗത്തിലേക്ക് എത്തുന്ന ഏണിയും ദൈവദൂതന്മാരെയും ദർശിക്കുന്നു.",
+        "reflection_prompt": "Jacob exclaimed: \"Surely the Lord is in this place, and I did not know it!\" Where is God present right now in your ordinary surroundings?"
+      },
+      "period_id": 2
+    },
+    "15": {
+      "day_number": 15,
+      "episode_title": "Leah Feels Unloved: Rachel, Leah, and the Mothers of Israel",
+      "episode_title_ml": "ലേയാ സ്നേഹിക്കപ്പെടാതെ പോകുന്നു: ദൈവത്തിന്റെ കടാക്ഷവും ഇസ്രായേൽ ഗോത്രങ്ങളും",
+      "readings": {
+        "narrative": "Genesis 29–30",
+        "narrative_ml": "ഉൽപത്തി 29–30",
+        "supplemental": "Job 29–30",
+        "supplemental_ml": "ജോബ് 29–30",
+        "psalm_wisdom": "Psalm 14",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 14"
+      },
+      "gdrive_audio_file_id": "1HBtGuWqrKlWdQVbgzxl9bffj1YGxCTrA",
+      "audio_duration_sec": 1430,
+      "historical_context": {
+        "era_date": "c. 1900 BC",
+        "geography": "Paddan-aram (Haran)",
+        "lineage": "Laban → Leah & Rachel → Reuben, Simeon, Levi, Judah, Joseph",
+        "summary": "Jacob works fourteen years for Rachel; God sees that Leah is unloved and opens her womb with the ancestors of the Royal Line (Judah) and Priesthood (Levi).",
+        "summary_ml": "യാക്കോബ് റാഹേലിനായി വേല ചെയ്യുന്നു; ലേയാ സ്നേഹിക്കപ്പെടാതെ പോയപ്പോൾ ദൈവം അവളുടെ സങ്കടം കണ്ട് അവളെ അനുഗ്രഹിച്ചു.",
+        "reflection_prompt": "When human affections fail or falter, God’s eyes turn toward the neglected. Offer your feelings of rejection into Christ’s tender care today."
+      },
+      "period_id": 2
+    },
+    "16": {
+      "day_number": 16,
+      "episode_title": "The Suffering of Job: Integrity Amidst Total Loss",
+      "episode_title_ml": "ജോബിന്റെ സഹനങ്ങൾ: ദുരന്തങ്ങൾക്കിടയിലെ അചഞ്ചലമായ വിശ്വാസം",
+      "readings": {
+        "narrative": "Genesis 31–32",
+        "narrative_ml": "ഉൽപത്തി 31–32",
+        "supplemental": "Job 31–32",
+        "supplemental_ml": "ജോബ് 31–32",
+        "psalm_wisdom": "Psalm 15",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 15"
+      },
+      "gdrive_audio_file_id": "1IAlh1AjPa7FEovurcFKlCJwkFkdrNMk1",
+      "audio_duration_sec": 1490,
+      "historical_context": {
+        "era_date": "Patriarchal Age (c. 1900 BC)",
+        "geography": "Land of Uz & Gilead",
+        "lineage": "Job the Blameless; Jacob departs Laban",
+        "summary": "Job finishes his defence of uprightness; Jacob leaves Laban to face his brother Esau, calling upon the God of Abraham and Isaac.",
+        "summary_ml": "ജോബ് തന്റെ നിഷ്കളങ്കതയിൽ ഉറച്ചുനിൽക്കുന്നു; യാക്കോബ് ലാബാനെ വിട്ട് അബ്രഹാമിന്റെ ദൈവത്തിൽ ആശ്രയിച്ചുകൊണ്ട് മുന്നോട്ട് നീങ്ങുന്നു.",
+        "reflection_prompt": "Job declared: \"Though He slay me, yet will I trust Him.\" How do you hold fast to worship when answers don’t come immediately?"
+      },
+      "period_id": 2
+    },
+    "17": {
+      "day_number": 17,
+      "episode_title": "Jacob Meets Esau: Wrestling at Peniel & Reconciling Brothers",
+      "episode_title_ml": "യാക്കോബ് ഏസാവിനെ കണ്ടുമുട്ടുന്നു: പെനിയേലിലെ മല്ലയുദ്ധവും അനുരഞ്ജനവും",
+      "readings": {
+        "narrative": "Genesis 33–34",
+        "narrative_ml": "ഉൽപത്തി 33–34",
+        "supplemental": "Job 33–34",
+        "supplemental_ml": "ജോബ് 33–34",
+        "psalm_wisdom": "Psalm 16",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 16"
+      },
+      "gdrive_audio_file_id": "1k2M_PUx74IuI0zCMPsyrtgyrU_QhqB7G",
+      "audio_duration_sec": 1440,
+      "historical_context": {
+        "era_date": "c. 1890 BC",
+        "geography": "Ford of Jabbok (Peniel) & Succoth / Shechem",
+        "lineage": "Jacob renamed Israel (\"He who strives with God and prevails\")",
+        "summary": "Jacob wrestles through the night until the dawn breaks, receives the name Israel, and meets Esau with bowed reverence and tearful forgiveness.",
+        "summary_ml": "യാക്കോബ് രാത്രി മുഴുവൻ മല്ലുപിടിച്ച് അനുഗ്രഹം നേടുകയും ഇസ്രായേൽ എന്ന പേര് സ്വീകരിക്കുകയും ചെയ്യുന്നു; സഹോദരനായ ഏസാവുമായി സ്നേഹത്തോടെ ഒന്നിക്കുന്നു.",
+        "reflection_prompt": "Jacob saw Esau’s face \"like the face of God\" when forgiveness broke forth. Is there someone you are called to reconcile with this week?"
+      },
+      "period_id": 2
+    },
+    "18": {
+      "day_number": 18,
+      "episode_title": "The Heart of Israel: Return to Bethel and the Grief of Rachel",
+      "episode_title_ml": "ഇസ്രായേലിന്റെ ഹൃദയം: ബെഥേലിലേക്കുള്ള മടക്കവും റാഹേലിന്റെ വിയോഗവും",
+      "readings": {
+        "narrative": "Genesis 35–36",
+        "narrative_ml": "ഉൽപത്തി 35–36",
+        "supplemental": "Job 35–36",
+        "supplemental_ml": "ജോബ് 35–36",
+        "psalm_wisdom": "Psalm 17",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 17"
+      },
+      "gdrive_audio_file_id": "1lrzOFkZvJXr41TSh_XkShOxZODu0v6NV",
+      "audio_duration_sec": 1410,
+      "historical_context": {
+        "era_date": "c. 1880 BC",
+        "geography": "Bethel & Ephrath (Bethlehem)",
+        "lineage": "Benjamin born; Rachel buried near Bethlehem; Isaac dies at 180",
+        "summary": "God directs Israel back to Bethel to rebuild the altar; Rachel gives birth to Benjamin and enters into rest on the way to Bethlehem.",
+        "summary_ml": "ദൈവം ഇസ്രായേലിനെ ബെഥേലിലേക്ക് തിരിച്ചുകൊണ്ടുവരുന്നു; ബെത്‌ലഹേമിലേക്കുള്ള വഴിയിൽ ബെന്യാമിൻ ജനിക്കുകയും റാഹേൽ കാലം ചെയ്യുകയും ചെയ്യുന്നു.",
+        "reflection_prompt": "Even in profound sorrow, God builds His Twelve Tribes. Where is God bringing new life out of an aching loss in your story?"
+      },
+      "period_id": 2
+    },
+    "19": {
+      "day_number": 19,
+      "episode_title": "Joseph and His Brothers: The Coat of Many Colours and the Pit",
+      "episode_title_ml": "യോസേഫും സഹോദരന്മാരും: വിവിധ വർണ്ണങ്ങളുള്ള അങ്കിയും പൊട്ടക്കിണറും",
+      "readings": {
+        "narrative": "Genesis 37",
+        "narrative_ml": "ഉൽപത്തി 37",
+        "supplemental": "Job 37",
+        "supplemental_ml": "ജോബ് 37",
+        "psalm_wisdom": "Psalm 18:1–24",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 18:1–24"
+      },
+      "gdrive_audio_file_id": "1I4af8Gk_jpCcmFzFweGd--feoKn5LEer",
+      "audio_duration_sec": 1480,
+      "historical_context": {
+        "era_date": "c. 1870 BC",
+        "geography": "Hebron Valley & Dothan",
+        "lineage": "Joseph (The Beloved Son betrayed for pieces of silver, Type of Jesus)",
+        "summary": "Envious brothers strip Joseph of his tunic and cast him into a pit before selling him to Midianite traders on their way down to Egypt.",
+        "summary_ml": "അസൂയാലുക്കളായ സഹോദരന്മാർ യോസേഫിനെ കുഴിയിൽ തള്ളിയിടുകയും ഈജിപ്തിലേക്ക് പോകുന്ന കച്ചവടക്കാർക്ക് വെള്ളിക്ക് വിൽക്കുകയും ചെയ്യുന്നു.",
+        "reflection_prompt": "Joseph was sold for silver, foreshadowing Judas selling Jesus. Have you ever felt betrayed? Unburden that pain before the Sacred Heart."
+      },
+      "period_id": 2
+    },
+    "20": {
+      "day_number": 20,
+      "episode_title": "Judah and Tamar: Broken Family Lines Redeemed in Grace",
+      "episode_title_ml": "യൂദായും താമാറും: ദൈവകൃപയാൽ വീണ്ടെടുക്കപ്പെട്ട വംശാവലി",
+      "readings": {
+        "narrative": "Genesis 38–39",
+        "narrative_ml": "ഉൽപത്തി 38–39",
+        "supplemental": "Job 38",
+        "supplemental_ml": "ജോബ് 38",
+        "psalm_wisdom": "Psalm 18:25–50",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 18:25–50"
+      },
+      "gdrive_audio_file_id": "1pyo9aoTPRYq51c9RSKd2NnBlesEpjONE",
+      "audio_duration_sec": 1420,
+      "historical_context": {
+        "era_date": "c. 1870 – 1860 BC",
+        "geography": "Adullam, Timnah & Egypt (House of Potiphar)",
+        "lineage": "Judah & Tamar → Perez (Ancestor of David and Jesus the Christ)",
+        "summary": "Judah confesses Tamar’s righteousness; concurrently, the Lord prospers Joseph in Potiphar’s household because God was with him.",
+        "summary_ml": "യൂദാ തന്റെ കുറവുകൾ തിരിച്ചറിയുന്നു; ഈജിപ്തിൽ ദൈവം യോസേഫിനോടുകൂടെ ഉണ്ടായിരുന്നതിനാൽ അവൻ എല്ലാറ്റിലും അനുഗ്രഹിക്കപ്പെടുന്നു.",
+        "reflection_prompt": "God weaves even broken lineages into the ancestral tree of Jesus Christ. Trust that no mess in your past is beyond God’s redemptive touch."
+      },
+      "period_id": 2
+    },
+    "21": {
+      "day_number": 21,
+      "episode_title": "Walking with God: The Prison, Dreams, and Sovereign Providence",
+      "episode_title_ml": "ദൈവത്തോടൊപ്പം നടക്കുക: കാരാഗൃഹവും സ്വപ്നങ്ങളും ദൈവപരിപാലനയും",
+      "readings": {
+        "narrative": "Genesis 40–41",
+        "narrative_ml": "ഉൽപത്തി 40–41",
+        "supplemental": "Job 39",
+        "supplemental_ml": "ജോബ് 39",
+        "psalm_wisdom": "Psalm 19",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 19"
+      },
+      "gdrive_audio_file_id": "1j_uyzi0zaWr_eUzLKTvgopz6TrVcSlUX",
+      "audio_duration_sec": 1460,
+      "historical_context": {
+        "era_date": "c. 1860 BC",
+        "geography": "Royal Prison & Pharaoh’s Palace in Egypt",
+        "lineage": "Joseph (Interpreter of Dreams)",
+        "summary": "Falsely accused, Joseph remains pure and interprets the dreams of the cupbearer and baker, waiting patiently for the Lord’s appointed time.",
+        "summary_ml": "അപവാദങ്ങൾക്കിടയിലും പരിശുദ്ധി കാത്തുസൂക്ഷിച്ച യോസേഫ് കാരാഗൃഹത്തിൽ വെച്ച് സ്വപ്നങ്ങളുടെ അർത്ഥം ദൈവത്തിൽ ആശ്രയിച്ചു വ്യാഖ്യാനിക്കുന്നു.",
+        "reflection_prompt": "Joseph waited two full years in prison after being forgotten by men, yet never forgotten by God. What delay are you enduring in faith today?"
+      },
+      "period_id": 2
+    },
+    "22": {
+      "day_number": 22,
+      "episode_title": "Go to Joseph: Pharaoh’s Vizier and the World Brought to Bread",
+      "episode_title_ml": "യോസേഫിന്റെ അടുക്കൽ ചെല്ലുവിൻ: ഈജിപ്തിലെ ഭരണാധികാരിയും ജീവന്റെ അപ്പവും",
+      "readings": {
+        "narrative": "Genesis 41:55–42:38",
+        "narrative_ml": "ഉൽപത്തി 41:55–42:38",
+        "supplemental": "Job 40",
+        "supplemental_ml": "ജോബ് 40",
+        "psalm_wisdom": "Psalm 20",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 20"
+      },
+      "gdrive_audio_file_id": "1mJXEh73C6dqhsKQTE2DF1TGd77r5SdAy",
+      "audio_duration_sec": 1440,
+      "historical_context": {
+        "era_date": "c. 1850 BC",
+        "geography": "Memphis / Avaris (Egypt) & Canaan",
+        "lineage": "Joseph (Savior of the World, Zaphnath-paaneah)",
+        "summary": "During severe famine, Pharaoh commands the nations: \"Go to Joseph; what he says to you, do.\" Joseph tests his brothers when they arrive.",
+        "summary_ml": "ക്ഷാമകാലത്ത് ഫറവോൻ ജനങ്ങളോട് പറയുന്നു: \"യോസേഫിന്റെ അടുക്കൽ ചെല്ലുവിൻ; അവൻ പറയുന്നതുപോലെ ചെയ്യുവിൻ.\" സഹോദരന്മാർ ധാന്യത്തിനായി വരുന്നു.",
+        "reflection_prompt": "\"Go to Joseph\" (Ite ad Joseph) echoed in Egypt and today echoes in the Church for St. Joseph and Christ. What bread of life are you seeking?"
+      },
+      "period_id": 2
+    },
+    "23": {
+      "day_number": 23,
+      "episode_title": "Judah Changes: From Selfish Gain to Sacrificial Intercession",
+      "episode_title_ml": "യൂദായുടെ പരിവർത്തനം: സ്വാർത്ഥതയിൽ നിന്ന് ആത്മത്യാഗപരമായ മാധ്യസ്ഥ്യത്തിലേക്ക്",
+      "readings": {
+        "narrative": "Genesis 43–44",
+        "narrative_ml": "ഉൽപത്തി 43–44",
+        "supplemental": "Job 41",
+        "supplemental_ml": "ജോബ് 41",
+        "psalm_wisdom": "Psalm 21",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 21"
+      },
+      "gdrive_audio_file_id": "1Vj8wTVuYHD36BMO7TwFyxaUh8bQ1j12a",
+      "audio_duration_sec": 1470,
+      "historical_context": {
+        "era_date": "c. 1845 BC",
+        "geography": "Palace of the Vizier, Egypt",
+        "lineage": "Judah (Laying down his life for Benjamin, Type of the Good Shepherd)",
+        "summary": "When the silver cup is found in Benjamin’s sack, Judah steps forward to offer himself as a slave in place of the boy to spare his father’s heart.",
+        "summary_ml": "വെള്ളിപ്പാത്രം ബെന്യാമിന്റെ ചാക്കിൽ കണ്ടെത്തിയപ്പോൾ, പിതാവിന്റെ വേദനയോർത്ത് ബെന്യാമിന് പകരമായി സ്വയം അടിമയാകാൻ യൂദാ മുന്നോട്ട് വരുന്നു.",
+        "reflection_prompt": "Judah, who once proposed selling Joseph, now offers his own freedom for his brother. What transformation is God’s grace working in your soul?"
+      },
+      "period_id": 2
+    },
+    "24": {
+      "day_number": 24,
+      "episode_title": "Tears of Joy: \"I Am Joseph Your Brother — God Sent Me Before You\"",
+      "episode_title_ml": "ആനന്ദക്കണ്ണീർ: \"ഞാൻ നിങ്ങളുടെ സഹോദരനായ യോസേഫാണ്; ജീവരക്ഷയ്ക്കായി ദൈവം എന്നെ മുന്നേ അയച്ചതാണ്\"",
+      "readings": {
+        "narrative": "Genesis 45–46",
+        "narrative_ml": "ഉൽപത്തി 45–46",
+        "supplemental": "Job 42",
+        "supplemental_ml": "ജോബ് 42",
+        "psalm_wisdom": "Psalm 22",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 22"
+      },
+      "gdrive_audio_file_id": "1NQD1Yoi21Rt9jZdGlcHMHNnNrJaUOVNf",
+      "audio_duration_sec": 1510,
+      "historical_context": {
+        "era_date": "c. 1845 BC",
+        "geography": "Goshen & Nile Delta",
+        "lineage": "Israel (Jacob) relocates 70 souls to Egypt",
+        "summary": "Joseph weeps aloud and reveals his identity; he comforts his trembling brothers, proclaiming that God turned human malice into salvation.",
+        "summary_ml": "യോസേഫ് പൊട്ടിക്കരഞ്ഞുകൊണ്ട് സഹോദരങ്ങൾക്ക് തന്നെത്തന്നെ വെളിപ്പെടുത്തുന്നു; തിന്മയെ നന്മയാക്കി മാറ്റിയ ദൈവത്തിന്റെ വിസ്മയകരമായ രക്ഷാപദ്ധതിയെ സാക്ഷ്യപ്പെടുത്തുന്നു.",
+        "reflection_prompt": "\"You meant evil against me, but God meant it for good.\" How can this divine perspective bring peace to your deepest wounds?"
+      },
+      "period_id": 2
+    },
+    "25": {
+      "day_number": 25,
+      "episode_title": "Job's Questioning: The Whirlwind and the Wisdom of Creation",
+      "episode_title_ml": "ജോബിന്റെ ചോദ്യങ്ങൾ: ചുഴലിക്കാറ്റും സൃഷ്ടിയുടെ മഹത്വവും",
+      "readings": {
+        "narrative": "Genesis 47–48",
+        "narrative_ml": "ഉൽപത്തി 47–48",
+        "supplemental": "Proverbs 1",
+        "supplemental_ml": "സദൃശവാക്യങ്ങൾ 1",
+        "psalm_wisdom": "Psalm 23",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 23"
+      },
+      "gdrive_audio_file_id": "1per50tLSqFEhZkCWxdMlfT4Q-Yt3V53x",
+      "audio_duration_sec": 1430,
+      "historical_context": {
+        "era_date": "c. 1840 BC",
+        "geography": "Land of Rameses (Goshen)",
+        "lineage": "Jacob adopts and blesses Ephraim & Manasseh",
+        "summary": "Jacob blesses Joseph’s sons with crossed hands, favoring the younger Ephraim; Job contemplates the sovereign mystery of Almighty God.",
+        "summary_ml": "യാക്കോബ് എഫ്രായിമിനെയും മനാസ്സെയെയും കൈകൾ മാറ്റിപ്പിടിച്ച് അനുഗ്രഹിക്കുന്നു; ദൈവത്തിന്റെ വഴികളുടെ അഗാധതയെക്കുറിച്ച് ധ്യാനിക്കുന്നു.",
+        "reflection_prompt": "Jacob placed his right hand on the younger son, overturning human expectations. Are you willing to let God order your blessings His way?"
+      },
+      "period_id": 2
+    },
+    "26": {
+      "day_number": 26,
+      "episode_title": "God Responds to Job: The Patriarchal Sceptre and the Resting Place of Israel",
+      "episode_title_ml": "ദൈവം ജോബിന് മറുപടി നൽകുന്നു: യൂദായുടെ ചെങ്കോലും ഇസ്രായേലിന്റെ അന്ത്യവാഗ്ദാനവും",
+      "readings": {
+        "narrative": "Genesis 49–50",
+        "narrative_ml": "ഉൽപത്തി 49–50",
+        "supplemental": "Proverbs 2",
+        "supplemental_ml": "സദൃശവാക്യങ്ങൾ 2",
+        "psalm_wisdom": "Psalm 24",
+        "psalm_wisdom_ml": "സങ്കീർത്തനങ്ങൾ 24"
+      },
+      "gdrive_audio_file_id": "1zZ8s5lnsS7KFZf2f4lX0AGHhdboKbc4Z",
+      "audio_duration_sec": 1540,
+      "historical_context": {
+        "era_date": "c. 1800 BC",
+        "geography": "Goshen → Machpelah (Hebron, Canaan)",
+        "lineage": "Jacob’s Twelve Sons → The Twelve Tribes; Sceptre to Judah (Gen 49:10)",
+        "summary": "Jacob prophecies the royal sceptre belonging to Judah until Shiloh comes; Joseph dies in faith, swearing Israel will carry his bones to the Promised Land.",
+        "summary_ml": "യാക്കോബ് തന്റെ മക്കളെ അനുഗ്രഹിക്കുകയും യൂദായ്ക്ക് രാജകീയ ചെങ്കോൽ പ്രവചിക്കുകയും ചെയ്യുന്നു; വാഗ്ദത്ത ഭൂമിയിലേക്ക് തന്റെ അസ്ഥികൾ കൊണ്ടുപോകുമെന്ന് യോസേഫ് വിശ്വാസത്തോടെ മരിക്കുന്നു.",
+        "reflection_prompt": "The Book of Genesis closes with a coffin in Egypt, yet anchored in hope of resurrection and return. How is your hope anchored in eternity?"
+      },
+      "period_id": 2
+    },
     "27": {
       "day_number": 27,
       "period_id": 3,
@@ -408,4 +926,3 @@
     }
   }
 }
-
