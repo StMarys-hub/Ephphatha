@@ -565,7 +565,7 @@ async function loadActiveReadingSlot(daySchedule) {
         <div class="verse-card" style="text-align: center; padding: 2rem 1rem; color: var(--text-secondary);">
           <div style="font-size: 1.25rem; margin-bottom: 0.5rem;">📖</div>
           <p style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">Opening ${refEn}...</p>
-          <p style="font-size: 0.8rem;">Loading POC Malayalam & Catholic Canon...</p>
+          <p style="font-size: 0.8rem;">Loading Malayalam Bible &amp; English Bible...</p>
         </div>
       `;
     }
@@ -637,7 +637,7 @@ function renderScriptureVerses(passageData) {
     emptyNotice.style.cssText = 'text-align: center; padding: 2.5rem 1rem; color: var(--text-secondary);';
     emptyNotice.innerHTML = `
       <p style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.75rem;">📖 Loading Scripture...</p>
-      <p style="font-size: 0.84rem; margin-bottom: 1rem;">Retrieving full chapter verses from POC Malayalam and BSB Catholic canonical vault.</p>
+      <p style="font-size: 0.84rem; margin-bottom: 1rem;">Retrieving full chapter verses in English and Malayalam Bible.</p>
       <button type="button" class="ergonomic-btn primary" id="btn-retry-verses-load" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 6px;">
         <span>🔄 Reload Chapter</span>
       </button>
@@ -1159,7 +1159,7 @@ function renderFellowshipView() {
         if (prayer.isAnswered) {
           const ansBadge = document.createElement('span');
           ansBadge.className = 'crypto-badge';
-          ansBadge.textContent = '✨ Answered';
+          ansBadge.textContent = '✓ Answered';
           badgesWrap.appendChild(ansBadge);
         }
 
@@ -2540,7 +2540,7 @@ function bindFellowshipModuleEvents() {
     if (previewCodeEl) {
       previewCodeEl.textContent = appState.previewCohortCode;
     }
-    showCohortGatewayAlert(`Generated new invitation code: ${appState.previewCohortCode}. Tap "✨ Launch Cohort with Code" to activate it.`, false);
+    showCohortGatewayAlert(`Generated new invitation code: ${appState.previewCohortCode}. Tap "Create Cohort with This Code" to activate it.`, false);
   });
 
   // 2. Create Brand-New Isolated Cohort

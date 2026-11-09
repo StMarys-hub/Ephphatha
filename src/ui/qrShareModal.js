@@ -143,7 +143,7 @@ export async function downloadQrCardPng() {
 
   ctx.fillStyle = '#38BDF8';
   ctx.font = '600 18px -apple-system, system-ui, sans-serif';
-  ctx.fillText('Bible in a Year • English & Malayalam POC Bible', width / 2, 98);
+  ctx.fillText('Bible in a Year • English & Malayalam Bible', width / 2, 98);
 
   // 4. White Rounded Card for QR Code
   const qrCardSize = 420;
@@ -240,7 +240,7 @@ export function initQrShareModal() {
     const url = activeShareUrl || getAppInstallUrl();
     const shareData = {
       title: 'Ephphatha — Bible in a Year',
-      text: 'Read & listen to the Bible in a Year in English & Malayalam POC Bible. Install Ephphatha directly on your phone:',
+      text: 'Read & listen to the Bible in a Year in English & Malayalam Bible. Install Ephphatha directly on your phone:',
       url: url
     };
 

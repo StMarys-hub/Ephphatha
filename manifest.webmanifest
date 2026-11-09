@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Ephphatha — Bible in a Year Sanctuary",
   "short_name": "Ephphatha",
-  "description": "Local-First Bilingual (English & Malayalam POC) Bible in a Year PWA across the 12 Periods of Salvation History.",
+  "description": "Local-First Bilingual (English & Malayalam Bible) in a Year PWA across the 12 Periods of Salvation History.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

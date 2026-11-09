@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Ephphatha" />
   <meta name="application-name" content="Ephphatha" />
-  <meta name="description" content="Ephphatha ('Be Opened' — Mark 7:34): Local-First Bible in a Year Sanctuary with English & Malayalam POC Bible." />
+  <meta name="description" content="Ephphatha ('Be Opened' — Mark 7:34): Local-First Bible in a Year Sanctuary with English & Malayalam Bible." />
   <title>Ephphatha ("Be Opened") — Bible in a Year</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.4.3" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.4.4" />
 </head>
 <body>
   <!-- ========================================================================
@@ -85,7 +85,7 @@
               <span>Install Ephphatha</span>
               <span class="pwa-badge">App</span>
             </div>
-            <div class="install-banner-sub">1-Tap launch • Offline Catholic POC Bible • Full-screen reading</div>
+            <div class="install-banner-sub">1-Tap launch • Offline Catholic Malayalam &amp; English Bible • Full-screen reading</div>
           </div>
         </div>
         <div class="install-banner-actions">
@@ -116,10 +116,10 @@
             Daily Catholic Scripture Immersion, Audio Reading &amp; Reflection
           </h2>
           <p class="home-mission-subtitle lang-ml">
-            ദൈവവചന വായനയും ധ്യാനവും — സമ്പൂർണ്ണ കത്തോലിക്കാ പി.ഒ.സി. ബൈബിൾ (365 ദിവസത്തെ രക്ഷാചരിത്ര യാത്ര)
+            ദൈവവചന വായനയും ധ്യാനവും — സമ്പൂർണ്ണ കത്തോലിക്കാ മലയാളം ബൈബിൾ (365 ദിവസത്തെ രക്ഷാചരിത്ര യാത്ര)
           </p>
           <p class="home-mission-desc">
-            Walk through the entire <strong>73-Book Catholic Bible in 365 Days</strong> across the 12 Periods of Salvation History. Read side-by-side in <strong>English &amp; Official Malayalam POC Bible (പി.ഒ.സി. ബൈബിൾ)</strong>, listen to daily <strong>Audio Reading &amp; Reflection</strong> tracks, and record encrypted personal reflections.
+            Walk through the entire <strong>73-Book Catholic Bible in 365 Days</strong> across the 12 Periods of Salvation History. Read side-by-side in <strong>English Bible &amp; Malayalam Bible</strong>, listen to daily <strong>Audio Reading &amp; Reflection</strong> tracks, and record encrypted personal reflections.
           </p>
           <div class="home-mission-cta-row">
             <button type="button" class="ergonomic-btn primary-period" id="btn-home-start-reading">
@@ -193,7 +193,7 @@
             <div class="home-anchor-body">
               <div class="home-anchor-tag">73 Catholic Books • Prefix Search</div>
               <div class="home-anchor-title">Bible Search &amp; Canon</div>
-              <div class="home-anchor-desc">Instant prefix lookup (A*) across Old &amp; New Testaments in EN &amp; POC മലയാളം</div>
+              <div class="home-anchor-desc">Instant prefix lookup (A*) across Old &amp; New Testaments in English &amp; Malayalam Bible</div>
             </div>
             <span class="home-anchor-arrow" aria-hidden="true">➔</span>
           </button>
@@ -223,15 +223,16 @@
           <!-- Anchor 5: Theological Reflection & Contemplation -->
           <button type="button" class="home-anchor-card" id="home-card-reflection">
             <div class="home-anchor-icon-wrap">
-              <!-- Sparkles Symbol for Theological Reflection & Spiritual Insight -->
+              <!-- Flame / Candle Symbol for Spiritual Contemplation -->
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3L12 3z"/>
-                <path d="M5 3v4M3 5h4M6 17v4M4 19h4"/>
+                <path d="M12 2c.5 1.5 2 3 2 4.5A2.5 2.5 0 0 1 11.5 9a2.5 2.5 0 0 1-2.5-2.5C9 5 10.5 3.5 12 2z"/>
+                <path d="M9 12h6v9H9z"/>
+                <path d="M7 21h10"/>
               </svg>
             </div>
             <div class="home-anchor-body">
               <div class="home-anchor-tag">Lectio Divina • AES-256 Private</div>
-              <div class="home-anchor-title">✨ Theological Reflection</div>
+              <div class="home-anchor-title">Theological Reflection</div>
               <div class="home-anchor-desc">Guided 4-step contemplation timer &amp; encrypted personal prayer journal</div>
             </div>
             <span class="home-anchor-arrow" aria-hidden="true">➔</span>
@@ -339,10 +340,12 @@
         <div class="journal-card" id="sanctuary-reflection-card">
           <div class="section-header-row">
             <h3 style="display: inline-flex; align-items: center; gap: 6px;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color: #EAB308;" aria-hidden="true">
-                <path d="M12 2l2.1 6.3L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.2L12 2zm-6.5 2L6.3 6.5 8.8 7.3 6.3 8.1 5.5 10.6 4.7 8.1 2.2 7.3 4.7 6.5 5.5 4zm1 11l.9 2.7 2.7.9-2.7.9-.9 2.7-.9-2.7-2.7-.9 2.7-.9.9-2.7z"/>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2c.5 1.5 2 3 2 4.5A2.5 2.5 0 0 1 11.5 9a2.5 2.5 0 0 1-2.5-2.5C9 5 10.5 3.5 12 2z"/>
+                <path d="M9 12h6v9H9z"/>
+                <path d="M7 21h10"/>
               </svg>
-              <span>✨ Theological Reflection &amp; Lectio Divina</span>
+              <span>Theological Reflection &amp; Lectio Divina</span>
             </h3>
             <span class="minimal-status-badge" title="Encrypted at rest in IndexedDB via AES-256-GCM">🔒 Private</span>
           </div>
@@ -383,7 +386,7 @@
 
       <!-- ====================================================================
            VIEW: CANONICAL CATHOLIC BIBLE NAVIGATOR (73 Books in Sacred Order)
-           Browse, search, and read any Book & Chapter with POC Malayalam + RSV2CE/BSB + Nova Vulgata
+           Browse, search, and read any Book & Chapter in English and Malayalam Bible + Nova Vulgata
            ==================================================================== -->
       <section id="view-bible" class="hidden">
 
@@ -401,7 +404,7 @@
               <span>Holy Scripture • വിശുദ്ധ ഗ്രന്ഥം</span>
             </div>
             <p class="bible-hero-subtitle">
-              73 Books of the Catholic Canon in Sacred Order — Read sequentially with official Malayalam POC Bible (പി.ഒ.സി. ബൈബിൾ), English, and Latin Vulgate.
+              73 Books of the Catholic Canon in Sacred Order — Read sequentially in English and Malayalam Bible, with Latin Vulgate.
             </p>
             <div class="bible-resume-banner hidden" id="bible-resume-banner">
               <div>
@@ -512,7 +515,7 @@
               </p>
             </div>
             <button type="button" class="ergonomic-btn" onclick="window.selectJumpDay && window.selectJumpDay(298)">
-              ✨ Day 298 (Mark 7:34)
+              📖 Day 298 (Mark 7:34)
             </button>
           </div>
         </div>
@@ -581,7 +584,7 @@
 
             <!-- Workflow 2: Create Brand-New Isolated Cohort -->
             <form id="form-create-cohort" class="cohort-gateway-box">
-              <div class="gateway-box-title">✨ Start a New Cohort</div>
+              <div class="gateway-box-title">Start a New Cohort</div>
               <p class="gateway-box-desc">
                 Generate a unique code to spin up a completely isolated community instance.
               </p>
@@ -610,7 +613,7 @@
                 placeholder="Group Role or Note (Optional)"
                 maxlength="60" />
               <button type="submit" class="ergonomic-btn primary-period" style="width: 100%; justify-content: center;">
-                ✨ Create Cohort with This Code
+                Create Cohort with This Code
               </button>
             </form>
           </div>
@@ -702,7 +705,7 @@
                   <option value="General Petition">🙏 General Petition</option>
                   <option value="Healing &amp; Health">🌿 Healing &amp; Health</option>
                   <option value="Family &amp; Guidance">🕯️ Family &amp; Guidance</option>
-                  <option value="Thanksgiving">✨ Thanksgiving &amp; Praise</option>
+                  <option value="Thanksgiving">🙌 Thanksgiving &amp; Praise</option>
                 </select>
 
                 <label class="anon-toggle-label" for="chk-prayer-anonymous">
@@ -808,7 +811,7 @@
             Sign in or create an account to save your 365-day reading progress and sync with your parish fellowship across all your phones, tablets, and computers.
           </p>
           <button type="button" class="ergonomic-btn primary-period" id="btn-open-auth-modal" style="width: 100%; justify-content: center; margin-top: 4px;">
-            ✨ Sign In or Create Account
+            Sign In or Create Account
           </button>
         </div>
       </div>
@@ -1170,7 +1173,7 @@
         </label>
 
         <button type="submit" class="ergonomic-btn primary-period" style="justify-content: center; padding: 0.65rem;">
-          ✨ Create Account &amp; Start Journey
+          Create Account &amp; Start Journey
         </button>
 
         <button type="button" class="verse-icon-btn" id="btn-auth-reg-guest" style="width: 100%; justify-content: center; margin-top: 4px;">
@@ -1218,7 +1221,7 @@
         <div class="qr-brand-label">
           <span class="qr-brand-name">Ephphatha</span> • <span class="lang-ml">എഫ്ഫാത്താ</span>
           <div style="font-size: 0.74rem; color: var(--text-secondary); margin-top: 2px;">
-            Bible in a Year • English &amp; POC Malayalam Bible
+            Bible in a Year • English &amp; Malayalam Bible
           </div>
         </div>
       </div>
@@ -1247,7 +1250,7 @@
   </div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.4.3';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.4.4';
 
     window.selectJumpDay = (d) => selectDay(d);
 
