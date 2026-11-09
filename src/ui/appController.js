@@ -1340,8 +1340,7 @@ function renderHomeDashboardView() {
   if (!daySchedule) return;
 
   const period = daySchedule.period || {};
-  setText('home-period-pill', `Period ${period.code || '01'} • ${period.name || 'Early World'}`);
-  setText('btn-home-start-reading-label', `Open Today's Reading (Day ${dayNum})`);
+  setText('btn-home-start-reading-label', `Open Today's Reading (Day ${dayNum} • ${period.name || ''})`);
 
   const isPlaying = audioEngine.isPlaying;
   setText(
@@ -1350,7 +1349,7 @@ function renderHomeDashboardView() {
   );
 
   // Anchor 1: Daily Reading
-  setText('home-anchor-day-tag', `Day ${dayNum} • ${period.name || 'Salvation History'}`);
+  setText('home-anchor-day-tag', `Active Reading • Day ${dayNum} (${period.name || 'Salvation History'})`);
   const r = daySchedule.readings || {};
   const refs = [r.narrative, r.supplemental, r.psalm_wisdom].filter(Boolean).join(' • ');
   setText('home-anchor-reading-ref', refs || daySchedule.episode_title || '');
