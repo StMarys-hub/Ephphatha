@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="50%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+    <radialGradient id="haloGrad" cx="50%" cy="45%" r="50%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.35" />
+      <stop offset="50%" stop-color="#818CF8" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE68A" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+    <linearGradient id="pageGradLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F1F5F9" />
+      <stop offset="100%" stop-color="#CBD5E1" />
+    </linearGradient>
+    <linearGradient id="pageGradRight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#CBD5E1" />
+      <stop offset="100%" stop-color="#F1F5F9" />
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-opacity="0.4" />
+
+  <!-- Center Halo Aura -->
+  <circle cx="256" cy="245" r="185" fill="url(#haloGrad)" />
+
+  <!-- Radiance Rays from Heaven -->
+  <g stroke="url(#goldGrad)" stroke-width="2.5" stroke-linecap="round" opacity="0.6">
+    <line x1="256" y1="75" x2="256" y2="110" />
+    <line x1="210" y1="88" x2="222" y2="118" />
+    <line x1="302" y1="88" x2="290" y2="118" />
+    <line x1="172" y1="120" x2="194" y2="142" />
+    <line x1="340" y1="120" x2="318" y2="142" />
+  </g>
+
+  <!-- Golden Cross Above Word of God -->
+  <g filter="url(#softGlow)">
+    <!-- Vertical beam -->
+    <rect x="250" y="115" width="12" height="60" rx="3" fill="url(#goldGrad)" />
+    <!-- Horizontal beam -->
+    <rect x="236" y="130" width="40" height="10" rx="2" fill="url(#goldGrad)" />
+  </g>
+
+  <!-- Open Bible (Sacred Scripture) -->
+  <g transform="translate(0, 10)">
+    <!-- Bible Cover Backing -->
+    <path d="M 100,345 C 170,360 240,340 256,335 C 272,340 342,360 412,345 L 412,365 C 342,380 272,360 256,355 C 240,360 170,380 100,365 Z" fill="#92400E" />
+
+    <!-- Left Open Page -->
+    <path d="M 105,210 C 170,195 235,210 252,228 L 252,345 C 235,328 170,315 105,330 Z" fill="url(#pageGradLeft)" />
+
+    <!-- Right Open Page -->
+    <path d="M 407,210 C 342,195 277,210 260,228 L 260,345 C 277,328 342,315 407,330 Z" fill="url(#pageGradRight)" />
+
+    <!-- Scripture Text Lines (Left Page - English / Greek) -->
+    <line x1="125" y1="235" x2="235" y2="232" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+    <line x1="125" y1="255" x2="235" y2="252" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+    <line x1="125" y1="275" x2="235" y2="272" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+    <line x1="125" y1="295" x2="215" y2="292" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Scripture Text Lines (Right Page - POC Malayalam) -->
+    <line x1="277" y1="232" x2="387" y2="235" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+    <line x1="277" y1="252" x2="387" y2="255" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+    <line x1="277" y1="272" x2="387" y2="275" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+    <line x1="277" y1="292" x2="365" y2="295" stroke="#64748B" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Central Spine Bookmark Ribbon (Scarlet / Gold) -->
+    <path d="M 252,226 Q 256,224 260,226 L 260,380 L 256,370 L 252,380 Z" fill="#DC2626" />
+
+    <!-- Center Aleph [א] Floating Above Spine -->
+    <circle cx="256" cy="275" r="28" fill="#1E293B" stroke="url(#goldGrad)" stroke-width="2" />
+    <text x="256" y="287" font-family="serif, 'Times New Roman'" font-size="30" font-weight="bold" fill="url(#goldGrad)" text-anchor="middle">א</text>
+  </g>
+
+  <!-- App Name Banner Below -->
+  <text x="256" y="440" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" letter-spacing="4" fill="#F8FAFC" text-anchor="middle">EPHPHATHA</text>
+  <text x="256" y="470" font-family="'Manjari', sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#38BDF8" text-anchor="middle">എഫ്ഫാത്താ • BE OPENED</text>
+</svg>

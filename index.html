@@ -3,15 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#1E2430" />
+  <meta name="theme-color" content="#0F172A" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Ephphatha" />
+  <meta name="application-name" content="Ephphatha" />
   <meta name="description" content="Ephphatha ('Be Opened' — Mark 7:34): Local-First Bible in a Year Sanctuary with English & Malayalam POC Bible." />
   <title>Ephphatha ("Be Opened") — Bible in a Year</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
   <link rel="preload" href="./assets/fonts/Manjari-Regular.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="./assets/fonts/Manjari-Bold.woff2" as="font" type="font/woff2" crossorigin />
@@ -19,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.3.9" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.4.0" />
 </head>
 <body>
   <!-- ========================================================================
@@ -661,7 +665,21 @@
         </div>
       </div>
 
-      <!-- 3. Advanced Diagnostics (Developer Only - Collapsed by Default) -->
+      <!-- 4. Progressive Web App (PWA) Installation -->
+      <div class="drawer-section" id="drawer-pwa-section">
+        <div class="context-item-label">📱 Install App on Device</div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.35rem 0 0.65rem 0; line-height: 1.4;">
+          Install Ephphatha as a standalone application on your mobile device, tablet, or desktop for 1-tap launch, full-screen reading without browser bars, and 100% offline access.
+        </p>
+        <button type="button" class="ergonomic-btn primary-period" id="btn-drawer-install-pwa" style="width: 100%; justify-content: center; padding: 0.65rem; font-weight: 700;">
+          📲 Install Ephphatha App
+        </button>
+        <div id="pwa-install-hint" style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; margin-top: 0.5rem;">
+          You can also tap the browser menu (⋮) and select <strong>"Install page as app..."</strong> or <strong>"Install Ephphatha"</strong>.
+        </div>
+      </div>
+
+      <!-- 5. Advanced Diagnostics (Developer Only - Collapsed by Default) -->
       <details class="context-accordion" style="opacity: 0.75;">
         <summary class="context-summary-trigger">
           <span>⚙️ Advanced Diagnostics (Developer Only)</span>
@@ -932,14 +950,14 @@
   </div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.3.9';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.4.0';
 
     window.selectJumpDay = (d) => selectDay(d);
 
     window.addEventListener('DOMContentLoaded', () => {
       bootstrapEphphathaApp();
       if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-        navigator.serviceWorker.register('./sw.js').catch(() => {});
+        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
       }
     });
   </script>

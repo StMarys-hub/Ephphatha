@@ -1473,19 +1473,55 @@ function bindGlobalControls() {
 
   // Capture Native Android/Chrome PWA Install Prompt (`beforeinstallprompt`)
   let deferredInstallPrompt = null;
-  const installBtn = document.getElementById('btn-banner-install-pwa');
+  const drawerInstallBtn = document.getElementById('btn-drawer-install-pwa');
+  const installHint = document.getElementById('pwa-install-hint');
+
+  const isStandalone = typeof window !== 'undefined' && (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true
+  );
+
+  if (isStandalone && drawerInstallBtn) {
+    drawerInstallBtn.textContent = '✅ App Installed (Standalone Mode)';
+    drawerInstallBtn.disabled = true;
+    drawerInstallBtn.classList.add('subtle');
+    if (installHint) installHint.textContent = 'Ephphatha is running as an installed application.';
+  }
+
   window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
     deferredInstallPrompt = e;
-    installBtn?.classList.remove('hidden');
-    syncFullscreenUiState();
+    if (drawerInstallBtn && !isStandalone) {
+      drawerInstallBtn.textContent = '📲 Install Ephphatha App';
+    }
   });
-  installBtn?.addEventListener('click', async () => {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice.catch(() => null);
+
+  window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
-    installBtn.classList.add('hidden');
+    if (drawerInstallBtn) {
+      drawerInstallBtn.textContent = '✅ App Installed!';
+      drawerInstallBtn.disabled = true;
+    }
+    if (installHint) {
+      installHint.textContent = 'Ephphatha was successfully installed on your device!';
+    }
+    pushTelemetryLog('PWA_INSTALLED', 'Ephphatha PWA successfully installed to device home screen');
+  });
+
+  drawerInstallBtn?.addEventListener('click', async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choiceResult = await deferredInstallPrompt.userChoice.catch(() => null);
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        deferredInstallPrompt = null;
+      }
+    } else {
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isIos) {
+        alert('To install on iPhone / iPad:\n1. Tap the Share button at the bottom of Safari (⎋).\n2. Scroll down and tap "Add to Home Screen" ➕.');
+      } else {
+        alert('To install on your device:\nOpen the browser menu (⋮) in the top-right corner of Chrome or Edge, then select "Install page as app..." or "Install Ephphatha".');
+      }
+    }
   });
 
   // 1-Tap Senior-First Font Scaler (AA)
