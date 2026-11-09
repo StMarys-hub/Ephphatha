@@ -75,6 +75,7 @@ import {
   openCanonicalChapter,
   applyLanguageModeToReader
 } from './canonicalBibleController.js';
+import { initQrShareModal, openQrShareModal } from './qrShareModal.js';
 
 const appState = {
   theme: localStorage.getItem('ephphatha_theme') || 'dark', // Default to soothing Warm Dusk (#1E2430)
@@ -1471,8 +1472,12 @@ function bindGlobalControls() {
   window.addEventListener('resize', syncFullscreenUiState);
   syncFullscreenUiState();
 
-  // Capture Native Android/Chrome PWA Install Prompt (`beforeinstallprompt`)
+  // Direct 1-Tap App Installation & QR Code Sharing
+  initQrShareModal();
+
   let deferredInstallPrompt = null;
+  const directBanner = document.getElementById('direct-install-banner');
+  const bannerInstallBtn = document.getElementById('btn-direct-install-banner');
   const drawerInstallBtn = document.getElementById('btn-drawer-install-pwa');
   const installHint = document.getElementById('pwa-install-hint');
 
@@ -1481,22 +1486,65 @@ function bindGlobalControls() {
     window.navigator.standalone === true
   );
 
-  if (isStandalone && drawerInstallBtn) {
-    drawerInstallBtn.textContent = '✅ App Installed (Standalone Mode)';
-    drawerInstallBtn.disabled = true;
-    drawerInstallBtn.classList.add('subtle');
+  if (isStandalone) {
+    if (directBanner) directBanner.style.display = 'none';
+    if (drawerInstallBtn) {
+      drawerInstallBtn.textContent = '✅ App Installed (Standalone Mode)';
+      drawerInstallBtn.disabled = true;
+      drawerInstallBtn.classList.add('subtle');
+    }
     if (installHint) installHint.textContent = 'Ephphatha is running as an installed application.';
+  } else if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('ephphatha_install_banner_dismissed') === 'true') {
+    if (directBanner) directBanner.style.display = 'none';
   }
+
+  // Dismiss Install Banner button
+  document.getElementById('btn-dismiss-install-banner')?.addEventListener('click', () => {
+    if (directBanner) directBanner.style.display = 'none';
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('ephphatha_install_banner_dismissed', 'true');
+    }
+  });
+
+  // Open QR Share Modal triggers (from banner and drawer)
+  document.getElementById('btn-open-qr-banner')?.addEventListener('click', () => openQrShareModal());
+  document.getElementById('btn-drawer-open-qr')?.addEventListener('click', () => openQrShareModal());
+
+  // Direct 1-Tap App Install Trigger Function
+  async function triggerDirectAppInstall() {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choiceResult = await deferredInstallPrompt.userChoice.catch(() => null);
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        deferredInstallPrompt = null;
+        if (directBanner) directBanner.style.display = 'none';
+      }
+    } else {
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      if (isIos) {
+        alert('To install on iPhone / iPad:\n1. Tap the Share button at the bottom of Safari (⎋).\n2. Scroll down and tap "Add to Home Screen" ➕.');
+      } else {
+        alert('To install directly on this device:\nOpen the browser menu (⋮) in Chrome or Edge and tap "Install page as app..." or "Install Ephphatha".\n\nYou can also scan the QR code to install on any mobile device!');
+      }
+    }
+  }
+
+  bannerInstallBtn?.addEventListener('click', triggerDirectAppInstall);
+  drawerInstallBtn?.addEventListener('click', triggerDirectAppInstall);
 
   window.addEventListener('beforeinstallprompt', (e) => {
     deferredInstallPrompt = e;
     if (drawerInstallBtn && !isStandalone) {
       drawerInstallBtn.textContent = '📲 Install Ephphatha App';
     }
+    if (directBanner && !isStandalone && sessionStorage.getItem('ephphatha_install_banner_dismissed') !== 'true') {
+      directBanner.style.display = 'flex';
+    }
   });
 
   window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
+    if (directBanner) directBanner.style.display = 'none';
     if (drawerInstallBtn) {
       drawerInstallBtn.textContent = '✅ App Installed!';
       drawerInstallBtn.disabled = true;
@@ -1505,23 +1553,6 @@ function bindGlobalControls() {
       installHint.textContent = 'Ephphatha was successfully installed on your device!';
     }
     pushTelemetryLog('PWA_INSTALLED', 'Ephphatha PWA successfully installed to device home screen');
-  });
-
-  drawerInstallBtn?.addEventListener('click', async () => {
-    if (deferredInstallPrompt) {
-      deferredInstallPrompt.prompt();
-      const choiceResult = await deferredInstallPrompt.userChoice.catch(() => null);
-      if (choiceResult && choiceResult.outcome === 'accepted') {
-        deferredInstallPrompt = null;
-      }
-    } else {
-      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      if (isIos) {
-        alert('To install on iPhone / iPad:\n1. Tap the Share button at the bottom of Safari (⎋).\n2. Scroll down and tap "Add to Home Screen" ➕.');
-      } else {
-        alert('To install on your device:\nOpen the browser menu (⋮) in the top-right corner of Chrome or Edge, then select "Install page as app..." or "Install Ephphatha".');
-      }
-    }
   });
 
   // 1-Tap Senior-First Font Scaler (AA)

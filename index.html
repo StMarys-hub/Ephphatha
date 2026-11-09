@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.4.0" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.4.1" />
 </head>
 <body>
   <!-- ========================================================================
@@ -70,6 +70,31 @@
        ======================================================================== -->
   <main class="workspace-shell" id="workspace-shell">
     <div id="primary-view-column">
+
+      <!-- Direct 1-Tap App Install & QR Share Banner (Hidden if already in standalone app mode) -->
+      <aside class="direct-install-banner" id="direct-install-banner">
+        <div class="install-banner-content">
+          <div class="install-banner-icon" aria-hidden="true">📲</div>
+          <div class="install-banner-text">
+            <div class="install-banner-title">
+              <span>Install Ephphatha</span>
+              <span class="pwa-badge">App</span>
+            </div>
+            <div class="install-banner-sub">1-Tap launch • Offline Catholic POC Bible • Full-screen reading</div>
+          </div>
+        </div>
+        <div class="install-banner-actions">
+          <button type="button" class="ergonomic-btn primary-period" id="btn-direct-install-banner">
+            <span>📲 Install App</span>
+          </button>
+          <button type="button" class="icon-action-btn" id="btn-open-qr-banner" title="Share App Link with QR Code">
+            <span>📷 QR / Share</span>
+          </button>
+          <button type="button" class="verse-icon-btn close-install-banner-btn" id="btn-dismiss-install-banner" title="Dismiss" aria-label="Dismiss banner">
+            ✕
+          </button>
+        </div>
+      </aside>
 
       <!-- ====================================================================
            VIEW 1: TODAY'S SANCTUARY (Focused Scripture & Reflection Workflow)
@@ -674,6 +699,11 @@
         <button type="button" class="ergonomic-btn primary-period" id="btn-drawer-install-pwa" style="width: 100%; justify-content: center; padding: 0.65rem; font-weight: 700;">
           📲 Install Ephphatha App
         </button>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button type="button" class="verse-icon-btn" id="btn-drawer-open-qr" style="width: 100%; justify-content: center; padding: 0.6rem; font-weight: 600;">
+            📷 Share Install Link with QR Code
+          </button>
+        </div>
         <div id="pwa-install-hint" style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; margin-top: 0.5rem;">
           You can also tap the browser menu (⋮) and select <strong>"Install page as app..."</strong> or <strong>"Install Ephphatha"</strong>.
         </div>
@@ -949,8 +979,60 @@
     </div>
   </div>
 
+  <!-- ========================================================================
+       QR CODE & APP INSTALL SHARE MODAL SHEET
+       ======================================================================== -->
+  <div class="modal-backdrop centered-modal-wrap hidden" id="qr-share-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+    <div class="qr-share-card">
+      <div class="section-header-row" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.75rem;">
+        <div>
+          <h3 id="qr-modal-title" style="margin: 0; font-size: 1.15rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+            <span>📷</span>
+            <span>Share &amp; Install Ephphatha</span>
+          </h3>
+          <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">
+            Scan with any phone camera to install and open directly
+          </div>
+        </div>
+        <button type="button" class="verse-icon-btn" id="btn-close-qr-modal" aria-label="Close QR Modal">✕</button>
+      </div>
+
+      <!-- QR Code Display Box -->
+      <div class="qr-code-box">
+        <div id="qr-code-svg-container" class="qr-svg-wrap"></div>
+        <div class="qr-brand-label">
+          <span class="qr-brand-name">Ephphatha</span> • <span class="lang-ml">എഫ്ഫാത്താ</span>
+          <div style="font-size: 0.74rem; color: var(--text-secondary); margin-top: 2px;">
+            Bible in a Year • English &amp; POC Malayalam Bible
+          </div>
+        </div>
+      </div>
+
+      <!-- Copy Link Field -->
+      <div class="qr-link-section">
+        <label class="auth-input-label" for="input-qr-share-url">App Installation Link</label>
+        <div class="qr-input-group">
+          <input type="text" id="input-qr-share-url" class="sanctuary-input" readonly value="https://stmarys-hub.github.io/Ephphatha/" />
+          <button type="button" class="ergonomic-btn primary-period" id="btn-copy-share-url" style="white-space: nowrap; padding: 0 0.85rem;">
+            📋 Copy Link
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="qr-action-row">
+        <button type="button" class="ergonomic-btn" id="btn-native-share-app" style="flex: 1; justify-content: center; gap: 6px;">
+          <span>📤 Share via Apps</span>
+        </button>
+        <button type="button" class="ergonomic-btn primary-period" id="btn-download-qr-image" style="flex: 1; justify-content: center; gap: 6px;">
+          <span>⬇️ Download QR Card</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.4.0';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.4.1';
 
     window.selectJumpDay = (d) => selectDay(d);
 
