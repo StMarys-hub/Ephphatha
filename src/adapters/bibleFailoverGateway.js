@@ -157,6 +157,12 @@ function cleanVerseHtml(str) {
   );
 }
 
+export function isUsableVerseText(txt) {
+  if (!txt) return false;
+  const trimmed = String(txt).trim();
+  return trimmed.length > 2 && trimmed !== '?' && trimmed !== '-';
+}
+
 function findBookInfo(bookNameRaw) {
   const norm = String(bookNameRaw || '').toLowerCase().replace(/\s+/g, ' ').trim();
   for (const b of CANONICAL_BOOKS) {
@@ -292,7 +298,7 @@ export async function getPocChapterVerses(pocId, chapterNum) {
  */
 export async function initScriptureVault() {
   try {
-    const res = await fetch('./data/scripture_fallback_vault.json?v=3.3.5');
+    const res = await fetch('./data/scripture_fallback_vault.json?v=3.3.9');
     if (res.ok) {
       fallbackVaultMemory = await res.json();
       const passages = fallbackVaultMemory.passages || {};
@@ -322,6 +328,7 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
   let cueIndex = 0;
   const userVersion = preferredVersion || (typeof localStorage !== 'undefined' ? localStorage.getItem('ephphatha_preferred_bible_version') : '') || 'POC';
   const showLatin = typeof localStorage !== 'undefined' && localStorage.getItem('ephphatha_show_latin') === 'true';
+  const vaultMatch = fallbackVaultMemory?.passages?.[passageRef];
 
   for (const seg of segments) {
     let enTrans = 'BSB';
@@ -380,6 +387,13 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
 
       const refEnLabel = `${seg.bookEn} ${seg.chapter}:${vNum}`;
       const refMlLabel = `${seg.bookMl} ${seg.chapter}:${vNum}`;
+      const exactVault = vaultMatch?.verses?.find(vv => Number(vv.chapter || seg.chapter) === seg.chapter && Number(vv.verse) === vNum);
+      const rawMl = mlMap.get(vNum);
+      const mlFinal = isUsableVerseText(rawMl)
+        ? rawMl
+        : ((exactVault && isUsableVerseText(exactVault.ml))
+            ? exactVault.ml
+            : (mlArr.find(x => Number(x.verse) === vNum)?.text || `[${refMlLabel}]`));
 
       allVerses.push({
         chapter: seg.chapter,
@@ -387,8 +401,8 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
         ref_en: refEnLabel,
         ref_ml: refMlLabel,
         en: cleanVerseHtml(vObj.text),
-        ml: mlMap.get(vNum) || `[${refMlLabel}]`,
-        la: laMap.get(vNum) || '',
+        ml: mlFinal,
+        la: laMap.get(vNum) || exactVault?.la || '',
         audio_cue_sec: cueIndex * 12
       });
       cueIndex++;
@@ -433,7 +447,8 @@ async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, 
       const exactVault = vaultMatch?.verses?.find(vv => Number(vv.chapter || seg.chapter) === chNum && Number(vv.verse) === vNum);
       const refEnLabel = `${seg.bookEn} ${chNum}:${vNum}`;
       const refMlLabel = `${seg.bookMl} ${chNum}:${vNum}`;
-      const pocVerseText = pocVerses && pocVerses[vNum - 1] ? cleanVerseHtml(pocVerses[vNum - 1]) : null;
+      const pocVerseRaw = pocVerses && pocVerses[vNum - 1] ? cleanVerseHtml(pocVerses[vNum - 1]) : null;
+      const pocVerseText = isUsableVerseText(pocVerseRaw) ? pocVerseRaw : null;
 
       allVerses.push({
         chapter: chNum,
@@ -441,7 +456,7 @@ async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, 
         ref_en: refEnLabel,
         ref_ml: refMlLabel,
         en: cleanVerseHtml(v.text),
-        ml: pocVerseText || exactVault?.ml || `[${refMlLabel}]`,
+        ml: pocVerseText || (exactVault && isUsableVerseText(exactVault.ml) ? exactVault.ml : null) || `[${refMlLabel}]`,
         la: exactVault?.la || '',
         audio_cue_sec: cueIndex * 12
       });
@@ -531,7 +546,7 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '', op
   if (!circuitBreakerState.forceTier3Fail) {
     try {
       if (!fallbackVaultMemory) {
-        const res = await fetch('./data/scripture_fallback_vault.json?v=3.3.5');
+        const res = await fetch('./data/scripture_fallback_vault.json?v=3.3.9');
         if (res.ok) fallbackVaultMemory = await res.json();
       }
       if (fallbackVaultMemory?.passages) {
@@ -558,7 +573,8 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '', op
 function serveFromTier4OfflineVault(passageRef, passageRefMl, tStart, reason) {
   const vaultDirect = fallbackVaultMemory?.passages?.[passageRef];
   const cached = getRecordSync('scripture_cache', passageRef);
-  const isCachedPoc = cached?.translation_ml === 'POC' || (cached?.verses?.[1]?.ml && !cached.verses[1].ml.includes('പാഴായും'));
+  const isCachedPoc = cached?.translation_ml === 'POC' &&
+    !cached?.verses?.some(v => !isUsableVerseText(v.ml));
   const passageObj = (cached && isCachedPoc)
     ? cached
     : (vaultDirect || buildDeterministicPassageFromVault(passageRef, passageRefMl));

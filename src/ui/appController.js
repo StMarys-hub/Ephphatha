@@ -548,7 +548,9 @@ async function loadActiveReadingSlot(daySchedule) {
   // 1. Instant Cache Render: Check IndexedDB synchronously/instantly (<1ms)
   // This completely eliminates any app freeze or lag during rapid day switching!
   const cached = getRecordSync('scripture_cache', refEn);
-  if (cached && cached.verses?.length) {
+  const isCachedClean = cached?.verses?.length &&
+    !cached.verses.some(v => !v.ml || v.ml.trim() === '?' || v.ml.trim() === '-');
+  if (cached && isCachedClean) {
     appState.currentPassageData = cached;
     renderScriptureVerses(cached);
   } else {
