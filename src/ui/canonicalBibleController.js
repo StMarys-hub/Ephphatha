@@ -41,15 +41,33 @@ export function initCanonicalBibleView(dependencies = {}) {
     if (clearSearchBtn) {
       clearSearchBtn.classList.toggle('hidden', !canonicalState.searchQuery);
     }
+    renderBibleAutocompleteDropdown();
     renderBibleCatalogGrid();
+  });
+
+  searchInput?.addEventListener('focus', () => {
+    if (canonicalState.searchQuery) {
+      renderBibleAutocompleteDropdown();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.bible-search-input-wrap');
+    const dropdown = document.getElementById('bible-search-autocomplete');
+    if (dropdown && wrap && !wrap.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
   });
 
   searchInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       const matched = filterCanonicalBooks(canonicalState.searchQuery, canonicalState.activeFilter);
-      if (matched.length === 1) {
+      if (matched.length >= 1) {
+        document.getElementById('bible-search-autocomplete')?.classList.add('hidden');
         openBibleChapterModal(matched[0]);
       }
+    } else if (e.key === 'Escape') {
+      document.getElementById('bible-search-autocomplete')?.classList.add('hidden');
     }
   });
 
@@ -57,6 +75,7 @@ export function initCanonicalBibleView(dependencies = {}) {
     if (searchInput) searchInput.value = '';
     canonicalState.searchQuery = '';
     clearSearchBtn.classList.add('hidden');
+    document.getElementById('bible-search-autocomplete')?.classList.add('hidden');
     renderBibleCatalogGrid();
     searchInput?.focus();
   });
@@ -155,6 +174,66 @@ function getLastReadPosition() {
     if (raw) return JSON.parse(raw);
   } catch (_) {}
   return null;
+}
+
+export function renderBibleAutocompleteDropdown() {
+  const dropdown = document.getElementById('bible-search-autocomplete');
+  if (!dropdown) return;
+
+  const q = String(canonicalState.searchQuery || '').trim();
+  if (!q) {
+    dropdown.classList.add('hidden');
+    dropdown.innerHTML = '';
+    return;
+  }
+
+  const matched = filterCanonicalBooks(q, canonicalState.activeFilter);
+  dropdown.innerHTML = '';
+
+  if (matched.length === 0) {
+    const emptyRow = document.createElement('div');
+    emptyRow.className = 'bible-autocomplete-empty';
+    emptyRow.textContent = `No books starting with "${q}"`;
+    dropdown.appendChild(emptyRow);
+    dropdown.classList.remove('hidden');
+    return;
+  }
+
+  const qLen = q.length;
+  const qLower = q.toLowerCase();
+
+  matched.forEach(book => {
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'bible-autocomplete-item';
+
+    const enMatch = book.en.toLowerCase().startsWith(qLower);
+    const enHtml = enMatch
+      ? `<strong class="prefix-highlight">${book.en.slice(0, qLen)}</strong>${book.en.slice(qLen)}`
+      : book.en;
+
+    const mlMatch = (book.ml || '').toLowerCase().startsWith(qLower);
+    const mlHtml = mlMatch
+      ? `<strong class="prefix-highlight">${book.ml.slice(0, qLen)}</strong>${book.ml.slice(qLen)}`
+      : book.ml;
+
+    item.innerHTML = `
+      <div class="bible-autocomplete-left">
+        <span class="bible-autocomplete-en">${enHtml}</span>
+        <span class="bible-autocomplete-ml lang-ml">${mlHtml}</span>
+      </div>
+      <span class="bible-autocomplete-meta">${book.chapters} Ch ➔</span>
+    `;
+
+    item.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      openBibleChapterModal(book);
+    });
+
+    dropdown.appendChild(item);
+  });
+
+  dropdown.classList.remove('hidden');
 }
 
 export function renderBibleCatalogGrid() {

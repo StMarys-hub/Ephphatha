@@ -72,15 +72,16 @@ import {
 import {
   initCanonicalBibleView,
   renderBibleView,
+  returnToCatalog,
   openCanonicalChapter,
   applyLanguageModeToReader
 } from './canonicalBibleController.js';
 import { initQrShareModal, openQrShareModal } from './qrShareModal.js';
 
 const appState = {
-  theme: localStorage.getItem('ephphatha_theme') || 'dark', // Default to soothing Warm Dusk (#1E2430)
+  theme: localStorage.getItem('ephphatha_theme') || 'dark', // Default to Soft Matte Slate-Charcoal (#181B20)
   fontScale: localStorage.getItem('ephphatha_font_scale') || '100',
-  activeTab: 'sanctuary', // 'sanctuary' | 'curriculum' | 'fellowship' | 'vault'
+  activeTab: 'home', // 'home' | 'sanctuary' | 'bible' | 'curriculum' | 'fellowship' | 'vault'
   inspectorOpen: window.innerWidth >= 1100, // Closed by default on mobile / tablets
   selectedDay: Number(localStorage.getItem('ephphatha_selected_day')) || 1,
   activeReadingSlot: 'narrative', // 'narrative' | 'supplemental' | 'psalm_wisdom'
@@ -163,6 +164,8 @@ export async function bootstrapEphphathaApp() {
   renderCurriculumMapView();
   renderVaultView();
   renderUserProfileBadge();
+  renderHomeDashboardView();
+  switchMainTab(appState.activeTab);
 
   // 9. Initialize Google Sheets Master Database sync & multi-user live polling
   initGoogleSheetsSyncOnBoot();
@@ -321,7 +324,7 @@ function applyTheme(themeMode) {
   // Keep mobile status bar / system chrome color in sync with active theme (eliminates black top band in Light Mode)
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) {
-    metaTheme.setAttribute('content', appState.theme === 'dark' ? '#1E2430' : '#FAF7F2');
+    metaTheme.setAttribute('content', appState.theme === 'dark' ? '#181B20' : '#FAF7F2');
   }
 
   // Re-apply active period soft background for current theme
@@ -475,7 +478,7 @@ function renderDayHeroCard(daySchedule) {
     daySchedule.gdrive_audio_file_id = normalizeGoogleDriveAudioId(daySchedule.gdrive_audio_file_id);
   }
   if (folderEl) {
-    folderEl.textContent = `Daily Audio Narration • ${daySchedule.period.name}`;
+    folderEl.textContent = `🎧 Audio Reading & Reflection • ${daySchedule.period.name}`;
   }
   const idInput = document.getElementById('input-day-gdrive-id');
   if (idInput) {
@@ -1328,6 +1331,53 @@ function refreshGraceStreakHeader() {
     el.textContent = `🔥 ${stats.streakDays}d`;
     el.title = `🔥 ${stats.streakDays}d Streak • 🛡️ ${stats.graceShieldsAvailable} Grace Shields • ${stats.percentComplete}% Complete`;
   }
+  renderHomeDashboardView();
+}
+
+function renderHomeDashboardView() {
+  const dayNum = appState.selectedDay || 1;
+  const daySchedule = appState.scheduleByDay[dayNum];
+  if (!daySchedule) return;
+
+  const period = daySchedule.period || {};
+  setText('home-period-pill', `Period ${period.code || '01'} • ${period.name || 'Early World'}`);
+  setText('btn-home-start-reading-label', `Open Today's Reading (Day ${dayNum})`);
+
+  const isPlaying = audioEngine.isPlaying;
+  setText(
+    'btn-home-play-audio-label',
+    isPlaying ? `Pause Audio Reading & Reflection (Day ${dayNum})` : `Play Audio Reading & Reflection (Day ${dayNum})`
+  );
+
+  // Anchor 1: Daily Reading
+  setText('home-anchor-day-tag', `Day ${dayNum} • ${period.name || 'Salvation History'}`);
+  const r = daySchedule.readings || {};
+  const refs = [r.narrative, r.supplemental, r.psalm_wisdom].filter(Boolean).join(' • ');
+  setText('home-anchor-reading-ref', refs || daySchedule.episode_title || '');
+
+  // Anchor 2: Audio Reading & Reflection
+  const durStr = formatSecondsAsTime(daySchedule.audio_duration_sec || audioEngine.durationSec || 1345);
+  setText(
+    'home-anchor-audio-status',
+    isPlaying ? `🟢 Playing Now (${durStr})` : `🎧 Audio Reading & Reflection (${durStr})`
+  );
+  setText(
+    'home-anchor-audio-desc',
+    `Day ${dayNum}: ${daySchedule.episode_title} — Full Scripture Audio Reading & Theological Reflection`
+  );
+
+  // Anchor 4: Progress Dashboard
+  const progressMap = getAllRecordsMapSync('progress');
+  const stats = calculateGraceStreak(progressMap, dayNum);
+  setText(
+    'home-anchor-progress-stats',
+    `${stats.totalCompleted} / 365 Days (${stats.percentComplete}%) • 🔥 ${stats.streakDays}d Streak`
+  );
+  const fillEl = document.getElementById('home-progress-bar-fill');
+  if (fillEl) {
+    const pct = Math.max(2, Math.min(100, Number(stats.percentComplete) || 2));
+    fillEl.style.width = `${pct}%`;
+  }
 }
 
 function updateIdbLatencyDisplay(ms) {
@@ -1377,15 +1427,24 @@ function wireTelemetryStreams() {
 
   audioEngine.onStateChange(audioState => {
     const playBtn = document.getElementById('btn-audio-play-pause');
-    if (playBtn) playBtn.textContent = audioState.isPlaying ? '⏸' : '▶';
+    if (playBtn) {
+      playBtn.innerHTML = audioState.isPlaying
+        ? `<svg class="audio-headset-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/><rect x="9.5" y="9" width="2" height="6" fill="currentColor" stroke="none"/><rect x="12.5" y="9" width="2" height="6" fill="currentColor" stroke="none"/></svg>`
+        : `<svg class="audio-headset-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/><polygon points="10 9 15 12 10 15 10 9" fill="currentColor" stroke="none"/></svg>`;
+    }
 
     setText('audio-time-current', formatSecondsAsTime(audioState.currentTimeSec));
     setText('audio-time-total', formatSecondsAsTime(audioState.durationSec));
     const badgeEl = document.getElementById('audio-prefetch-badge');
     if (badgeEl) {
-      badgeEl.textContent = audioState.isPlaying ? '🟢 Playing' : '● Audio Ready';
-      badgeEl.title = audioState.isPlaying ? 'Audio Narration Playing' : 'Audio Narration Ready';
+      badgeEl.textContent = audioState.isPlaying
+        ? '🟢 Playing Reading & Reflection'
+        : '🎧 Audio Reading & Reflection';
+      badgeEl.title = audioState.isPlaying
+        ? 'Daily Audio Reading & Theological Reflection Playing'
+        : 'Daily Audio Reading & Theological Reflection Ready';
     }
+    renderHomeDashboardView();
 
     const scrubber = document.getElementById('audio-scrubber');
     if (scrubber) {
@@ -1773,6 +1832,64 @@ function bindGlobalControls() {
     btn.addEventListener('click', () => {
       switchMainTab(btn.getAttribute('data-nav-tab'));
     });
+  });
+
+  // Top Header Home Button & Brand Cluster Home Navigation
+  document.getElementById('btn-header-home')?.addEventListener('click', () => {
+    switchMainTab('home');
+  });
+  const brandHome = document.getElementById('btn-brand-home');
+  brandHome?.addEventListener('click', () => {
+    switchMainTab('home');
+  });
+  brandHome?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      switchMainTab('home');
+    }
+  });
+
+  // Home Dashboard Quick-Access Anchor Cards & Mission CTA Buttons
+  document.getElementById('btn-home-start-reading')?.addEventListener('click', () => {
+    switchMainTab('sanctuary');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.getElementById('home-card-daily-reading')?.addEventListener('click', () => {
+    switchMainTab('sanctuary');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.getElementById('btn-home-play-audio')?.addEventListener('click', () => {
+    audioEngine.togglePlay();
+  });
+  document.getElementById('home-card-audio-player')?.addEventListener('click', () => {
+    switchMainTab('sanctuary');
+    if (!audioEngine.isPlaying) {
+      audioEngine.play();
+    }
+  });
+  document.getElementById('home-card-bible-search')?.addEventListener('click', () => {
+    returnToCatalog();
+    switchMainTab('bible');
+    setTimeout(() => {
+      const searchInput = document.getElementById('bible-search-input');
+      searchInput?.focus();
+    }, 100);
+  });
+  document.getElementById('home-card-progress-dashboard')?.addEventListener('click', () => {
+    switchMainTab('curriculum');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+  document.getElementById('home-card-reflection')?.addEventListener('click', () => {
+    switchMainTab('sanctuary');
+    setTimeout(() => {
+      const reflCard = document.getElementById('sanctuary-reflection-card');
+      reflCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('journal-textarea')?.focus();
+    }, 120);
+  });
+  document.getElementById('home-card-fellowship')?.addEventListener('click', () => {
+    switchMainTab('fellowship');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
   // ==========================================================================
@@ -2183,7 +2300,7 @@ function initLectioDivinaWidget() {
 
 function switchMainTab(tabName) {
   appState.activeTab = tabName;
-  const views = ['sanctuary', 'bible', 'curriculum', 'fellowship', 'vault'];
+  const views = ['home', 'sanctuary', 'bible', 'curriculum', 'fellowship', 'vault'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.classList.toggle('hidden', v !== tabName);
@@ -2191,8 +2308,14 @@ function switchMainTab(tabName) {
   document.querySelectorAll('[data-nav-tab]').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-nav-tab') === tabName);
   });
+  const headerHomeBtn = document.getElementById('btn-header-home');
+  if (headerHomeBtn) {
+    headerHomeBtn.classList.toggle('active', tabName === 'home');
+  }
 
-  if (tabName === 'bible') {
+  if (tabName === 'home') {
+    renderHomeDashboardView();
+  } else if (tabName === 'bible') {
     renderBibleView();
   } else if (tabName === 'fellowship') {
     const activeCode = getActiveCohortCode();

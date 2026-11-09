@@ -8,7 +8,7 @@ export const DEFAULT_PERIODS = [
     id: 1, code: '01', name: 'Early World', name_ml: 'ആദിമ ലോകം',
     span: 'Genesis 1–11', span_ml: 'ഉൽപത്തി 1–11', day_start: 1, day_end: 4,
     theme: 'Creation & Fall', theme_ml: 'സൃഷ്ടിയും വീഴ്ചയും',
-    accent_hex: '#2B8CBE', bg_soft_light: '#EBF5FA', bg_soft_dark: '#1D3244',
+    accent_hex: '#5B8CAE', bg_soft_light: '#EEF4F8', bg_soft_dark: '#222B34',
     gdrive_folder: '/01_Early_World/',
     era_date: 'Primeval History (Creation – c. 2000 BC)',
     geography: 'Eden, Mesopotamia, Tigris & Euphrates Valley, Babel',
@@ -18,7 +18,7 @@ export const DEFAULT_PERIODS = [
     id: 2, code: '02', name: 'Patriarchs', name_ml: 'പിതാക്കന്മാർ',
     span: 'Genesis 12–50', span_ml: 'ഉൽപത്തി 12–50', day_start: 5, day_end: 26,
     theme: 'Covenant Fathers', theme_ml: 'ഉടമ്പടിയുടെ പിതാക്കന്മാർ',
-    accent_hex: '#8E2430', bg_soft_light: '#F9ECEE', bg_soft_dark: '#381F28',
+    accent_hex: '#9E5B66', bg_soft_light: '#F6EEF0', bg_soft_dark: '#2E2328',
     gdrive_folder: '/02_Patriarchs/',
     era_date: 'c. 2000 – 1650 BC (Middle Bronze Age)',
     geography: 'Ur, Haran, Canaan (Shechem, Bethel, Hebron), Egypt',
@@ -28,7 +28,7 @@ export const DEFAULT_PERIODS = [
     id: 3, code: '03', name: 'Egypt & Exodus', name_ml: 'ഈജിപ്തും പുറപ്പാടും',
     span: 'Exodus 1–40', span_ml: 'പുറപ്പാട് 1–40', day_start: 27, day_end: 53,
     theme: 'Liberation & Law', theme_ml: 'വിമോചനവും നിയമവും',
-    accent_hex: '#C62828', bg_soft_light: '#FDECEC', bg_soft_dark: '#3F2026',
+    accent_hex: '#A85A5A', bg_soft_light: '#F7EFEF', bg_soft_dark: '#2F2325',
     gdrive_folder: '/03_Egypt_And_Exodus/',
     era_date: 'c. 1650 – 1260 BC (Late Bronze Age)',
     geography: 'Goshen (Nile Delta), Red Sea, Mount Sinai (Horeb)',
@@ -38,7 +38,7 @@ export const DEFAULT_PERIODS = [
     id: 4, code: '04', name: 'Desert Wanderings', name_ml: 'മരുഭൂമിയിലെ യാത്ര',
     span: 'Numbers 1–36', span_ml: 'സംഖ്യ 1–36', day_start: 54, day_end: 79,
     theme: 'Wilderness Testing', theme_ml: 'മരുഭൂമിയിലെ പരീക്ഷണങ്ങൾ',
-    accent_hex: '#A47551', bg_soft_light: '#F7F1EB', bg_soft_dark: '#382E29',
+    accent_hex: '#9C7A5B', bg_soft_light: '#F5F0EB', bg_soft_dark: '#2D2824',
     gdrive_folder: '/04_Desert_Wanderings/',
     era_date: 'c. 1260 – 1220 BC (40 Years in the Wilderness)',
     geography: 'Sinai Wilderness, Kadesh-Barnea, Plains of Moab',
@@ -48,7 +48,7 @@ export const DEFAULT_PERIODS = [
     id: 5, code: '05', name: 'Conquest & Judges', name_ml: 'കാനാൻ വിജയവും ന്യായാധിപന്മാരും',
     span: 'Joshua, Judges, 1 Sam 1–8', span_ml: 'ജോഷ്വ, ന്യായാധിപന്മാർ, 1 സാമുവൽ 1–8', day_start: 80, day_end: 115,
     theme: 'Promised Land', theme_ml: 'വാഗ്ദത്ത ഭൂമി',
-    accent_hex: '#2E7D32', bg_soft_light: '#EAF5EB', bg_soft_dark: '#1E3529',
+    accent_hex: '#578A66', bg_soft_light: '#EDF4EF', bg_soft_dark: '#222D27',
     gdrive_folder: '/05_Conquest_And_Judges/',
     era_date: 'c. 1220 – 1050 BC (Iron Age I)',
     geography: 'Jordan River, Jericho, Shiloh, Hill Country of Judah',
@@ -58,7 +58,7 @@ export const DEFAULT_PERIODS = [
     id: 6, code: '06', name: 'Royal Kingdom', name_ml: 'രാജകീയ രാജ്യം',
     span: '1 Sam 9–31, 2 Sam, 1 Kgs 1–11', span_ml: '1 സാമുവൽ 9–31, 2 സാമുവൽ, 1 രാജാക്കന്മാർ 1–11', day_start: 116, day_end: 162,
     theme: 'Davidic Throne', theme_ml: 'ദാവീദിന്റെ സിംഹാസനം',
-    accent_hex: '#6A1B9A', bg_soft_light: '#F3EAF9', bg_soft_dark: '#2E1F3F',
+    accent_hex: '#846B9F', bg_soft_light: '#F2EEF6', bg_soft_dark: '#292433',
     gdrive_folder: '/06_Royal_Kingdom/',
     era_date: 'c. 1050 – 930 BC (United Monarchy)',
     geography: 'Hebron, Jerusalem (City of David & Solomon’s Temple)',
@@ -68,7 +68,7 @@ export const DEFAULT_PERIODS = [
     id: 7, code: '07', name: 'Divided Kingdom', name_ml: 'വിഭജിക്കപ്പെട്ട രാജ്യം',
     span: '1 Kgs 12–22, 2 Kgs 1–16', span_ml: '1 രാജാക്കന്മാർ 12–22, 2 രാജാക്കന്മാർ 1–16', day_start: 163, day_end: 203,
     theme: 'North vs. South', theme_ml: 'ഇസ്രായേലും യൂദായും',
-    accent_hex: '#475569', bg_soft_light: '#EEF2F6', bg_soft_dark: '#283242',
+    accent_hex: '#6B7C8E', bg_soft_light: '#EFF2F5', bg_soft_dark: '#252A32',
     gdrive_folder: '/07_Divided_Kingdom/',
     era_date: '930 – 722 BC',
     geography: 'Samaria (North) & Jerusalem (South)',
@@ -78,7 +78,7 @@ export const DEFAULT_PERIODS = [
     id: 8, code: '08', name: 'Exile', name_ml: 'പ്രവാസം',
     span: '2 Kings 17–25', span_ml: '2 രാജാക്കന്മാർ 17–25', day_start: 204, day_end: 245,
     theme: 'Captivity & Hope', theme_ml: 'പ്രവാസവും പ്രത്യാശയും',
-    accent_hex: '#0284C7', bg_soft_light: '#E6F4FB', bg_soft_dark: '#193347',
+    accent_hex: '#5484A4', bg_soft_light: '#ECF2F7', bg_soft_dark: '#212A33',
     gdrive_folder: '/08_Exile/',
     era_date: '722 – 538 BC (Assyrian & Babylonian Captivities)',
     geography: 'Nineveh, Jerusalem, Babylon (Chebar Canal)',
@@ -88,7 +88,7 @@ export const DEFAULT_PERIODS = [
     id: 9, code: '09', name: 'Return', name_ml: 'മടങ്ങിവരവ്',
     span: 'Ezra, Nehemiah', span_ml: 'എസ്രാ, നെഹെമിയ', day_start: 246, day_end: 274,
     theme: 'Rebuilding Jerusalem', theme_ml: 'ജെറുസലേമിന്റെ പുനർനിർമ്മാണം',
-    accent_hex: '#D97706', bg_soft_light: '#FDF3E7', bg_soft_dark: '#3B2D1F',
+    accent_hex: '#AE844B', bg_soft_light: '#F7F2EA', bg_soft_dark: '#2E2921',
     gdrive_folder: '/09_Return/',
     era_date: '538 – c. 400 BC (Persian Period)',
     geography: 'Babylon, Susa, Rebuilt Jerusalem & Second Temple',
@@ -98,7 +98,7 @@ export const DEFAULT_PERIODS = [
     id: 10, code: '10', name: 'Maccabean Revolt', name_ml: 'മക്കബായ വിപ്ലവം',
     span: '1 Maccabees', span_ml: '1 മക്കബായർ', day_start: 275, day_end: 297,
     theme: 'Heroic Fidelity', theme_ml: 'ധീരമായ വിശ്വസ്തത',
-    accent_hex: '#EA580C', bg_soft_light: '#FDEEE7', bg_soft_dark: '#3E261E',
+    accent_hex: '#AC6E4E', bg_soft_light: '#F7EFEA', bg_soft_dark: '#2F2622',
     gdrive_folder: '/10_Maccabean_Revolt/',
     era_date: '175 – 63 BC (Hellenistic Period)',
     geography: 'Modin, Judea, Rededicated Temple in Jerusalem',
@@ -108,7 +108,7 @@ export const DEFAULT_PERIODS = [
     id: 11, code: '11', name: 'Messianic Fulfillment', name_ml: 'മിശിഹായുടെ പൂർത്തീകരണം',
     span: 'Luke & The Four Gospels', span_ml: 'ലൂക്കാ & നാല് സുവിശേഷങ്ങൾ', day_start: 298, day_end: 335,
     theme: 'Christ the Redeemer', theme_ml: 'ക്രിസ്തു രക്ഷകൻ',
-    accent_hex: '#B4831E', bg_soft_light: '#FAF3E3', bg_soft_dark: '#372F20',
+    accent_hex: '#A88948', bg_soft_light: '#F6F2E8', bg_soft_dark: '#2D2920',
     gdrive_folder: '/11_Messianic_Fulfillment/',
     era_date: 'c. 4 BC – AD 33',
     geography: 'Nazareth, Bethlehem, Sea of Galilee, Jerusalem, Golgotha',
@@ -118,7 +118,7 @@ export const DEFAULT_PERIODS = [
     id: 12, code: '12', name: 'The Church', name_ml: 'തിരുസഭ',
     span: 'Acts, Epistles, Revelation', span_ml: 'അപ്പ. പ്രവർത്തനങ്ങൾ, ലേഖനങ്ങൾ, വെളിപാട്', day_start: 336, day_end: 365,
     theme: 'Holy Spirit & Mission', theme_ml: 'പരിശുദ്ധാത്മാവും പ്രേഷിതദൗത്യവും',
-    accent_hex: '#3B82F6', bg_soft_light: '#EBF2FE', bg_soft_dark: '#1E2E4A',
+    accent_hex: '#5D7FA8', bg_soft_light: '#EDF1F7', bg_soft_dark: '#222935',
     gdrive_folder: '/12_The_Church/',
     era_date: 'AD 33 – c. AD 95 (Apostolic Era & New Jerusalem)',
     geography: 'Jerusalem, Antioch, Corinth, Rome, Patmos',
@@ -127,59 +127,58 @@ export const DEFAULT_PERIODS = [
 ];
 
 /**
- * High-Contrast Accessible Theme Tokens across all 12 Periods
- * Ensures WCAG AA compliance (contrast >= 4.5:1, AAA >= 7:1) in both Dark Mode (Warm Dusk) and Bright Mode (Parchment).
- * Period 6 (Royal Kingdom) uses radiant amethyst lavender in dark mode and regal royal purple in light mode.
+ * Eye-Comfort Subdued Muted Indicators across all 12 Periods
+ * Uses low-saturation muted pastels & soft jewel tones for gentle prolonged reading in Slate-Charcoal Dark Mode & Parchment Light Mode.
  */
 export const PERIOD_THEME_TOKENS = {
   1: {
-    light: { accent: '#0284C7', text: '#0369A1', bgSoft: '#E0F2FE' },
-    dark:  { accent: '#38BDF8', text: '#7DD3FC', bgSoft: 'rgba(56, 189, 248, 0.16)' }
+    light: { accent: '#3E6F8E', text: '#2F5770', bgSoft: '#ECF3F7' },
+    dark:  { accent: '#6C9BB8', text: '#9CC0D6', bgSoft: 'rgba(108, 155, 184, 0.12)' }
   },
   2: {
-    light: { accent: '#9F1239', text: '#881337', bgSoft: '#FFE4E6' },
-    dark:  { accent: '#FB7185', text: '#FDA4AF', bgSoft: 'rgba(251, 113, 133, 0.16)' }
+    light: { accent: '#874C56', text: '#6E3B44', bgSoft: '#F5ECEE' },
+    dark:  { accent: '#B57882', text: '#D4A5AD', bgSoft: 'rgba(181, 120, 130, 0.12)' }
   },
   3: {
-    light: { accent: '#B91C1C', text: '#991B1B', bgSoft: '#FEE2E2' },
-    dark:  { accent: '#F87171', text: '#FCA5A5', bgSoft: 'rgba(248, 113, 113, 0.16)' }
+    light: { accent: '#8F4B4B', text: '#733A3A', bgSoft: '#F6EDED' },
+    dark:  { accent: '#B87474', text: '#D6A3A3', bgSoft: 'rgba(184, 116, 116, 0.12)' }
   },
   4: {
-    light: { accent: '#9A3412', text: '#7C2D12', bgSoft: '#FFEDD5' },
-    dark:  { accent: '#FB923C', text: '#FDBA74', bgSoft: 'rgba(251, 146, 60, 0.16)' }
+    light: { accent: '#826347', text: '#684E37', bgSoft: '#F4EFE9' },
+    dark:  { accent: '#B39172', text: '#CFB59D', bgSoft: 'rgba(179, 145, 114, 0.12)' }
   },
   5: {
-    light: { accent: '#15803D', text: '#166534', bgSoft: '#DCFCE7' },
-    dark:  { accent: '#4ADE80', text: '#86EFAC', bgSoft: 'rgba(74, 222, 128, 0.16)' }
+    light: { accent: '#447252', text: '#34593F', bgSoft: '#EBF2ED' },
+    dark:  { accent: '#6D9E7B', text: '#9AC2A6', bgSoft: 'rgba(109, 158, 123, 0.12)' }
   },
   6: {
-    // Period 6: Royal Kingdom - Radiant amethyst lavender in dark mode; regal royal purple in light mode
-    light: { accent: '#7E22CE', text: '#581C87', bgSoft: '#F3E8FF' },
-    dark:  { accent: '#C084FC', text: '#E9D5FF', bgSoft: 'rgba(192, 132, 252, 0.18)' }
+    // Period 6: Royal Kingdom — Soft muted amethyst/lavender in dark mode; subdued plum in light mode
+    light: { accent: '#6D5487', text: '#55406B', bgSoft: '#F0ECF5' },
+    dark:  { accent: '#9B84B5', text: '#C1B0D6', bgSoft: 'rgba(155, 132, 181, 0.13)' }
   },
   7: {
-    light: { accent: '#334155', text: '#1E293B', bgSoft: '#E2E8F0' },
-    dark:  { accent: '#94A3B8', text: '#CBD5E1', bgSoft: 'rgba(148, 163, 184, 0.16)' }
+    light: { accent: '#526273', text: '#3E4B59', bgSoft: '#EDF0F3' },
+    dark:  { accent: '#8394A6', text: '#B0BDCB', bgSoft: 'rgba(131, 148, 166, 0.12)' }
   },
   8: {
-    light: { accent: '#0369A1', text: '#075985', bgSoft: '#E0F2FE' },
-    dark:  { accent: '#38BDF8', text: '#7DD3FC', bgSoft: 'rgba(56, 189, 248, 0.16)' }
+    light: { accent: '#3E6B89', text: '#2E526B', bgSoft: '#EBF1F6' },
+    dark:  { accent: '#6896B5', text: '#99BBD1', bgSoft: 'rgba(104, 150, 181, 0.12)' }
   },
   9: {
-    light: { accent: '#B45309', text: '#92400E', bgSoft: '#FEF3C7' },
-    dark:  { accent: '#FBBF24', text: '#FCD34D', bgSoft: 'rgba(251, 191, 36, 0.16)' }
+    light: { accent: '#8C6836', text: '#6E5027', bgSoft: '#F5EFE6' },
+    dark:  { accent: '#BA9662', text: '#D6BC94', bgSoft: 'rgba(186, 150, 98, 0.12)' }
   },
   10: {
-    light: { accent: '#C2410C', text: '#9A3412', bgSoft: '#FFEDD5' },
-    dark:  { accent: '#FB923C', text: '#FDBA74', bgSoft: 'rgba(251, 146, 60, 0.16)' }
+    light: { accent: '#8F593D', text: '#70442D', bgSoft: '#F5EDE8' },
+    dark:  { accent: '#B88265', text: '#D4AC96', bgSoft: 'rgba(184, 130, 101, 0.12)' }
   },
   11: {
-    light: { accent: '#A16207', text: '#854D0E', bgSoft: '#FEF9C3' },
-    dark:  { accent: '#FACC15', text: '#FEF08A', bgSoft: 'rgba(250, 204, 21, 0.16)' }
+    light: { accent: '#876D35', text: '#695326', bgSoft: '#F4F0E6' },
+    dark:  { accent: '#B59B60', text: '#D2BF92', bgSoft: 'rgba(181, 155, 96, 0.12)' }
   },
   12: {
-    light: { accent: '#1D4ED8', text: '#1E40AF', bgSoft: '#DBEAFE' },
-    dark:  { accent: '#60A5FA', text: '#BFDBFE', bgSoft: 'rgba(96, 165, 250, 0.16)' }
+    light: { accent: '#46658C', text: '#344D6B', bgSoft: '#EBF0F6' },
+    dark:  { accent: '#7293BA', text: '#A1B9D6', bgSoft: 'rgba(114, 147, 186, 0.12)' }
   }
 };
 

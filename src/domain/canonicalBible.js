@@ -446,14 +446,11 @@ export function filterCanonicalBooks(searchQuery = '', categoryFilter = 'ALL') {
     if (categoryFilter === 'WISDOM' && book.category !== 'Wisdom') return false;
     if (categoryFilter === 'DEUTERO' && !book.isDeuterocanonical) return false;
 
-    // 2. Text Search Query
+    // 2. Prefix-Anchored Search Query (Starts-With `A*` instead of `*A*`)
     if (!q) return true;
-    return (
-      book.en.toLowerCase().includes(q) ||
-      book.ml.toLowerCase().includes(q) ||
-      book.category.toLowerCase().includes(q) ||
-      book.aliases.some(a => a.includes(q))
-    );
+    const enLower = book.en.toLowerCase();
+    const mlLower = (book.ml || '').toLowerCase();
+    return enLower.startsWith(q) || mlLower.startsWith(q);
   });
 }
 
