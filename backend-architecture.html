@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ephphatha Backend Architecture & Relational Schema</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --card-bg: #181b20;
+      --card-border: #2a2f38;
+      --accent-blue: #38bdf8;
+      --accent-purple: #a855f7;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
+      --text-muted: #94a3b8;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    .schema-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      transition: all 0.2s ease-in-out;
+    }
+    .schema-card:hover {
+      border-color: #475569;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+    .badge-pk {
+      background-color: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+    .badge-fk {
+      background-color: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .table-active {
+      outline: 2px solid #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+  <!-- Header Banner -->
+  <header class="max-w-7xl mx-auto mb-8 pb-6 border-b border-slate-800">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-sky-950 text-sky-400 border border-sky-800 mb-2">
+          <span>⚡ Cloud-Native Serverless Database Architecture</span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <span>Ephphatha Backend &amp; Relational Schema</span>
+        </h1>
+        <p class="text-slate-400 text-sm mt-1 max-w-2xl">
+          Visual documentation of the Google Sheets master database (<code class="text-amber-300">Ephphatha_Master_DB</code>), 
+          Apps Script sync engine, and the relational links binding users, progress, and community cohorts.
+        </p>
+      </div>
+
+      <!-- Quick Metrics -->
+      <div class="flex items-center gap-3">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center min-w-[90px]">
+          <div class="text-xl font-bold text-sky-400">6</div>
+          <div class="text-xs text-slate-400">Relational Sheets</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center min-w-[90px]">
+          <div class="text-xl font-bold text-emerald-400">3-Tier</div>
+          <div class="text-xs text-slate-400">Sync Pipeline</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 text-center min-w-[90px]">
+          <div class="text-xl font-bold text-amber-400">100%</div>
+          <div class="text-xs text-slate-400">Offline Fallback</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Interactive Controls & Subsystem Filter -->
+  <section class="max-w-7xl mx-auto mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+      <div class="flex items-center gap-2 text-xs font-semibold text-slate-300">
+        <span>View Filter:</span>
+        <button id="filter-all" class="px-3 py-1.5 rounded-lg bg-sky-500 text-white font-medium shadow-sm transition">All Tables (6)</button>
+        <button id="filter-user" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition">User &amp; Progress (2)</button>
+        <button id="filter-cohort" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Fellowship Cohorts (4)</button>
+      </div>
+      <div class="flex items-center gap-4 text-xs text-slate-400">
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-400"></span> Primary Key (PK)</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-400"></span> Foreign Key (FK)</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-400"></span> 1 : N Relation</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Visual ER Diagram Canvas -->
+  <section class="max-w-7xl mx-auto mb-10">
+    <div class="bg-[#12151a] border border-slate-800 rounded-2xl p-6 relative overflow-hidden shadow-2xl">
+      <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-800/80">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <span>📐 Interactive Entity-Relationship (ER) Diagram</span>
+        </h2>
+        <span class="text-xs text-slate-500">Click any card to inspect relational foreign keys &amp; handlers</span>
+      </div>
+
+      <!-- Diagram Cards Layout Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+        <!-- TABLE 1: Users -->
+        <div id="card-users" class="schema-card rounded-xl p-5 border-l-4 border-l-amber-400 cursor-pointer" onclick="highlightTable('users')">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase font-mono px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800">Sheet 1</span>
+            <span class="text-xs text-slate-400 font-mono">Master Identity</span>
+          </div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>👤 Users</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Central user profile registry with passwordless passkey/PIN auth &amp; streak tracking.</p>
+
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-amber-300 border border-amber-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔑 user_id <span class="badge-pk text-[10px] px-1 rounded">PK</span></span>
+              <span class="text-slate-400">string (UUID/Hex)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>display_name</span>
+              <span class="text-slate-400">string</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>email_or_contact</span>
+              <span class="text-slate-400">string (opt)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>auth_method</span>
+              <span class="text-slate-400">WebAuthn / PIN</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>streak_days &amp; grace_shields</span>
+              <span class="text-slate-400">number</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 active_cohort_code <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">string &rarr; Cohorts</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>last_active_day &amp; updated_at</span>
+              <span class="text-slate-400">number, ISO string</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE 2: Progress_Logs -->
+        <div id="card-progress" class="schema-card rounded-xl p-5 border-l-4 border-l-emerald-400 cursor-pointer" onclick="highlightTable('progress')">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase font-mono px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800">Sheet 2</span>
+            <span class="text-xs text-slate-400 font-mono">1 : 365 Granular</span>
+          </div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📅 Progress_Logs</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Per-day completion flags and exact audio timestamp resume coordinates.</p>
+
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 user_id <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">string &rarr; Users</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-amber-300 border border-amber-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔑 day_number <span class="badge-pk text-[10px] px-1 rounded">PK Comp</span></span>
+              <span class="text-slate-400">integer (1..365)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>completed</span>
+              <span class="text-emerald-400">boolean (TRUE/FALSE)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>audio_timestamp_sec</span>
+              <span class="text-slate-400">number (seconds)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>updated_at</span>
+              <span class="text-slate-400">ISO string</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE 3: Fellowship_Cohorts -->
+        <div id="card-cohorts" class="schema-card rounded-xl p-5 border-l-4 border-l-sky-400 cursor-pointer" onclick="highlightTable('cohorts')">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase font-mono px-2 py-0.5 rounded bg-sky-950/60 text-sky-300 border border-sky-800">Sheet 3</span>
+            <span class="text-xs text-slate-400 font-mono">Cohort Hub</span>
+          </div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🏛️ Fellowship_Cohorts</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Isolated parish/group communities bounded by a unique invitation code.</p>
+
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-amber-300 border border-amber-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔑 cohort_id <span class="badge-pk text-[10px] px-1 rounded">PK</span></span>
+              <span class="text-slate-400">string</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-amber-300 border border-amber-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔑 invite_code <span class="badge-pk text-[10px] px-1 rounded">Unique Key</span></span>
+              <span class="text-amber-400 font-bold">e.g. STMARY25</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>cohort_name</span>
+              <span class="text-slate-400">string</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 created_by_user_id <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">string &rarr; Users</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>created_at &amp; updated_at</span>
+              <span class="text-slate-400">ISO strings</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE 4: Cohort_Members -->
+        <div id="card-members" class="schema-card rounded-xl p-5 border-l-4 border-l-indigo-400 cursor-pointer" onclick="highlightTable('members')">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase font-mono px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-300 border border-indigo-800">Sheet 4</span>
+            <span class="text-xs text-slate-400 font-mono">Roster Junction</span>
+          </div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>👥 Cohort_Members</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Membership roster, roles, progress metrics, and encouragement counters.</p>
+
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 invite_code <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">&rarr; Cohorts</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 member_id <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">&rarr; Users.user_id</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>name &amp; role</span>
+              <span class="text-slate-400">string (Leader/Pilgrim)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>current_day &amp; completed_count</span>
+              <span class="text-slate-400">number (1..365)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>streak_days &amp; activity_status</span>
+              <span class="text-slate-400">number, string</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>encouragements &amp; updated_at</span>
+              <span class="text-slate-400">number, ISO string</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE 5: Cohort_Reflections -->
+        <div id="card-reflections" class="schema-card rounded-xl p-5 border-l-4 border-l-purple-400 cursor-pointer" onclick="highlightTable('reflections')">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase font-mono px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-800">Sheet 5</span>
+            <span class="text-xs text-slate-400 font-mono">Shared Contemplations</span>
+          </div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>📖 Cohort_Reflections</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Community Lectio Divina stream shared to the cohort with Amen reactions.</p>
+
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 invite_code <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">&rarr; Cohorts</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-amber-300 border border-amber-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔑 reflection_id <span class="badge-pk text-[10px] px-1 rounded">PK</span></span>
+              <span class="text-slate-400">string</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 author_id <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">&rarr; Members / Users</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>author_name &amp; day_number</span>
+              <span class="text-slate-400">string, number (1..365)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>passage_ref</span>
+              <span class="text-slate-400">string (e.g. Genesis 1)</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>content &amp; amen_count</span>
+              <span class="text-slate-400">sanitized text, int</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE 6: Cohort_Prayers -->
+        <div id="card-prayers" class="schema-card rounded-xl p-5 border-l-4 border-l-rose-400 cursor-pointer" onclick="highlightTable('prayers')">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase font-mono px-2 py-0.5 rounded bg-rose-950/60 text-rose-300 border border-rose-800">Sheet 6</span>
+            <span class="text-xs text-slate-400 font-mono">Intercessory Wall</span>
+          </div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <span>🙏 Cohort_Prayers</span>
+          </h3>
+          <p class="text-xs text-slate-400 mb-4">Cohort prayer wall with categories, anonymous mode, and answered badges.</p>
+
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 invite_code <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">&rarr; Cohorts</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-amber-300 border border-amber-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔑 prayer_id <span class="badge-pk text-[10px] px-1 rounded">PK</span></span>
+              <span class="text-slate-400">string</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/80 text-sky-300 border border-sky-500/20">
+              <span class="flex items-center gap-1 font-semibold">🔗 author_id <span class="badge-fk text-[10px] px-1 rounded">FK</span></span>
+              <span class="text-slate-400">&rarr; Members / 'anon'</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>is_anonymous</span>
+              <span class="text-slate-400">boolean</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>category &amp; content</span>
+              <span class="text-slate-400">Petition, Healing...</span>
+            </div>
+            <div class="flex items-center justify-between py-1 px-2 rounded bg-slate-900/40 text-slate-200">
+              <span>praying_count &amp; is_answered</span>
+              <span class="text-slate-400">int, boolean</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Relational Inspector Panel -->
+  <section class="max-w-7xl mx-auto mb-10">
+    <div id="inspector-panel" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+        <h3 id="inspector-title" class="text-base font-bold text-white flex items-center gap-2">
+          <span>🔍 Selected Table Inspector:</span>
+          <span class="text-sky-400 font-mono">Users</span>
+        </h3>
+        <span class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono" id="inspector-badge">Master Table</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Relationship Mapping -->
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+          <h4 class="text-xs uppercase font-semibold text-slate-400 mb-2">Relational Foreign Keys</h4>
+          <div id="inspector-relationships" class="text-xs text-slate-300 space-y-2">
+            <!-- Dynamic Injection -->
+          </div>
+        </div>
+
+        <!-- Sync Action Handler in Apps Script -->
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+          <h4 class="text-xs uppercase font-semibold text-slate-400 mb-2">Google Apps Script Action Handler</h4>
+          <div id="inspector-handler" class="text-xs text-slate-300 space-y-2">
+            <!-- Dynamic Injection -->
+          </div>
+        </div>
+
+        <!-- Concurrency & Privacy Note -->
+        <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+          <h4 class="text-xs uppercase font-semibold text-slate-400 mb-2">Security, Locks &amp; Privacy Boundary</h4>
+          <div id="inspector-security" class="text-xs text-slate-300 space-y-2">
+            <!-- Dynamic Injection -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3-Tier Sync Architecture Pipeline -->
+  <section class="max-w-7xl mx-auto mb-10">
+    <div class="bg-[#12151a] border border-slate-800 rounded-2xl p-6 shadow-xl">
+      <h2 class="text-base font-semibold text-white mb-2 flex items-center gap-2">
+        <span>🔄 3-Tier Multi-User Sync Pipeline &amp; Data Lifecycle</span>
+      </h2>
+      <p class="text-xs text-slate-400 mb-6">How data flows seamlessly between client devices and the central Google Sheets master database.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+
+        <!-- Tier 1 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 relative">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center font-bold text-sm mb-3">
+            1
+          </div>
+          <h3 class="text-sm font-bold text-white mb-1">Tier 1: Client Local Vault (&lt;5ms)</h3>
+          <p class="text-xs text-slate-400 mb-3">Guarantees 100% offline functionality and instant optimistic UI updates.</p>
+          <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+            <li><strong class="text-white">IndexedDB</strong> (<code class="text-sky-300">EphphathaLocalVault_v3</code>)</li>
+            <li><strong class="text-white">AES-256-GCM Web Crypto</strong>: Personal prayer reflections are encrypted <em>before</em> storage.</li>
+            <li><strong class="text-white">Memory Mirror</strong> prevents split-brain.</li>
+            <li><strong class="text-white">Sync Outbox</strong> queues changes if offline.</li>
+          </ul>
+        </div>
+
+        <!-- Tier 2 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 relative">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center font-bold text-sm mb-3">
+            2
+          </div>
+          <h3 class="text-sm font-bold text-white mb-1">Tier 2: Edge Worker / Proxy Routing</h3>
+          <p class="text-xs text-slate-400 mb-3">Bypasses browser CORS constraints and handles high-frequency rate-limiting.</p>
+          <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+            <li><strong class="text-white">Cloudflare Edge Worker</strong> (<code class="text-purple-300">/api/sheet-proxy</code>)</li>
+            <li><strong class="text-white">Local Express Proxy</strong> during local development.</li>
+            <li><strong class="text-white">HTTP 206 Streaming Proxy</strong> for audio playback.</li>
+            <li><strong class="text-white">Direct GAS text/plain fallback</strong> if edge is offline.</li>
+          </ul>
+        </div>
+
+        <!-- Tier 3 -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 relative">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold text-sm mb-3">
+            3
+          </div>
+          <h3 class="text-sm font-bold text-white mb-1">Tier 3: Google Sheets Master DB</h3>
+          <p class="text-xs text-slate-400 mb-3">Serverless multi-user relational storage engine inside Google Workspace.</p>
+          <ul class="text-xs text-slate-300 space-y-1.5 list-disc list-inside">
+            <li><strong class="text-white">Google Apps Script Web App</strong> (<code class="text-emerald-300">doPost / doGet</code>)</li>
+            <li><strong class="text-white">LockService (10s)</strong> prevents multi-user race conditions.</li>
+            <li><strong class="text-white">Auto-Provisioning</strong> creates all 6 sheets if absent.</li>
+            <li><strong class="text-white">Zero infrastructure costs</strong> or server management.</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Complete Relational Schema Table Matrix -->
+  <section class="max-w-7xl mx-auto mb-12">
+    <div class="bg-[#12151a] border border-slate-800 rounded-2xl p-6 shadow-xl overflow-x-auto">
+      <h2 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
+        <span>📋 Complete 6-Sheet Relational Matrix Reference</span>
+      </h2>
+      <table class="w-full text-left text-xs border-collapse">
+        <thead>
+          <tr class="border-b border-slate-800 text-slate-400 uppercase font-mono">
+            <th class="py-2.5 px-3">Sheet Tab Name</th>
+            <th class="py-2.5 px-3">Primary Key (PK)</th>
+            <th class="py-2.5 px-3">Foreign Key (FK) References</th>
+            <th class="py-2.5 px-3">Cardinality</th>
+            <th class="py-2.5 px-3">Core Purpose &amp; Synchronization Behavior</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">
+          <tr class="hover:bg-slate-900/50">
+            <td class="py-3 px-3 font-bold text-amber-300">Users</td>
+            <td class="py-3 px-3 text-amber-400">user_id</td>
+            <td class="py-3 px-3 text-sky-400">active_cohort_code &rarr; Fellowship_Cohorts.invite_code</td>
+            <td class="py-3 px-3">1 : N (to Progress)</td>
+            <td class="py-3 px-3 font-sans text-slate-400">User profile, passkey credentials, streak counters, and active parish cohort link.</td>
+          </tr>
+          <tr class="hover:bg-slate-900/50">
+            <td class="py-3 px-3 font-bold text-emerald-300">Progress_Logs</td>
+            <td class="py-3 px-3 text-amber-400">(user_id, day_number)</td>
+            <td class="py-3 px-3 text-sky-400">user_id &rarr; Users.user_id</td>
+            <td class="py-3 px-3">N : 1 (to Users)</td>
+            <td class="py-3 px-3 font-sans text-slate-400">Granular daily completion for Day 1..365 &amp; exact audio resume timestamp in seconds.</td>
+          </tr>
+          <tr class="hover:bg-slate-900/50">
+            <td class="py-3 px-3 font-bold text-sky-300">Fellowship_Cohorts</td>
+            <td class="py-3 px-3 text-amber-400">cohort_id, invite_code</td>
+            <td class="py-3 px-3 text-sky-400">created_by_user_id &rarr; Users.user_id</td>
+            <td class="py-3 px-3">1 : N (to Members/Streams)</td>
+            <td class="py-3 px-3 font-sans text-slate-400">Top-level community hub. The unique invite code isolates members, prayers, and reflections.</td>
+          </tr>
+          <tr class="hover:bg-slate-900/50">
+            <td class="py-3 px-3 font-bold text-indigo-300">Cohort_Members</td>
+            <td class="py-3 px-3 text-amber-400">(invite_code, member_id)</td>
+            <td class="py-3 px-3 text-sky-400">invite_code &rarr; Cohorts<br />member_id &rarr; Users.user_id</td>
+            <td class="py-3 px-3">M : N Junction</td>
+            <td class="py-3 px-3 font-sans text-slate-400">Parish cohort membership roster, individual progress counters, and encouragement tallies.</td>
+          </tr>
+          <tr class="hover:bg-slate-900/50">
+            <td class="py-3 px-3 font-bold text-purple-300">Cohort_Reflections</td>
+            <td class="py-3 px-3 text-amber-400">reflection_id</td>
+            <td class="py-3 px-3 text-sky-400">invite_code &rarr; Cohorts<br />author_id &rarr; Users.user_id</td>
+            <td class="py-3 px-3">N : 1 (to Cohorts)</td>
+            <td class="py-3 px-3 font-sans text-slate-400">Public Lectio Divina notes shared explicitly to the cohort stream, ordered by newest first.</td>
+          </tr>
+          <tr class="hover:bg-slate-900/50">
+            <td class="py-3 px-3 font-bold text-rose-300">Cohort_Prayers</td>
+            <td class="py-3 px-3 text-amber-400">prayer_id</td>
+            <td class="py-3 px-3 text-sky-400">invite_code &rarr; Cohorts<br />author_id &rarr; Users.user_id</td>
+            <td class="py-3 px-3">N : 1 (to Cohorts)</td>
+            <td class="py-3 px-3 font-sans text-slate-400">Intercessory prayer wall with category tags, anonymous author masking, and answered prayer tracking.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Interactive Script for Table Highlight & Inspector -->
+  <script>
+    const tableData = {
+      users: {
+        title: "Users (Master User Profile & Passkey Registry)",
+        badge: "Master Table (1:N with Progress & Cohorts)",
+        relationships: `
+          <div><strong class="text-amber-400">Primary Key:</strong> <code>user_id</code> (Generated Hex or UUID)</div>
+          <div><strong class="text-sky-400">Outgoing FK:</strong> <code>active_cohort_code</code> points to <code>Fellowship_Cohorts.invite_code</code>.</div>
+          <div><strong class="text-emerald-400">Incoming 1:N:</strong> Referenced by <code>Progress_Logs.user_id</code> (up to 365 daily logs per user).</div>
+          <div><strong class="text-emerald-400">Incoming 1:N:</strong> Referenced by <code>Cohort_Members.member_id</code> across joined cohorts.</div>
+        `,
+        handler: `
+          <div><strong class="text-white">Actions:</strong> <code>login</code>, <code>getUser</code>, <code>syncUser</code></div>
+          <div class="text-slate-400 text-[11px] mt-1">When a user logs in with passkey or PIN, Apps Script reads this sheet, pulls streak metrics, and returns the full 365-day progress map.</div>
+        `,
+        security: `
+          <div><strong class="text-white">Client Data Privacy:</strong> User profile syncs without passwords. Personal prayer reflections are encrypted via AES-256-GCM locally and NEVER sent to the Users table.</div>
+        `
+      },
+      progress: {
+        title: "Progress_Logs (365-Day Reading & Audio Tracker)",
+        badge: "Detail Table (N:1 to Users)",
+        relationships: `
+          <div><strong class="text-amber-400">Composite Key:</strong> <code>(user_id, day_number)</code></div>
+          <div><strong class="text-sky-400">Foreign Key:</strong> <code>user_id</code> &rarr; references <code>Users.user_id</code>.</div>
+          <div><strong class="text-slate-400">Scope:</strong> Rows indexed from Day 1 to 365 per active user.</div>
+        `,
+        handler: `
+          <div><strong class="text-white">Actions:</strong> <code>syncProgress</code>, <code>syncUser</code></div>
+          <div class="text-slate-400 text-[11px] mt-1">Updates both the completed checkbox and the exact audio playback timestamp in seconds.</div>
+        `,
+        security: `
+          <div><strong class="text-white">Optimistic UI:</strong> Ticks checkbox in UI in &lt;5ms using IndexedDB and pushes to this sheet in background with debounce.</div>
+        `
+      },
+      cohorts: {
+        title: "Fellowship_Cohorts (Parish Cohort Root)",
+        badge: "Cohort Hub (1:N to Members, Reflections, Prayers)",
+        relationships: `
+          <div><strong class="text-amber-400">Primary Key:</strong> <code>cohort_id</code></div>
+          <div><strong class="text-amber-400">Unique Code:</strong> <code>invite_code</code> (e.g. STMARY25) used as join anchor.</div>
+          <div><strong class="text-sky-400">Foreign Key:</strong> <code>created_by_user_id</code> &rarr; <code>Users.user_id</code>.</div>
+        `,
+        handler: `
+          <div><strong class="text-white">Actions:</strong> <code>getCohort</code>, <code>saveCohort</code></div>
+          <div class="text-slate-400 text-[11px] mt-1">The <code>getCohort</code> handler loads the cohort root and joins all 3 child tables by invite_code.</div>
+        `,
+        security: `
+          <div><strong class="text-white">Isolation:</strong> Members can only read reflections and prayers belonging to their cohort's <code>invite_code</code>.</div>
+        `
+      },
+      members: {
+        title: "Cohort_Members (Membership Roster Junction)",
+        badge: "Junction Table (M:N Users & Cohorts)",
+        relationships: `
+          <div><strong class="text-amber-400">Composite Key:</strong> <code>(invite_code, member_id)</code></div>
+          <div><strong class="text-sky-400">Foreign Key 1:</strong> <code>invite_code</code> &rarr; <code>Fellowship_Cohorts.invite_code</code>.</div>
+          <div><strong class="text-sky-400">Foreign Key 2:</strong> <code>member_id</code> &rarr; <code>Users.user_id</code>.</div>
+        `,
+        handler: `
+          <div><strong class="text-white">Actions:</strong> <code>saveCohort</code> (under LockService)</div>
+          <div class="text-slate-400 text-[11px] mt-1">Maintains individual reading day, total days read, streak, and community encouragement counter.</div>
+        `,
+        security: `
+          <div><strong class="text-white">Concurrency:</strong> Protected by <code>LockService.getScriptLock(10000)</code> to prevent concurrent write collisions.</div>
+        `
+      },
+      reflections: {
+        title: "Cohort_Reflections (Shared Lectio Divina Stream)",
+        badge: "Content Table (Child of Cohorts)",
+        relationships: `
+          <div><strong class="text-amber-400">Primary Key:</strong> <code>reflection_id</code></div>
+          <div><strong class="text-sky-400">Foreign Key 1:</strong> <code>invite_code</code> &rarr; <code>Fellowship_Cohorts.invite_code</code>.</div>
+          <div><strong class="text-sky-400">Foreign Key 2:</strong> <code>author_id</code> &rarr; <code>Users.user_id</code>.</div>
+        `,
+        handler: `
+          <div><strong class="text-white">Actions:</strong> <code>saveCohort</code>, <code>getCohort</code></div>
+          <div class="text-slate-400 text-[11px] mt-1">Shared reflections are tagged with passage ref and day number. Includes community Amen tally.</div>
+        `,
+        security: `
+          <div><strong class="text-white">Sanitization:</strong> HTML tags are stripped via <code>sanitizeUserString()</code> before storing to prevent XSS.</div>
+        `
+      },
+      prayers: {
+        title: "Cohort_Prayers (Intercessory Prayer Wall)",
+        badge: "Content Table (Child of Cohorts)",
+        relationships: `
+          <div><strong class="text-amber-400">Primary Key:</strong> <code>prayer_id</code></div>
+          <div><strong class="text-sky-400">Foreign Key 1:</strong> <code>invite_code</code> &rarr; <code>Fellowship_Cohorts.invite_code</code>.</div>
+          <div><strong class="text-sky-400">Foreign Key 2:</strong> <code>author_id</code> &rarr; <code>Users.user_id</code> (or 'anon').</div>
+        `,
+        handler: `
+          <div><strong class="text-white">Actions:</strong> <code>saveCohort</code>, <code>getCohort</code></div>
+          <div class="text-slate-400 text-[11px] mt-1">Supports Categories (Healing, Thanksgiving, etc.), "I am praying" counters, and Answered status flags.</div>
+        `,
+        security: `
+          <div><strong class="text-white">Anonymity:</strong> If <code>is_anonymous: true</code>, the author_id is masked to 'anon' and name set to 'Anonymous Pilgrim'.</div>
+        `
+      }
+    };
+
+    function highlightTable(key) {
+      document.querySelectorAll('.schema-card').forEach(el => el.classList.remove('table-active'));
+      const activeCard = document.getElementById('card-' + key);
+      if (activeCard) {
+        activeCard.classList.add('table-active');
+      }
+
+      const info = tableData[key];
+      if (!info) return;
+
+      document.getElementById('inspector-title').innerHTML = `
+        <span>🔍 Selected Table Inspector:</span>
+        <span class="text-sky-400 font-mono">${info.title}</span>
+      `;
+      document.getElementById('inspector-badge').textContent = info.badge;
+      document.getElementById('inspector-relationships').innerHTML = info.relationships;
+      document.getElementById('inspector-handler').innerHTML = info.handler;
+      document.getElementById('inspector-security').innerHTML = info.security;
+    }
+
+    // Filter Buttons
+    document.getElementById('filter-all').onclick = () => {
+      document.querySelectorAll('.schema-card').forEach(el => el.classList.remove('hidden'));
+      setActiveFilter('filter-all');
+    };
+    document.getElementById('filter-user').onclick = () => {
+      document.getElementById('card-users').classList.remove('hidden');
+      document.getElementById('card-progress').classList.remove('hidden');
+      document.getElementById('card-cohorts').classList.add('hidden');
+      document.getElementById('card-members').classList.add('hidden');
+      document.getElementById('card-reflections').classList.add('hidden');
+      document.getElementById('card-prayers').classList.add('hidden');
+      setActiveFilter('filter-user');
+      highlightTable('users');
+    };
+    document.getElementById('filter-cohort').onclick = () => {
+      document.getElementById('card-users').classList.add('hidden');
+      document.getElementById('card-progress').classList.add('hidden');
+      document.getElementById('card-cohorts').classList.remove('hidden');
+      document.getElementById('card-members').classList.remove('hidden');
+      document.getElementById('card-reflections').classList.remove('hidden');
+      document.getElementById('card-prayers').classList.remove('hidden');
+      setActiveFilter('filter-cohort');
+      highlightTable('cohorts');
+    };
+
+    function setActiveFilter(btnId) {
+      ['filter-all', 'filter-user', 'filter-cohort'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (id === btnId) {
+          btn.className = 'px-3 py-1.5 rounded-lg bg-sky-500 text-white font-medium shadow-sm transition';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition';
+        }
+      });
+    }
+
+    // Default inspection
+    highlightTable('users');
+  </script>
+
+</body>
+</html>
