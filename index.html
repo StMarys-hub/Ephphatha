@@ -816,7 +816,39 @@
         </div>
       </div>
 
-      <!-- 2. Scripture Translation & Language Display Settings -->
+      <!-- 2. Google Sheets Master Database & Cloud Sync -->
+      <div class="drawer-section" id="drawer-sheets-sync-section">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="context-item-label">Google Sheets Master Database</div>
+          <span class="crypto-badge" id="sheets-sync-status-badge">Not Connected</span>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.35rem 0 0.5rem 0; line-height: 1.4;">
+          Connect your Google Sheet Web App to backup your 365-day reading progress and sync with your parish fellowship in real-time.
+        </p>
+        <div style="margin-top: 4px;">
+          <input
+            type="url"
+            id="input-sheets-sync-url"
+            class="sanctuary-input"
+            style="font-size: 0.8rem; padding: 0.45rem 0.65rem;"
+            placeholder="https://script.google.com/macros/s/.../exec" />
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button type="button" class="ergonomic-btn primary-period" id="btn-save-sheets-sync-url" style="flex: 1; justify-content: center; font-size: 0.82rem;">
+            🔗 Connect Sheet
+          </button>
+          <button type="button" class="verse-icon-btn" id="btn-test-sheets-connection" style="flex: 1; justify-content: center; font-size: 0.82rem;">
+            ⚡ Test Status
+          </button>
+        </div>
+        <div style="margin-top: 6px; text-align: right;">
+          <a href="./setup-guide.html#step-google-sheet" target="_blank" rel="noopener" style="font-size: 0.76rem; color: var(--text-accent); text-decoration: none;">
+            📘 Open 1-Minute Setup Guide
+          </a>
+        </div>
+      </div>
+
+      <!-- 3. Scripture Translation & Language Display Settings -->
       <div class="drawer-section">
         <div class="context-item-label">Scripture Translation &amp; Languages</div>
         
@@ -943,6 +975,9 @@
           </div>
         </div>
       </details>
+
+      <!-- 6. System Telemetry & Failover Diagnostics (Developer Only) -->
+      <details class="context-accordion" style="opacity: 0.75; margin-top: 8px;">
         <summary class="context-summary-trigger">
           <span>🛡️ System Telemetry & Failover Diagnostics</span>
           <span class="crypto-badge" id="reader-tier-badge">Tier 1</span>

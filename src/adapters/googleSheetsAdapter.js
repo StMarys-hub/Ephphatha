@@ -48,7 +48,7 @@ export function setGoogleSheetsSyncUrl(url) {
 }
 
 export function isGoogleSheetsConfigured() {
-  return true; // Central Cloud Backend is pre-wired and automatically active
+  return Boolean(getGoogleSheetsSyncUrl());
 }
 
 function getCandidateEndpoints() {
@@ -108,6 +108,7 @@ async function callSheetsBackend(action, payload = {}) {
         method: 'POST',
         headers,
         body,
+        redirect: 'follow',
         signal: controller.signal
       });
       clearTimeout(timeout);
@@ -119,7 +120,30 @@ async function callSheetsBackend(action, payload = {}) {
         }
       }
     } catch (_) {
-      // try next candidate
+      // If direct POST fails with network/CORS error, try GET fallback for direct calls
+      if (ep.isDirect) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 9000);
+          const getUrl = new URL(ep.url);
+          getUrl.searchParams.set('action', action);
+          getUrl.searchParams.set('payload', JSON.stringify(payload));
+
+          const getRes = await fetch(getUrl.toString(), {
+            method: 'GET',
+            redirect: 'follow',
+            signal: controller.signal
+          });
+          clearTimeout(timeout);
+
+          if (getRes.ok) {
+            const json = await getRes.json().catch(() => null);
+            if (json && (json.ok || json.status === 'ok' || json.data)) {
+              return json;
+            }
+          }
+        } catch (_) {}
+      }
     }
   }
 
@@ -135,6 +159,7 @@ export async function testGoogleSheetsConnection(customUrl) {
     return { ok: false, error: 'Please enter a Google Apps Script Web App URL.' };
   }
 
+  // 1. Try POST (text/plain)
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
@@ -142,12 +167,34 @@ export async function testGoogleSheetsConnection(customUrl) {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'ping' }),
+      redirect: 'follow',
       signal: controller.signal
     });
     clearTimeout(timer);
 
     if (res.ok) {
       const data = await res.json().catch(() => null);
+      if (data && data.ok) {
+        notifySync('CONNECTED', { title: data.spreadsheetTitle, id: data.spreadsheetId });
+        return { ok: true, data };
+      }
+    }
+  } catch (_) {}
+
+  // 2. Try GET Fallback (bypasses all browser preflights / CORS blocks)
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const sep = urlToTest.includes('?') ? '&' : '?';
+    const getRes = await fetch(`${urlToTest}${sep}action=ping`, {
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    if (getRes.ok) {
+      const data = await getRes.json().catch(() => null);
       if (data && data.ok) {
         notifySync('CONNECTED', { title: data.spreadsheetTitle, id: data.spreadsheetId });
         return { ok: true, data };

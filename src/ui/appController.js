@@ -227,12 +227,28 @@ async function initGoogleSheetsSyncOnBoot() {
 function updateSheetsSyncStatusBadge(snapshot) {
   const badge = document.getElementById('sheets-sync-status-badge');
   if (!badge) return;
-  if (isGoogleSheetsConfigured()) {
-    badge.textContent = snapshot?.status === 'CONNECTED' ? '✅ Google Sheet: Connected' : '☁️ Google Sheet: Active';
+  const currentUrl = getGoogleSheetsSyncUrl();
+  if (snapshot?.status === 'CONNECTED') {
+    const title = snapshot?.title || 'Connected';
+    badge.textContent = `🟢 Connected: ${title}`;
+    badge.style.color = '#10b981';
+    badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+    badge.style.backgroundColor = 'rgba(16, 185, 129, 0.12)';
+  } else if (currentUrl && snapshot?.status !== 'CLEARED' && snapshot?.status !== 'ERROR') {
+    badge.textContent = '☁️ Sheet Configured';
     badge.style.color = 'var(--text-accent)';
+    badge.style.borderColor = 'var(--accent-period-current, rgba(16, 185, 129, 0.3))';
+    badge.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
+  } else if (snapshot?.status === 'ERROR') {
+    badge.textContent = '🔴 Connection Error';
+    badge.style.color = '#ef4444';
+    badge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+    badge.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
   } else {
-    badge.textContent = 'Google Sheet: Direct / Edge Proxy';
+    badge.textContent = '⚪ Not Connected';
     badge.style.color = 'var(--text-secondary)';
+    badge.style.borderColor = 'var(--border-subtle)';
+    badge.style.backgroundColor = 'transparent';
   }
 }
 
@@ -2126,16 +2142,52 @@ function bindGlobalControls() {
     });
   }
 
-  // Optional Developer Custom URL Override
+  // Google Sheets Master Database Connection Controls
   document.getElementById('btn-save-sheets-sync-url')?.addEventListener('click', async () => {
     const input = document.getElementById('input-sheets-sync-url');
     const val = (input?.value || '').trim();
-    setGoogleSheetsSyncUrl(val);
-    alert(val ? `Saved custom backend URL.` : 'Restored default cloud backend.');
+    if (!val) {
+      setGoogleSheetsSyncUrl('');
+      updateSheetsSyncStatusBadge({ status: 'CLEARED' });
+      alert('Cleared Google Sheets URL. Running in offline/local vault mode.');
+      return;
+    }
+    const saveBtn = document.getElementById('btn-save-sheets-sync-url');
+    if (saveBtn) saveBtn.textContent = '⏳ Testing...';
+    const test = await testGoogleSheetsConnection(val);
+    if (saveBtn) saveBtn.textContent = '🔗 Connect Sheet';
+
+    if (test.ok) {
+      setGoogleSheetsSyncUrl(val);
+      updateSheetsSyncStatusBadge({ status: 'CONNECTED', title: test.data?.spreadsheetTitle });
+      showCloudSyncToast('☁️ Sheet Connected');
+      alert(`✅ Connected to Google Sheet Master DB!\nTitle: ${test.data?.spreadsheetTitle || 'Ephphatha_Master_DB'}\n\nYour reading logs and active cohort will now sync automatically.`);
+
+      // If user profile is active, sync immediately
+      if (appState.userProfile?.displayName) {
+        const localMap = getAllRecordsMapSync('progress');
+        await syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
+        renderUserProfileBadge();
+      }
+    } else {
+      alert(`Could not connect to Google Sheet:\n${test.error}\n\nPlease check:\n1. Deployed as Web App with "Who has access: Anyone"\n2. Copied the exact URL ending in /exec`);
+    }
   });
+
   document.getElementById('btn-test-sheets-connection')?.addEventListener('click', async () => {
-    const test = await testGoogleSheetsConnection();
-    alert(test.ok ? `✅ Cloud Backend Online!` : `Status: ${test.error}`);
+    const input = document.getElementById('input-sheets-sync-url');
+    const val = (input?.value || getGoogleSheetsSyncUrl() || '').trim();
+    const testBtn = document.getElementById('btn-test-sheets-connection');
+    if (testBtn) testBtn.textContent = '⏳ Testing...';
+    const test = await testGoogleSheetsConnection(val);
+    if (testBtn) testBtn.textContent = '⚡ Test Status';
+
+    if (test.ok) {
+      updateSheetsSyncStatusBadge({ status: 'CONNECTED', title: test.data?.spreadsheetTitle });
+      alert(`✅ Cloud Backend Online!\nTitle: ${test.data?.spreadsheetTitle || 'Ephphatha_Master_DB'}`);
+    } else {
+      alert(`Connection failed: ${test.error}\n\nMake sure the Web App is deployed with "Who has access: Anyone".`);
+    }
   });
 
   // Failover Simulator Controls inside Telemetry Inspector

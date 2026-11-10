@@ -206,7 +206,22 @@ const SHEET_HEADERS = {
 };
 
 function doGet(e) {
-  return handleRequest_(e ? e.parameter : {}, null);
+  var params = e ? e.parameter : {};
+  var body = null;
+  if (params &amp;&amp; params.payload) {
+    if (typeof params.payload === 'string') {
+      try {
+        body = { action: params.action, payload: JSON.parse(params.payload) };
+      } catch (_) {
+        body = { action: params.action, payload: params };
+      }
+    } else {
+      body = { action: params.action, payload: params.payload };
+    }
+  } else {
+    body = { action: params.action, payload: params };
+  }
+  return handleRequest_(params, body);
 }
 
 function doPost(e) {
