@@ -46,6 +46,9 @@ import {
 import { buildFull365Curriculum, calculateGraceStreak, getPeriodTokens } from '../domain/periods.js';
 import {
   getGoogleSheetsSyncUrl,
+  getCustomGoogleSheetsSyncUrl,
+  isDefaultGoogleSheetsUrl,
+  resetGoogleSheetsSyncUrl,
   setGoogleSheetsSyncUrl,
   isGoogleSheetsConfigured,
   testGoogleSheetsConnection,
@@ -174,7 +177,7 @@ export async function bootstrapEphphathaApp() {
 async function initGoogleSheetsSyncOnBoot() {
   const sheetsInput = document.getElementById('input-sheets-sync-url');
   if (sheetsInput) {
-    sheetsInput.value = getGoogleSheetsSyncUrl();
+    sheetsInput.value = getCustomGoogleSheetsSyncUrl();
   }
   updateSheetsSyncStatusBadge();
 
@@ -227,28 +230,29 @@ async function initGoogleSheetsSyncOnBoot() {
 function updateSheetsSyncStatusBadge(snapshot) {
   const badge = document.getElementById('sheets-sync-status-badge');
   if (!badge) return;
-  const currentUrl = getGoogleSheetsSyncUrl();
+  const isDefault = isDefaultGoogleSheetsUrl();
+
   if (snapshot?.status === 'CONNECTED') {
-    const title = snapshot?.title || 'Connected';
+    const title = snapshot?.title || 'Ephphatha_Master_DB';
     badge.textContent = `🟢 Connected: ${title}`;
     badge.style.color = '#10b981';
     badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
     badge.style.backgroundColor = 'rgba(16, 185, 129, 0.12)';
-  } else if (currentUrl && snapshot?.status !== 'CLEARED' && snapshot?.status !== 'ERROR') {
-    badge.textContent = '☁️ Sheet Configured';
-    badge.style.color = 'var(--text-accent)';
-    badge.style.borderColor = 'var(--accent-period-current, rgba(16, 185, 129, 0.3))';
-    badge.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
   } else if (snapshot?.status === 'ERROR') {
     badge.textContent = '🔴 Connection Error';
     badge.style.color = '#ef4444';
     badge.style.borderColor = 'rgba(239, 68, 68, 0.4)';
     badge.style.backgroundColor = 'rgba(239, 68, 68, 0.12)';
+  } else if (!isDefault) {
+    badge.textContent = '☁️ Custom Sheet Configured';
+    badge.style.color = 'var(--text-accent)';
+    badge.style.borderColor = 'var(--accent-period-current, rgba(16, 185, 129, 0.3))';
+    badge.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';
   } else {
-    badge.textContent = '⚪ Not Connected';
-    badge.style.color = 'var(--text-secondary)';
-    badge.style.borderColor = 'var(--border-subtle)';
-    badge.style.backgroundColor = 'transparent';
+    badge.textContent = '🟢 Master Cloud: Active';
+    badge.style.color = '#10b981';
+    badge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+    badge.style.backgroundColor = 'rgba(16, 185, 129, 0.12)';
   }
 }
 
@@ -2147,21 +2151,22 @@ function bindGlobalControls() {
     const input = document.getElementById('input-sheets-sync-url');
     const val = (input?.value || '').trim();
     if (!val) {
-      setGoogleSheetsSyncUrl('');
-      updateSheetsSyncStatusBadge({ status: 'CLEARED' });
-      alert('Cleared Google Sheets URL. Running in offline/local vault mode.');
+      resetGoogleSheetsSyncUrl();
+      if (input) input.value = '';
+      updateSheetsSyncStatusBadge({ status: 'CONNECTED', title: 'Ephphatha_Master_DB' });
+      alert('Reset to default Ephphatha Master Cloud DB.');
       return;
     }
     const saveBtn = document.getElementById('btn-save-sheets-sync-url');
     if (saveBtn) saveBtn.textContent = '⏳ Testing...';
     const test = await testGoogleSheetsConnection(val);
-    if (saveBtn) saveBtn.textContent = '🔗 Connect Sheet';
+    if (saveBtn) saveBtn.textContent = '🔗 Save Custom Sheet';
 
     if (test.ok) {
       setGoogleSheetsSyncUrl(val);
       updateSheetsSyncStatusBadge({ status: 'CONNECTED', title: test.data?.spreadsheetTitle });
-      showCloudSyncToast('☁️ Sheet Connected');
-      alert(`✅ Connected to Google Sheet Master DB!\nTitle: ${test.data?.spreadsheetTitle || 'Ephphatha_Master_DB'}\n\nYour reading logs and active cohort will now sync automatically.`);
+      showCloudSyncToast('☁️ Custom Sheet Saved');
+      alert(`✅ Connected to Custom Google Sheet!\nTitle: ${test.data?.spreadsheetTitle || 'Custom_Master_DB'}\n\nYour reading logs and active cohort will now sync to this custom sheet.`);
 
       // If user profile is active, sync immediately
       if (appState.userProfile?.displayName) {
@@ -2174,19 +2179,27 @@ function bindGlobalControls() {
     }
   });
 
-  document.getElementById('btn-test-sheets-connection')?.addEventListener('click', async () => {
+  document.getElementById('btn-reset-sheets-sync-url')?.addEventListener('click', async () => {
+    resetGoogleSheetsSyncUrl();
     const input = document.getElementById('input-sheets-sync-url');
-    const val = (input?.value || getGoogleSheetsSyncUrl() || '').trim();
+    if (input) input.value = '';
+    updateSheetsSyncStatusBadge({ status: 'CONNECTED', title: 'Ephphatha_Master_DB' });
+    showCloudSyncToast('☁️ Restored Master Cloud');
+    alert('✅ Reset to central Ephphatha Master Cloud DB.\nAll your reading progress continues to sync automatically.');
+  });
+
+  document.getElementById('btn-test-sheets-connection')?.addEventListener('click', async () => {
     const testBtn = document.getElementById('btn-test-sheets-connection');
-    if (testBtn) testBtn.textContent = '⏳ Testing...';
-    const test = await testGoogleSheetsConnection(val);
-    if (testBtn) testBtn.textContent = '⚡ Test Status';
+    if (testBtn) testBtn.textContent = '⏳ Checking...';
+    const test = await testGoogleSheetsConnection();
+    if (testBtn) testBtn.textContent = '⚡ Check Cloud Status';
 
     if (test.ok) {
       updateSheetsSyncStatusBadge({ status: 'CONNECTED', title: test.data?.spreadsheetTitle });
-      alert(`✅ Cloud Backend Online!\nTitle: ${test.data?.spreadsheetTitle || 'Ephphatha_Master_DB'}`);
+      const isDefault = isDefaultGoogleSheetsUrl();
+      alert(`✅ Cloud Database Online!\n\nDatabase: ${test.data?.spreadsheetTitle || 'Ephphatha_Master_DB'}\nType: ${isDefault ? 'Default Master Cloud (Built-in)' : 'Custom Parish Sheet'}\nTimestamp: ${test.data?.timestamp || new Date().toISOString()}`);
     } else {
-      alert(`Connection failed: ${test.error}\n\nMake sure the Web App is deployed with "Who has access: Anyone".`);
+      alert(`Connection failed: ${test.error}\n\nPlease check your internet connection or verify Web App deployment.`);
     }
   });
 

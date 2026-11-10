@@ -375,7 +375,7 @@ export default {
     // ========================================================================
     if (url.pathname === '/api/sheet-proxy') {
       const body = await request.json().catch(() => ({}));
-      const sheetsUrl = body.sheetUrl || request.headers.get('X-Google-Sheet-Url') || env.GOOGLE_SHEETS_WEBAPP_URL;
+      const sheetsUrl = body.sheetUrl || request.headers.get('X-Google-Sheet-Url') || env.GOOGLE_SHEETS_WEBAPP_URL || 'https://script.google.com/macros/s/AKfycbyNDknOG3kaKl0Fuv94QbM_vd2Z6rh3C4m1ZUYtBURDX6_6ZFwc-BPHUXjyKmI4fsk/exec';
 
       if (sheetsUrl) {
         try {

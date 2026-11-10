@@ -11,6 +11,8 @@
 
 import { decodeEntitiesForTextContent, sanitizeUserString } from '../domain/securityEngine.js';
 
+export const DEFAULT_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyNDknOG3kaKl0Fuv94QbM_vd2Z6rh3C4m1ZUYtBURDX6_6ZFwc-BPHUXjyKmI4fsk/exec';
+
 const STORAGE_KEY_SHEETS_URL = 'ephphatha_sheets_sync_url';
 const listeners = new Set();
 
@@ -25,6 +27,7 @@ function notifySync(status, details = {}) {
     timestamp: new Date().toISOString(),
     isConfigured: isGoogleSheetsConfigured(),
     url: getGoogleSheetsSyncUrl(),
+    isDefault: isDefaultGoogleSheetsUrl(),
     ...details
   };
   listeners.forEach(fn => {
@@ -32,19 +35,38 @@ function notifySync(status, details = {}) {
   });
 }
 
-export function getGoogleSheetsSyncUrl() {
+export function getCustomGoogleSheetsSyncUrl() {
+  if (typeof localStorage === 'undefined') return '';
   return (localStorage.getItem(STORAGE_KEY_SHEETS_URL) || '').trim();
+}
+
+export function getGoogleSheetsSyncUrl() {
+  const custom = getCustomGoogleSheetsSyncUrl();
+  return custom || DEFAULT_SHEETS_URL;
+}
+
+export function isDefaultGoogleSheetsUrl() {
+  const custom = getCustomGoogleSheetsSyncUrl();
+  return !custom || custom === DEFAULT_SHEETS_URL;
 }
 
 export function setGoogleSheetsSyncUrl(url) {
   const cleanUrl = String(url || '').trim();
-  if (!cleanUrl) {
-    localStorage.removeItem(STORAGE_KEY_SHEETS_URL);
-    notifySync('CLEARED');
-    return;
+  if (typeof localStorage !== 'undefined') {
+    if (!cleanUrl || cleanUrl === DEFAULT_SHEETS_URL) {
+      localStorage.removeItem(STORAGE_KEY_SHEETS_URL);
+    } else {
+      localStorage.setItem(STORAGE_KEY_SHEETS_URL, cleanUrl);
+    }
   }
-  localStorage.setItem(STORAGE_KEY_SHEETS_URL, cleanUrl);
-  notifySync('CONFIGURED', { url: cleanUrl });
+  notifySync('CONFIGURED', { url: getGoogleSheetsSyncUrl(), isDefault: isDefaultGoogleSheetsUrl() });
+}
+
+export function resetGoogleSheetsSyncUrl() {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(STORAGE_KEY_SHEETS_URL);
+  }
+  notifySync('CONFIGURED', { url: DEFAULT_SHEETS_URL, isDefault: true });
 }
 
 export function isGoogleSheetsConfigured() {
