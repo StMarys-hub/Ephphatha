@@ -5,9 +5,11 @@
  * Capabilities:
  *  1. User Profile & Passwordless Login: Persists user profiles and retrieves all completed reading/audio progress when logging back in.
  *  2. Multi-User Fellowship Cohort Sync: Persists cohorts, member rosters, reflection streams, and prayer requests.
- *  3. Auto-Provisioning: Automatically initializes all 6 relational sheets with headers if they do not exist.
- *  4. Concurrency Protection: Uses LockService to prevent race conditions during simultaneous multi-user writes.
- *  5. Cross-Origin Support: Seamlessly handles web clients, Cloudflare Edge Worker, and local development servers.
+ *  3. Auto-Provisioning & Self-Healing Migration: Automatically initializes all 6 relational sheets with canonical headers
+ *     and automatically self-heals / fixes any legacy shifted column headers (e.g. log_id header mismatch).
+ *  4. Dynamic Column Mapping: Uses header-name-based column resolution so operations never fail even if column ordering varies.
+ *  5. Concurrency Protection: Uses LockService to prevent race conditions during simultaneous multi-user writes.
+ *  6. Cross-Origin Support: Seamlessly handles web clients, Cloudflare Edge Worker, and local development servers.
  *
  * HOW TO DEPLOY:
  *  1. Open your Google Sheet (e.g., Ephphatha_Master_DB) or https://script.google.com
@@ -28,12 +30,71 @@ const SHEET_NAMES = {
 };
 
 const SHEET_HEADERS = {
-  [SHEET_NAMES.USERS]: ['user_id', 'display_name', 'email_or_contact', 'auth_method', 'streak_days', 'grace_shields', 'active_cohort_code', 'last_active_day', 'updated_at'],
-  [SHEET_NAMES.PROGRESS]: ['user_id', 'day_number', 'completed', 'audio_timestamp_sec', 'updated_at'],
-  [SHEET_NAMES.COHORTS]: ['cohort_id', 'invite_code', 'cohort_name', 'created_by_user_id', 'created_at', 'updated_at'],
-  [SHEET_NAMES.MEMBERS]: ['invite_code', 'member_id', 'name', 'role', 'current_day', 'completed_count', 'streak_days', 'activity_status', 'encouragements', 'updated_at'],
-  [SHEET_NAMES.REFLECTIONS]: ['invite_code', 'reflection_id', 'author_id', 'author_name', 'day_number', 'passage_ref', 'content', 'amen_count', 'created_at'],
-  [SHEET_NAMES.PRAYERS]: ['invite_code', 'prayer_id', 'author_id', 'author_name', 'is_anonymous', 'category', 'content', 'praying_count', 'is_answered', 'created_at']
+  [SHEET_NAMES.USERS]: [
+    'user_id',
+    'display_name',
+    'email_or_contact',
+    'auth_method',
+    'streak_days',
+    'grace_shields',
+    'active_cohort_code',
+    'last_active_day',
+    'preferred_bible_version',
+    'lang_preference',
+    'verse_weight',
+    'show_latin_vulgate',
+    'updated_at'
+  ],
+  [SHEET_NAMES.PROGRESS]: [
+    'user_id',
+    'day_number',
+    'completed',
+    'audio_timestamp_sec',
+    'updated_at'
+  ],
+  [SHEET_NAMES.COHORTS]: [
+    'cohort_id',
+    'invite_code',
+    'cohort_name',
+    'created_by_user_id',
+    'created_at',
+    'updated_at'
+  ],
+  [SHEET_NAMES.MEMBERS]: [
+    'invite_code',
+    'member_id',
+    'name',
+    'role',
+    'current_day',
+    'completed_count',
+    'streak_days',
+    'activity_status',
+    'encouragements',
+    'updated_at'
+  ],
+  [SHEET_NAMES.REFLECTIONS]: [
+    'invite_code',
+    'reflection_id',
+    'author_id',
+    'author_name',
+    'day_number',
+    'passage_ref',
+    'content',
+    'amen_count',
+    'created_at'
+  ],
+  [SHEET_NAMES.PRAYERS]: [
+    'invite_code',
+    'prayer_id',
+    'author_id',
+    'author_name',
+    'is_anonymous',
+    'category',
+    'content',
+    'praying_count',
+    'is_answered',
+    'created_at'
+  ]
 };
 
 function doGet(e) {
@@ -71,7 +132,7 @@ function handleRequest_(params, body) {
 
     switch (action) {
       case 'ping':
-        result.message = 'Ephphatha Google Sheets Master DB Active';
+        result.message = 'Ephphatha Google Sheets Master DB Active (Self-Healing Schema Enabled)';
         result.spreadsheetTitle = ss.getName();
         result.spreadsheetId = ss.getId();
         break;
@@ -86,16 +147,16 @@ function handleRequest_(params, body) {
         result.data = handleSaveUser_(ss, payload);
         break;
 
+      case 'syncprogress':
+        result.data = handleSyncProgress_(ss, payload);
+        break;
+
       case 'getcohort':
         result.data = handleGetCohort_(ss, payload);
         break;
 
       case 'savecohort':
         result.data = handleSaveCohort_(ss, payload);
-        break;
-
-      case 'syncprogress':
-        result.data = handleSyncProgress_(ss, payload);
         break;
 
       default:
@@ -124,7 +185,6 @@ function getSpreadsheet_() {
   try {
     return SpreadsheetApp.getActiveSpreadsheet();
   } catch (_) {
-    // If running as standalone script bound to ScriptApp, open by specific ID if configured
     var props = PropertiesService.getScriptProperties();
     var sheetId = props.getProperty('EPHPHATHA_SHEET_ID');
     if (sheetId) {
@@ -134,15 +194,120 @@ function getSpreadsheet_() {
   }
 }
 
+/**
+ * Ensures all 6 relational sheets exist and performs self-healing schema normalization
+ * if obsolete or shifted headers are detected.
+ */
 function ensureAllSheetsExist_(ss) {
   for (var name in SHEET_HEADERS) {
     var sheet = ss.getSheetByName(name);
+    var canonicalHeaders = SHEET_HEADERS[name];
     if (!sheet) {
       sheet = ss.insertSheet(name);
-      sheet.appendRow(SHEET_HEADERS[name]);
+      sheet.appendRow(canonicalHeaders);
       sheet.setFrozenRows(1);
+      formatHeaderRow_(sheet, canonicalHeaders.length);
+    } else {
+      normalizeSheetHeadersIfNeeded_(sheet, name, canonicalHeaders);
     }
   }
+}
+
+/**
+ * Inspects existing headers and corrects legacy misalignment (e.g. log_id shift in Progress_Logs)
+ */
+function normalizeSheetHeadersIfNeeded_(sheet, sheetName, canonicalHeaders) {
+  var lastCol = sheet.getLastColumn();
+  if (lastCol === 0) {
+    sheet.appendRow(canonicalHeaders);
+    sheet.setFrozenRows(1);
+    formatHeaderRow_(sheet, canonicalHeaders.length);
+    return;
+  }
+
+  var currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var firstH = String(currentHeaders[0] || '').toLowerCase().trim();
+
+  // SELF-HEALING FIX 1: Progress_Logs has obsolete 'log_id' as column 1
+  if (sheetName === SHEET_NAMES.PROGRESS) {
+    if (firstH === 'log_id') {
+      // Rewrite row 1 to canonical headers (user_id, day_number, completed, audio_timestamp_sec, updated_at)
+      sheet.getRange(1, 1, 1, canonicalHeaders.length).setValues([canonicalHeaders]);
+      // Clear legacy unused columns (6 and 7: hmac_signature, synced_at) if empty
+      if (lastCol > canonicalHeaders.length) {
+        var extraCols = lastCol - canonicalHeaders.length;
+        sheet.getRange(1, canonicalHeaders.length + 1, 1, extraCols).clearContent();
+      }
+      sheet.setFrozenRows(1);
+      formatHeaderRow_(sheet, canonicalHeaders.length);
+      return;
+    }
+  }
+
+  // SELF-HEALING FIX 2: Users sheet has older 6-column or 9-column headers
+  if (sheetName === SHEET_NAMES.USERS) {
+    if (lastCol < canonicalHeaders.length || !headerExists_(currentHeaders, 'preferred_bible_version')) {
+      sheet.getRange(1, 1, 1, canonicalHeaders.length).setValues([canonicalHeaders]);
+      sheet.setFrozenRows(1);
+      formatHeaderRow_(sheet, canonicalHeaders.length);
+      return;
+    }
+  }
+
+  // SELF-HEALING FIX 3: Fellowship_Cohorts has old column order (cohort_name before invite_code)
+  if (sheetName === SHEET_NAMES.COHORTS) {
+    var secondH = String(currentHeaders[1] || '').toLowerCase().trim();
+    if (secondH === 'cohort_name') {
+      sheet.getRange(1, 1, 1, canonicalHeaders.length).setValues([canonicalHeaders]);
+      sheet.setFrozenRows(1);
+      formatHeaderRow_(sheet, canonicalHeaders.length);
+      return;
+    }
+  }
+
+  sheet.setFrozenRows(1);
+}
+
+function headerExists_(headers, name) {
+  var target = name.toLowerCase().replace(/[\s_-]+/g, '');
+  for (var i = 0; i < headers.length; i++) {
+    var h = String(headers[i] || '').toLowerCase().replace(/[\s_-]+/g, '');
+    if (h === target) return true;
+  }
+  return false;
+}
+
+function formatHeaderRow_(sheet, colCount) {
+  try {
+    var range = sheet.getRange(1, 1, 1, colCount);
+    range.setFontWeight('bold');
+    range.setBackground('#1e293b');
+    range.setFontColor('#f8fafc');
+  } catch (_) {}
+}
+
+/**
+ * Builds a 0-based column index map for any sheet's row 1 headers.
+ */
+function getColumnMap_(sheet) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var map = {};
+  for (var i = 0; i < headers.length; i++) {
+    var clean = String(headers[i] || '').toLowerCase().trim().replace(/[\s_-]+/g, '_');
+    if (clean) map[clean] = i;
+  }
+  return map;
+}
+
+function getColVal_(row, map, candidates, fallback) {
+  for (var i = 0; i < candidates.length; i++) {
+    var idx = map[candidates[i]];
+    if (idx !== undefined && row[idx] !== undefined && row[idx] !== '') {
+      return row[idx];
+    }
+  }
+  return fallback;
 }
 
 /**
@@ -158,24 +323,29 @@ function handleGetUser_(ss, payload) {
 
   var usersSheet = ss.getSheetByName(SHEET_NAMES.USERS);
   var usersData = usersSheet.getDataRange().getValues();
+  var uMap = getColumnMap_(usersSheet);
   var userRow = null;
 
   for (var i = 1; i < usersData.length; i++) {
     var row = usersData[i];
-    var rowId = String(row[0] || '').trim();
-    var rowName = String(row[1] || '').trim().toLowerCase();
+    var rowId = String(getColVal_(row, uMap, ['user_id', 'userid', 'id'], '')).trim();
+    var rowName = String(getColVal_(row, uMap, ['display_name', 'name', 'user_name'], '')).trim().toLowerCase();
 
     if ((queryId && rowId === queryId) || (queryName && rowName === queryName)) {
       userRow = {
-        userId: String(row[0]),
-        displayName: String(row[1]),
-        email: String(row[2]),
-        authMethod: String(row[3]),
-        streakDays: Number(row[4] || 0),
-        graceShields: Number(row[5] || 2),
-        activeCohortCode: String(row[6] || ''),
-        lastActiveDay: Number(row[7] || 1),
-        updatedAt: String(row[8] || '')
+        userId: rowId,
+        displayName: String(getColVal_(row, uMap, ['display_name', 'name'], 'Pilgrim')),
+        email: String(getColVal_(row, uMap, ['email_or_contact', 'email', 'contact'], '')),
+        authMethod: String(getColVal_(row, uMap, ['auth_method', 'auth'], 'WebAuthn / Passkey')),
+        streakDays: Number(getColVal_(row, uMap, ['streak_days', 'streak'], 0)),
+        graceShields: Number(getColVal_(row, uMap, ['grace_shields', 'shields'], 2)),
+        activeCohortCode: String(getColVal_(row, uMap, ['active_cohort_code', 'cohort_code'], '')),
+        lastActiveDay: Number(getColVal_(row, uMap, ['last_active_day', 'last_day'], 1)),
+        preferredBibleVersion: String(getColVal_(row, uMap, ['preferred_bible_version', 'bible_version'], 'POC')),
+        langPreference: String(getColVal_(row, uMap, ['lang_preference', 'language'], 'bilingual')),
+        verseWeight: String(getColVal_(row, uMap, ['verse_weight', 'font_weight'], 'strong')),
+        showLatinVulgate: Boolean(getColVal_(row, uMap, ['show_latin_vulgate', 'latin'], false)),
+        updatedAt: String(getColVal_(row, uMap, ['updated_at', 'timestamp'], ''))
       };
       break;
     }
@@ -185,24 +355,28 @@ function handleGetUser_(ss, payload) {
     return { found: false, user: null, progressMap: {}, completedCount: 0 };
   }
 
-  // Retrieve user progress logs
+  // Retrieve user progress logs using named column resolver
   var progressSheet = ss.getSheetByName(SHEET_NAMES.PROGRESS);
   var progData = progressSheet.getDataRange().getValues();
+  var pMap = getColumnMap_(progressSheet);
   var progressMap = {};
   var completedCount = 0;
 
   for (var j = 1; j < progData.length; j++) {
     var pRow = progData[j];
-    if (String(pRow[0] || '').trim() === userRow.userId) {
-      var dayNum = Number(pRow[1]);
-      var isCompleted = Boolean(pRow[2]);
+    var pUserId = String(getColVal_(pRow, pMap, ['user_id', 'userid'], '')).trim();
+
+    if (pUserId === userRow.userId) {
+      var dayNum = Number(getColVal_(pRow, pMap, ['day_number', 'day', 'day_no'], 0));
+      var isCompleted = Boolean(getColVal_(pRow, pMap, ['completed', 'is_completed', 'done'], false));
+
       if (dayNum >= 1 && dayNum <= 365) {
         progressMap[String(dayNum)] = {
           id: String(dayNum),
           dayNumber: dayNum,
           completed: isCompleted,
-          audioTimestampSec: Number(pRow[3] || 0),
-          updatedAt: String(pRow[4] || '')
+          audioTimestampSec: Number(getColVal_(pRow, pMap, ['audio_timestamp_sec', 'audio_timestamp', 'audio_sec'], 0)),
+          updatedAt: String(getColVal_(pRow, pMap, ['updated_at', 'synced_at', 'timestamp'], ''))
         };
         if (isCompleted) completedCount++;
       }
@@ -243,35 +417,71 @@ function handleSaveUser_(ss, payload) {
 
     var usersSheet = ss.getSheetByName(SHEET_NAMES.USERS);
     var usersData = usersSheet.getDataRange().getValues();
+    var uMap = getColumnMap_(usersSheet);
     var foundIndex = -1;
 
     for (var i = 1; i < usersData.length; i++) {
-      var rId = String(usersData[i][0] || '').trim();
-      var rName = String(usersData[i][1] || '').trim().toLowerCase();
+      var rId = String(getColVal_(usersData[i], uMap, ['user_id', 'userid'], '')).trim();
+      var rName = String(getColVal_(usersData[i], uMap, ['display_name', 'name'], '')).trim().toLowerCase();
       if (rId === userId || rName === displayName.toLowerCase()) {
         foundIndex = i + 1;
-        userId = String(usersData[i][0]); // preserve canonical userId
+        if (rId) userId = rId; // preserve canonical userId
         break;
       }
     }
 
     var nowIso = new Date().toISOString();
-    var rowValues = [
-      userId,
-      displayName,
-      String(user.email || ''),
-      String(user.authMethod || 'WebAuthn / Passkey'),
-      Number(user.streakDays || 0),
-      Number(user.graceShields !== undefined ? user.graceShields : 2),
-      String(user.activeCohortCode || '').toUpperCase().trim(),
-      Number(user.lastActiveDay || 1),
-      nowIso
-    ];
+    var userValues;
 
     if (foundIndex > 0) {
-      usersSheet.getRange(foundIndex, 1, 1, rowValues.length).setValues([rowValues]);
+      // Existing user row: preserve all existing fields unless explicitly provided in payload!
+      var existingRow = usersData[foundIndex - 1];
+      var finalName = String(user.displayName || user.name || getColVal_(existingRow, uMap, ['display_name', 'name'], displayName)).trim();
+      var finalEmail = user.email !== undefined ? String(user.email) : String(getColVal_(existingRow, uMap, ['email_or_contact', 'email', 'contact'], ''));
+      var finalAuth = user.authMethod || getColVal_(existingRow, uMap, ['auth_method', 'auth'], 'WebAuthn / Passkey');
+      var finalStreak = user.streakDays !== undefined ? Number(user.streakDays) : Number(getColVal_(existingRow, uMap, ['streak_days', 'streak'], 0));
+      var finalShields = user.graceShields !== undefined ? Number(user.graceShields) : Number(getColVal_(existingRow, uMap, ['grace_shields'], 2));
+      var finalCohort = user.activeCohortCode !== undefined ? String(user.activeCohortCode).toUpperCase().trim() : String(getColVal_(existingRow, uMap, ['active_cohort_code', 'cohort_code'], ''));
+      var finalDay = user.lastActiveDay !== undefined ? Number(user.lastActiveDay) : Number(getColVal_(existingRow, uMap, ['last_active_day', 'last_day'], 1));
+      var finalVersion = user.preferredBibleVersion || getColVal_(existingRow, uMap, ['preferred_bible_version', 'bible_version'], 'POC');
+      var finalLang = user.langPreference || getColVal_(existingRow, uMap, ['lang_preference', 'language'], 'bilingual');
+      var finalWeight = user.verseWeight || getColVal_(existingRow, uMap, ['verse_weight', 'font_weight'], 'strong');
+      var finalLatin = user.showLatinVulgate !== undefined ? Boolean(user.showLatinVulgate) : Boolean(getColVal_(existingRow, uMap, ['show_latin_vulgate', 'latin'], false));
+
+      displayName = finalName;
+      userValues = [
+        userId,
+        finalName,
+        finalEmail,
+        finalAuth,
+        finalStreak,
+        finalShields,
+        finalCohort,
+        finalDay,
+        finalVersion,
+        finalLang,
+        finalWeight,
+        finalLatin,
+        nowIso
+      ];
+      usersSheet.getRange(foundIndex, 1, 1, userValues.length).setValues([userValues]);
     } else {
-      usersSheet.appendRow(rowValues);
+      userValues = [
+        userId,
+        displayName,
+        String(user.email || ''),
+        String(user.authMethod || 'WebAuthn / Passkey'),
+        Number(user.streakDays || 0),
+        Number(user.graceShields !== undefined ? user.graceShields : 2),
+        String(user.activeCohortCode || '').toUpperCase().trim(),
+        Number(user.lastActiveDay || 1),
+        String(user.preferredBibleVersion || 'POC'),
+        String(user.langPreference || 'bilingual'),
+        String(user.verseWeight || 'strong'),
+        Boolean(user.showLatinVulgate),
+        nowIso
+      ];
+      usersSheet.appendRow(userValues);
     }
 
     // Save progress records if provided
@@ -282,12 +492,14 @@ function handleSaveUser_(ss, payload) {
       var list = Array.isArray(progressRecords) ? progressRecords : Object.values(progressRecords);
       var progressSheet = ss.getSheetByName(SHEET_NAMES.PROGRESS);
       var pData = progressSheet.getDataRange().getValues();
+      var pMap = getColumnMap_(progressSheet);
       var pIndexMap = {};
 
       for (var p = 1; p < pData.length; p++) {
-        if (String(pData[p][0] || '').trim() === userId) {
-          var dNum = String(pData[p][1]);
-          pIndexMap[dNum] = p + 1; // 1-based row index
+        var rUser = String(getColVal_(pData[p], pMap, ['user_id', 'userid'], '')).trim();
+        if (rUser === userId) {
+          var dNumStr = String(getColVal_(pData[p], pMap, ['day_number', 'day', 'day_no'], ''));
+          pIndexMap[dNumStr] = p + 1; // 1-based row index
         }
       }
 
@@ -299,7 +511,7 @@ function handleSaveUser_(ss, payload) {
           var pRow = [userId, dNum, isDone, audioSec, item.updatedAt || nowIso];
 
           if (pIndexMap[String(dNum)]) {
-            progressSheet.getRange(pIndexMap[String(dNum)], 1, 1, 5).setValues([pRow]);
+            progressSheet.getRange(pIndexMap[String(dNum)], 1, 1, pRow.length).setValues([pRow]);
           } else {
             progressSheet.appendRow(pRow);
             pIndexMap[String(dNum)] = progressSheet.getLastRow();
@@ -322,7 +534,57 @@ function handleSaveUser_(ss, payload) {
 }
 
 /**
- * 3. GET COHORT WITH ALL MEMBERS, REFLECTIONS, AND PRAYERS
+ * 3. QUICK PROGRESS SYNC: User + Active Cohort Member Row
+ */
+function handleSyncProgress_(ss, payload) {
+  var userId = String(payload.userId || payload.user_id || '').trim();
+  var dayNum = Number(payload.dayNumber || payload.day_number || payload.day || 1);
+  var completed = Boolean(payload.completed);
+  var audioSec = Number(payload.audioTimestampSec || payload.audio_timestamp_sec || 0);
+  var inviteCode = String(payload.inviteCode || payload.activeCohortCode || '').toUpperCase().trim();
+
+  if (userId) {
+    handleSaveUser_(ss, {
+      userId: userId,
+      progress: [{ dayNumber: dayNum, completed: completed, audioTimestampSec: audioSec }]
+    });
+  }
+
+  if (inviteCode && payload.memberMetrics) {
+    try {
+      var membersSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
+      var memData = membersSheet.getDataRange().getValues();
+      var mMap = getColumnMap_(membersSheet);
+
+      for (var m = 1; m < memData.length; m++) {
+        var rInvite = String(getColVal_(memData[m], mMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+        var rMemberId = String(getColVal_(memData[m], mMap, ['member_id', 'id'], '')).trim();
+
+        if (rInvite === inviteCode && rMemberId === userId) {
+          var updatedRow = [
+            inviteCode,
+            userId,
+            String(payload.memberMetrics.name || memData[m][2] || 'Pilgrim'),
+            String(payload.memberMetrics.role || memData[m][3] || 'Pilgrim Member'),
+            Number(payload.memberMetrics.currentDay || dayNum),
+            Number(payload.memberMetrics.completedDaysCount || 0),
+            Number(payload.memberMetrics.streakDays || 0),
+            String(payload.memberMetrics.activityStatus || 'Active Pilgrim'),
+            Number(memData[m][8] || 0),
+            new Date().toISOString()
+          ];
+          membersSheet.getRange(m + 1, 1, 1, updatedRow.length).setValues([updatedRow]);
+          break;
+        }
+      }
+    } catch (_) { /* ignore member metrics sync failure */ }
+  }
+
+  return { ok: true, dayNumber: dayNum, completed: completed, audioTimestampSec: audioSec };
+}
+
+/**
+ * 4. GET COHORT WITH ALL MEMBERS, REFLECTIONS, AND PRAYERS
  */
 function handleGetCohort_(ss, payload) {
   var inviteCode = String(payload.inviteCode || payload.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
@@ -332,17 +594,19 @@ function handleGetCohort_(ss, payload) {
 
   var cohortsSheet = ss.getSheetByName(SHEET_NAMES.COHORTS);
   var cohortsData = cohortsSheet.getDataRange().getValues();
+  var cMap = getColumnMap_(cohortsSheet);
   var cohortRow = null;
 
   for (var i = 1; i < cohortsData.length; i++) {
-    if (String(cohortsData[i][1] || '').toUpperCase().trim() === inviteCode) {
+    var rCode = String(getColVal_(cohortsData[i], cMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+    if (rCode === inviteCode) {
       cohortRow = {
-        id: String(cohortsData[i][0] || 'cohort_' + inviteCode),
+        id: String(getColVal_(cohortsData[i], cMap, ['cohort_id', 'id'], 'cohort_' + inviteCode)),
         inviteCode: inviteCode,
-        cohortName: String(cohortsData[i][2] || 'Fellowship Cohort ' + inviteCode),
-        createdByMemberId: String(cohortsData[i][3] || ''),
-        createdAt: String(cohortsData[i][4] || ''),
-        updatedAt: String(cohortsData[i][5] || '')
+        cohortName: String(getColVal_(cohortsData[i], cMap, ['cohort_name', 'name'], 'Fellowship Cohort ' + inviteCode)),
+        createdByMemberId: String(getColVal_(cohortsData[i], cMap, ['created_by_user_id', 'created_by'], '')),
+        createdAt: String(getColVal_(cohortsData[i], cMap, ['created_at', 'created'], '')),
+        updatedAt: String(getColVal_(cohortsData[i], cMap, ['updated_at', 'updated'], ''))
       };
       break;
     }
@@ -355,19 +619,22 @@ function handleGetCohort_(ss, payload) {
   // Load Members
   var membersSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
   var memData = membersSheet.getDataRange().getValues();
+  var mMap = getColumnMap_(membersSheet);
   var members = [];
+
   for (var m = 1; m < memData.length; m++) {
-    if (String(memData[m][0] || '').toUpperCase().trim() === inviteCode) {
+    var mCode = String(getColVal_(memData[m], mMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+    if (mCode === inviteCode) {
       members.push({
-        id: String(memData[m][1]),
-        name: String(memData[m][2]),
-        role: String(memData[m][3] || 'Pilgrim Member'),
-        currentDay: Number(memData[m][4] || 1),
-        completedDaysCount: Number(memData[m][5] || 0),
-        streakDays: Number(memData[m][6] || 0),
-        activityStatus: String(memData[m][7] || 'Active Pilgrim'),
-        encouragements: Number(memData[m][8] || 0),
-        updatedAt: String(memData[m][9] || '')
+        id: String(getColVal_(memData[m], mMap, ['member_id', 'id'], '')),
+        name: String(getColVal_(memData[m], mMap, ['name', 'display_name'], 'Pilgrim')),
+        role: String(getColVal_(memData[m], mMap, ['role'], 'Pilgrim Member')),
+        currentDay: Number(getColVal_(memData[m], mMap, ['current_day', 'day'], 1)),
+        completedDaysCount: Number(getColVal_(memData[m], mMap, ['completed_count', 'completed'], 0)),
+        streakDays: Number(getColVal_(memData[m], mMap, ['streak_days', 'streak'], 0)),
+        activityStatus: String(getColVal_(memData[m], mMap, ['activity_status', 'status'], 'Active Pilgrim')),
+        encouragements: Number(getColVal_(memData[m], mMap, ['encouragements'], 0)),
+        updatedAt: String(getColVal_(memData[m], mMap, ['updated_at'], ''))
       });
     }
   }
@@ -375,18 +642,21 @@ function handleGetCohort_(ss, payload) {
   // Load Reflections
   var reflectionsSheet = ss.getSheetByName(SHEET_NAMES.REFLECTIONS);
   var refData = reflectionsSheet.getDataRange().getValues();
+  var rMap = getColumnMap_(reflectionsSheet);
   var reflections = [];
+
   for (var r = 1; r < refData.length; r++) {
-    if (String(refData[r][0] || '').toUpperCase().trim() === inviteCode) {
+    var rInvite = String(getColVal_(refData[r], rMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+    if (rInvite === inviteCode) {
       reflections.push({
-        id: String(refData[r][1]),
-        authorId: String(refData[r][2]),
-        authorName: String(refData[r][3]),
-        dayNumber: Number(refData[r][4] || 1),
-        passageRef: String(refData[r][5]),
-        content: String(refData[r][6]),
-        amenCount: Number(refData[r][7] || 0),
-        createdAt: String(refData[r][8] || '')
+        id: String(getColVal_(refData[r], rMap, ['reflection_id', 'id'], '')),
+        authorId: String(getColVal_(refData[r], rMap, ['author_id'], '')),
+        authorName: String(getColVal_(refData[r], rMap, ['author_name', 'name'], 'Pilgrim')),
+        dayNumber: Number(getColVal_(refData[r], rMap, ['day_number', 'day'], 1)),
+        passageRef: String(getColVal_(refData[r], rMap, ['passage_ref', 'ref'], '')),
+        content: String(getColVal_(refData[r], rMap, ['content', 'text'], '')),
+        amenCount: Number(getColVal_(refData[r], rMap, ['amen_count', 'amens'], 0)),
+        createdAt: String(getColVal_(refData[r], rMap, ['created_at'], ''))
       });
     }
   }
@@ -395,19 +665,22 @@ function handleGetCohort_(ss, payload) {
   // Load Prayers
   var prayersSheet = ss.getSheetByName(SHEET_NAMES.PRAYERS);
   var prayData = prayersSheet.getDataRange().getValues();
+  var prMap = getColumnMap_(prayersSheet);
   var prayers = [];
+
   for (var p = 1; p < prayData.length; p++) {
-    if (String(prayData[p][0] || '').toUpperCase().trim() === inviteCode) {
+    var pInvite = String(getColVal_(prayData[p], prMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+    if (pInvite === inviteCode) {
       prayers.push({
-        id: String(prayData[p][1]),
-        authorId: String(prayData[p][2]),
-        authorName: String(prayData[p][3]),
-        isAnonymous: Boolean(prayData[p][4]),
-        category: String(prayData[p][5] || 'General Petition'),
-        content: String(prayData[p][6]),
-        prayingCount: Number(prayData[p][7] || 0),
-        isAnswered: Boolean(prayData[p][8]),
-        createdAt: String(prayData[p][9] || '')
+        id: String(getColVal_(prayData[p], prMap, ['prayer_id', 'id'], '')),
+        authorId: String(getColVal_(prayData[p], prMap, ['author_id'], '')),
+        authorName: String(getColVal_(prayData[p], prMap, ['author_name', 'name'], 'Pilgrim')),
+        isAnonymous: Boolean(getColVal_(prayData[p], prMap, ['is_anonymous', 'anonymous'], false)),
+        category: String(getColVal_(prayData[p], prMap, ['category'], 'General Petition')),
+        content: String(getColVal_(prayData[p], prMap, ['content', 'text'], '')),
+        prayingCount: Number(getColVal_(prayData[p], prMap, ['praying_count', 'prayers'], 0)),
+        isAnswered: Boolean(getColVal_(prayData[p], prMap, ['is_answered', 'answered'], false)),
+        createdAt: String(getColVal_(prayData[p], prMap, ['created_at'], ''))
       });
     }
   }
@@ -422,7 +695,7 @@ function handleGetCohort_(ss, payload) {
 }
 
 /**
- * 4. SAVE / UPSERT COHORT & MULTI-USER UPDATES
+ * 5. SAVE / UPSERT COHORT & MULTI-USER UPDATES
  */
 function handleSaveCohort_(ss, payload) {
   var lock = LockService.getScriptLock();
@@ -438,10 +711,12 @@ function handleSaveCohort_(ss, payload) {
     var nowIso = new Date().toISOString();
     var cohortsSheet = ss.getSheetByName(SHEET_NAMES.COHORTS);
     var cohortsData = cohortsSheet.getDataRange().getValues();
+    var cMap = getColumnMap_(cohortsSheet);
     var cohortIndex = -1;
 
     for (var i = 1; i < cohortsData.length; i++) {
-      if (String(cohortsData[i][1] || '').toUpperCase().trim() === inviteCode) {
+      var rCode = String(getColVal_(cohortsData[i], cMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+      if (rCode === inviteCode) {
         cohortIndex = i + 1;
         break;
       }
@@ -457,7 +732,7 @@ function handleSaveCohort_(ss, payload) {
     ];
 
     if (cohortIndex > 0) {
-      cohortsSheet.getRange(cohortIndex, 1, 1, 6).setValues([cohortRow]);
+      cohortsSheet.getRange(cohortIndex, 1, 1, cohortRow.length).setValues([cohortRow]);
     } else {
       cohortsSheet.appendRow(cohortRow);
     }
@@ -466,11 +741,13 @@ function handleSaveCohort_(ss, payload) {
     if (Array.isArray(cohort.members)) {
       var membersSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
       var memData = membersSheet.getDataRange().getValues();
+      var mMap = getColumnMap_(membersSheet);
       var memIndexMap = {};
 
       for (var m = 1; m < memData.length; m++) {
-        if (String(memData[m][0] || '').toUpperCase().trim() === inviteCode) {
-          var mId = String(memData[m][1]);
+        var mInvite = String(getColVal_(memData[m], mMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+        if (mInvite === inviteCode) {
+          var mId = String(getColVal_(memData[m], mMap, ['member_id', 'id'], ''));
           memIndexMap[mId] = m + 1;
         }
       }
@@ -491,7 +768,7 @@ function handleSaveCohort_(ss, payload) {
         ];
 
         if (memIndexMap[mId]) {
-          membersSheet.getRange(memIndexMap[mId], 1, 1, 10).setValues([mRow]);
+          membersSheet.getRange(memIndexMap[mId], 1, 1, mRow.length).setValues([mRow]);
         } else {
           membersSheet.appendRow(mRow);
           memIndexMap[mId] = membersSheet.getLastRow();
@@ -503,11 +780,13 @@ function handleSaveCohort_(ss, payload) {
     if (Array.isArray(cohort.reflections)) {
       var refSheet = ss.getSheetByName(SHEET_NAMES.REFLECTIONS);
       var refData = refSheet.getDataRange().getValues();
+      var rMap = getColumnMap_(refSheet);
       var refIndexMap = {};
 
       for (var r = 1; r < refData.length; r++) {
-        if (String(refData[r][0] || '').toUpperCase().trim() === inviteCode) {
-          var rId = String(refData[r][1]);
+        var rInvite = String(getColVal_(refData[r], rMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+        if (rInvite === inviteCode) {
+          var rId = String(getColVal_(refData[r], rMap, ['reflection_id', 'id'], ''));
           refIndexMap[rId] = r + 1;
         }
       }
@@ -527,7 +806,7 @@ function handleSaveCohort_(ss, payload) {
         ];
 
         if (refIndexMap[rId]) {
-          refSheet.getRange(refIndexMap[rId], 1, 1, 9).setValues([rRow]);
+          refSheet.getRange(refIndexMap[rId], 1, 1, rRow.length).setValues([rRow]);
         } else {
           refSheet.appendRow(rRow);
           refIndexMap[rId] = refSheet.getLastRow();
@@ -539,11 +818,13 @@ function handleSaveCohort_(ss, payload) {
     if (Array.isArray(cohort.prayers)) {
       var praySheet = ss.getSheetByName(SHEET_NAMES.PRAYERS);
       var prayData = praySheet.getDataRange().getValues();
+      var prMap = getColumnMap_(praySheet);
       var prayIndexMap = {};
 
       for (var p = 1; p < prayData.length; p++) {
-        if (String(prayData[p][0] || '').toUpperCase().trim() === inviteCode) {
-          var pId = String(prayData[p][1]);
+        var pInvite = String(getColVal_(prayData[p], prMap, ['invite_code', 'code'], '')).toUpperCase().trim();
+        if (pInvite === inviteCode) {
+          var pId = String(getColVal_(prayData[p], prMap, ['prayer_id', 'id'], ''));
           prayIndexMap[pId] = p + 1;
         }
       }
@@ -564,7 +845,7 @@ function handleSaveCohort_(ss, payload) {
         ];
 
         if (prayIndexMap[pId]) {
-          praySheet.getRange(prayIndexMap[pId], 1, 1, 10).setValues([pRow]);
+          praySheet.getRange(prayIndexMap[pId], 1, 1, pRow.length).setValues([pRow]);
         } else {
           praySheet.appendRow(pRow);
           prayIndexMap[pId] = praySheet.getLastRow();
@@ -576,40 +857,4 @@ function handleSaveCohort_(ss, payload) {
   } finally {
     lock.releaseLock();
   }
-}
-
-/**
- * 5. QUICK PROGRESS SYNC: User + Active Cohort Member Row
- */
-function handleSyncProgress_(ss, payload) {
-  var userId = String(payload.userId || '').trim();
-  var dayNum = Number(payload.dayNumber || 1);
-  var completed = Boolean(payload.completed);
-  var inviteCode = String(payload.inviteCode || '').toUpperCase().trim();
-
-  if (userId) {
-    handleSaveUser_(ss, {
-      userId: userId,
-      progress: [{ dayNumber: dayNum, completed: completed, audioTimestampSec: Number(payload.audioTimestampSec || 0) }]
-    });
-  }
-
-  if (inviteCode && payload.memberMetrics) {
-    var membersSheet = ss.getSheetByName(SHEET_NAMES.MEMBERS);
-    var memData = membersSheet.getDataRange().getValues();
-    for (var m = 1; m < memData.length; m++) {
-      if (String(memData[m][0] || '').toUpperCase().trim() === inviteCode && String(memData[m][1] || '').trim() === userId) {
-        membersSheet.getRange(m + 1, 5, 1, 5).setValues([[
-          Number(payload.memberMetrics.currentDay || dayNum),
-          Number(payload.memberMetrics.completedDaysCount || 0),
-          Number(payload.memberMetrics.streakDays || 0),
-          String(payload.memberMetrics.activityStatus || 'Active Pilgrim'),
-          Number(memData[m][8] || 0)
-        ]]);
-        break;
-      }
-    }
-  }
-
-  return { ok: true, dayNumber: dayNum, completed: completed };
 }

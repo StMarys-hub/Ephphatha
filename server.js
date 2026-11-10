@@ -168,6 +168,25 @@ const server = http.createServer((req, res) => {
           return;
         }
 
+        if (action === 'syncprogress') {
+          if (!global.__LOCAL_USER_DB__) global.__LOCAL_USER_DB__ = {};
+          const userKey = (payload.displayName || payload.userId || 'default').toLowerCase();
+          if (!global.__LOCAL_USER_DB__[userKey]) {
+            global.__LOCAL_USER_DB__[userKey] = { user: { userId: payload.userId }, progressMap: {} };
+          }
+          const dNum = Number(payload.dayNumber || 1);
+          global.__LOCAL_USER_DB__[userKey].progressMap[String(dNum)] = {
+            id: String(dNum),
+            dayNumber: dNum,
+            completed: Boolean(payload.completed),
+            audioTimestampSec: Number(payload.audioTimestampSec || 0),
+            updatedAt: new Date().toISOString()
+          };
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true, data: { dayNumber: dNum, completed: payload.completed } }));
+          return;
+        }
+
         if (action === 'getcohort') {
           const code = (payload.inviteCode || '').toUpperCase().trim();
           const cohort = localCohortStore.get(code) || null;

@@ -79,7 +79,7 @@ function createMasterDatabaseSheet_(systemFolder) {
 
 function ensureMasterSchemaTabs_(ss) {
   var schema = {
-    'Users': ['user_id', 'display_name', 'email_or_contact', 'auth_method', 'streak_days', 'grace_shields', 'active_cohort_code', 'last_active_day', 'updated_at'],
+    'Users': ['user_id', 'display_name', 'email_or_contact', 'auth_method', 'streak_days', 'grace_shields', 'active_cohort_code', 'last_active_day', 'preferred_bible_version', 'lang_preference', 'verse_weight', 'show_latin_vulgate', 'updated_at'],
     'Progress_Logs': ['user_id', 'day_number', 'completed', 'audio_timestamp_sec', 'updated_at'],
     'Fellowship_Cohorts': ['cohort_id', 'invite_code', 'cohort_name', 'created_by_user_id', 'created_at', 'updated_at'],
     'Cohort_Members': ['invite_code', 'member_id', 'name', 'role', 'current_day', 'completed_count', 'streak_days', 'activity_status', 'encouragements', 'updated_at'],

@@ -452,6 +452,36 @@ export default {
         }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
 
+      if (action === 'syncprogress') {
+        const uKey = (payload.displayName || payload.userId || 'pilgrim').toLowerCase().trim();
+        const dNum = Number(payload.dayNumber || payload.day_number || payload.day || 1);
+        const pRecord = {
+          id: String(dNum),
+          dayNumber: dNum,
+          completed: Boolean(payload.completed),
+          audioTimestampSec: Number(payload.audioTimestampSec || payload.audio_timestamp_sec || 0),
+          updatedAt: new Date().toISOString()
+        };
+        edgeProgressMemoryStore.set(`${uKey}_${dNum}`, pRecord);
+
+        // If Google Sheets upstream is configured, forward asynchronously
+        const sheetsUrl = env.GOOGLE_SHEETS_WEBAPP_URL || request.headers.get('X-Google-Sheet-Url');
+        if (sheetsUrl) {
+          try {
+            fetch(sheetsUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify({ action: 'syncProgress', payload })
+            }).catch(() => {});
+          } catch (_) {}
+        }
+
+        return new Response(JSON.stringify({
+          ok: true,
+          data: { dayNumber: dNum, completed: payload.completed }
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
       if (action === 'getcohort') {
         const code = (payload.inviteCode || '').toUpperCase().trim();
         const cohort = edgeCohortMemoryStore.get(code) || null;
