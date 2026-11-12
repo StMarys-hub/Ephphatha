@@ -290,7 +290,7 @@ async function loadDynamicCurriculumManifest() {
           }
           renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
           audioEngine.loadDayAudio(appState.scheduleByDay[appState.selectedDay], 0);
-          pushTelemetryLog('AUTO_DRIVE_DISCOVERY', `Auto-synced ${data.discoveredCount || 0} audio files from Google Drive folder`);
+          pushTelemetryLog('AUTO_DRIVE_DISCOVERY', `Auto-synced ${data.discoveredCount || 0} audio files from audio cloud folder`);
         }
       })
       .catch(() => {});
@@ -1389,8 +1389,8 @@ function renderHomeDashboardView() {
   setText(
     'home-anchor-audio-status',
     isPlaying
-      ? (isEn ? `🔴 Playing YouTube (${durStr})` : `🟢 Playing Drive (${durStr})`)
-      : (isEn ? `EN • YouTube Audio (${durStr})` : `ML • Drive Audio (${durStr})`)
+      ? (isEn ? `🔴 Playing YouTube (${durStr})` : `🟢 Playing ML Audio (${durStr})`)
+      : (isEn ? `EN • YouTube Audio (${durStr})` : `ML Audio (${durStr})`)
   );
   setText(
     'home-anchor-audio-desc',
@@ -1493,9 +1493,9 @@ function wireTelemetryStreams() {
         badgeEl.title = audioState.youtubeTitle || 'The Bible in a Year (with Fr. Mike Schmitz)';
       } else {
         badgeEl.textContent = audioState.isPlaying
-          ? '🟢 Playing Malayalam Audio'
-          : 'ML • Google Drive Audio';
-        badgeEl.title = audioState.http206HeaderStatus || 'Malayalam Daily Audio Stream';
+          ? '🟢 Playing ML Audio'
+          : 'ML Audio';
+        badgeEl.title = audioState.http206HeaderStatus || 'Malayalam Audio Stream';
       }
     }
     renderHomeDashboardView();
@@ -1735,7 +1735,7 @@ function bindGlobalControls() {
 
         if (count > 0) {
           await selectDay(appState.selectedDay);
-          pushTelemetryLog('BULK_AUDIO_MAP_IMPORTED', `Bound ${count} Google Drive audio files across curriculum!`);
+          pushTelemetryLog('BULK_AUDIO_MAP_IMPORTED', `Bound ${count} audio files across curriculum!`);
           alert(`Successfully bound audio for ${count} days!`);
           return;
         }
@@ -1749,7 +1749,7 @@ function bindGlobalControls() {
     if (folderMatch) {
       const folderId = folderMatch[1];
       localStorage.setItem('ephphatha_root_folder_id', folderId);
-      pushTelemetryLog('DRIVE_FOLDER_SCAN', `Scanning Google Drive folder ${folderId} for Day 001..365 audio...`);
+      pushTelemetryLog('DRIVE_FOLDER_SCAN', `Scanning cloud folder ${folderId} for Day 001..365 audio...`);
       try {
         const res = await fetch(`${audioEngine.edgeProxyBaseUrl}/discover/${encodeURIComponent(folderId)}`);
         if (res.ok) {
@@ -1777,7 +1777,7 @@ function bindGlobalControls() {
       daySchedule.gdrive_audio_file_id = cleanId;
       renderDayHeroCard(daySchedule);
       audioEngine.loadDayAudio(daySchedule, 0);
-      pushTelemetryLog('GDRIVE_AUDIO_ID_BOUND', `Bound Day ${appState.selectedDay} to Google Drive ID: ${cleanId}`);
+      pushTelemetryLog('GDRIVE_AUDIO_ID_BOUND', `Bound Day ${appState.selectedDay} to Audio ID: ${cleanId}`);
     }
   });
   // Day Navigation with Auto-Play Continuity (If playing, immediately plays new day)
@@ -2207,7 +2207,7 @@ function bindGlobalControls() {
       setGoogleSheetsSyncUrl(val);
       updateSheetsSyncStatusBadge({ status: 'CONNECTED', title: test.data?.spreadsheetTitle });
       showCloudSyncToast('☁️ Custom Sheet Saved');
-      alert(`✅ Connected to Custom Google Sheet!\nTitle: ${test.data?.spreadsheetTitle || 'Custom_Master_DB'}\n\nYour reading logs and active cohort will now sync to this custom sheet.`);
+      alert(`✅ Connected to Custom Sheet!\nTitle: ${test.data?.spreadsheetTitle || 'Custom_Master_DB'}\n\nYour reading logs and active cohort will now sync to this custom sheet.`);
 
       // If user profile is active, sync immediately
       if (appState.userProfile?.displayName) {
@@ -2216,7 +2216,7 @@ function bindGlobalControls() {
         renderUserProfileBadge();
       }
     } else {
-      alert(`Could not connect to Google Sheet:\n${test.error}\n\nPlease check:\n1. Deployed as Web App with "Who has access: Anyone"\n2. Copied the exact URL ending in /exec`);
+      alert(`Could not connect to Cloud Sheet:\n${test.error}\n\nPlease check:\n1. Deployed as Web App with "Who has access: Anyone"\n2. Copied the exact URL ending in /exec`);
     }
   });
 
@@ -2464,9 +2464,9 @@ async function executeCloudLoginAndRestore(displayNameOrId) {
   appState.userProfile = profile;
   renderUserProfileBadge();
 
-  // Try retrieving user progress & active cohort from Google Sheets Master DB
+  // Try retrieving user progress & active cohort from Master Cloud DB
   const queryKey = profile.displayName || displayNameOrId;
-  setText('user-profile-status-note', `🔄 Querying Google Sheet for "${queryKey}"...`);
+  setText('user-profile-status-note', `🔄 Querying Cloud Sync for "${queryKey}"...`);
 
   try {
     const cloudRes = await loginAndRetrieveUserData(queryKey, profile.credentialIdHex);
@@ -2495,17 +2495,17 @@ async function executeCloudLoginAndRestore(displayNameOrId) {
         note.textContent = `✓ Cloud Sync Active: ${cloudRes.user.displayName} (${cloudRes.completedCount} days synced)`;
         note.style.color = 'var(--text-accent)';
       }
-      alert(`✓ Welcome back, ${cloudRes.user.displayName}!\nRestored ${cloudRes.completedCount} completed reading days and active fellowship cohort from Google Sheet.`);
+      alert(`✓ Welcome back, ${cloudRes.user.displayName}!\nRestored ${cloudRes.completedCount} completed reading days and active fellowship cohort from Cloud Database.`);
     } else {
       // New user or no records found yet in cloud -> push local progress to cloud
       const localMap = getAllRecordsMapSync('progress');
       await syncUserDataToGoogleSheet(profile, localMap);
       const note = document.getElementById('user-profile-status-note');
       if (note) {
-        note.textContent = `✓ Connected: ${profile.displayName} (Profile registered in Google Sheets)`;
+        note.textContent = `✓ Connected: ${profile.displayName} (Profile registered in Cloud Database)`;
         note.style.color = 'var(--text-accent)';
       }
-      pushTelemetryLog('CLOUD_USER_REGISTERED', `Registered profile ${profile.displayName} in Google Sheets`);
+      pushTelemetryLog('CLOUD_USER_REGISTERED', `Registered profile ${profile.displayName} in Cloud Database`);
     }
   } catch (err) {
     pushTelemetryLog('CLOUD_LOGIN_OFFLINE', `Local login completed: ${err.message}`);

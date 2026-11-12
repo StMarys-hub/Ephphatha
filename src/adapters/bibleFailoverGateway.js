@@ -554,14 +554,14 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '', op
         const validated = validateScripturePayload({ ...matched, translation_ml: 'POC' });
         await putRecord('scripture_cache', { id: passageRef, ...validated });
         const elapsed = performance.now() - tStart;
-        emitFailoverTelemetry(3, 'TIER 3: Google Drive Cloud Text Mirror', 'FAILOVER_ACTIVE', passageRef, elapsed, 'Served from Drive CDN Vault');
-        return { ...validated, activeTier: 3, tierBadge: 'Tier 3 • Google Drive Cloud Mirror', latencyMs: elapsed };
+        emitFailoverTelemetry(3, 'TIER 3: Cloud Text Mirror', 'FAILOVER_ACTIVE', passageRef, elapsed, 'Served from Cloud CDN Vault');
+        return { ...validated, activeTier: 3, tierBadge: 'Tier 3 • Cloud Text Mirror', latencyMs: elapsed };
       }
     } catch (t3Err) {
-      emitFailoverTelemetry(3, 'TIER 3: Google Drive Cloud Text Mirror', 'DEGRADED', passageRef, performance.now() - tStart, t3Err.message);
+      emitFailoverTelemetry(3, 'TIER 3: Cloud Text Mirror', 'DEGRADED', passageRef, performance.now() - tStart, t3Err.message);
     }
   } else {
-    emitFailoverTelemetry(3, 'TIER 3: Google Drive Cloud Text Mirror', 'CIRCUIT_OPEN', passageRef, 0.6, 'Simulated Tier-3 Outage');
+    emitFailoverTelemetry(3, 'TIER 3: Cloud Text Mirror', 'CIRCUIT_OPEN', passageRef, 0.6, 'Simulated Tier-3 Outage');
   }
 
   // =========================================================================

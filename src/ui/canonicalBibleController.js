@@ -443,7 +443,7 @@ export async function openCanonicalChapter(pocId, chapterNum) {
         <div style="font-weight: 700; font-size: 1rem; color: var(--text-primary); margin-bottom: 4px;">
           Opening ${book.en} ${ch} • ${book.ml} ${ch}...
         </div>
-        <div style="font-size: 0.8rem;">Retrieving authentic Catholic Malayalam Bible text</div>
+        <div style="font-size: 0.8rem;">Retrieving authentic Malayalam Bible text</div>
       </div>
     `;
   }

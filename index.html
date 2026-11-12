@@ -85,7 +85,7 @@
               <span>Install Ephphatha</span>
               <span class="pwa-badge">App</span>
             </div>
-            <div class="install-banner-sub">1-Tap launch • Offline Catholic Malayalam &amp; English Bible • Full-screen reading</div>
+            <div class="install-banner-sub">1-Tap launch • Offline Malayalam &amp; English Bible • Full-screen reading</div>
           </div>
         </div>
         <div class="install-banner-actions">
@@ -113,13 +113,13 @@
             <span class="home-scripture-motto">"Ephphatha — Be Opened" (Mark 7:34)</span>
           </div>
           <h2 class="home-mission-title">
-            Daily Catholic Scripture Immersion, Audio Reading &amp; Reflection
+            Daily Scripture Immersion, Audio Reading &amp; Reflection
           </h2>
           <p class="home-mission-subtitle lang-ml">
-            ദൈവവചന വായനയും ധ്യാനവും — സമ്പൂർണ്ണ കത്തോലിക്കാ മലയാളം ബൈബിൾ (365 ദിവസത്തെ രക്ഷാചരിത്ര യാത്ര)
+            ദൈവവചന വായനയും ധ്യാനവും — സമ്പൂർണ്ണ മലയാളം ബൈബിൾ (365 ദിവസത്തെ രക്ഷാചരിത്ര യാത്ര)
           </p>
           <p class="home-mission-desc">
-            Walk through the entire <strong>73-Book Catholic Bible in 365 Days</strong> across the 12 Periods of Salvation History. Read side-by-side in <strong>English Bible &amp; Malayalam Bible</strong>, listen to daily <strong>Audio Reading &amp; Reflection</strong> tracks, and record encrypted personal reflections.
+            Walk through the entire <strong>73-Book Bible in 365 Days</strong> across the 12 Periods of Salvation History. Read side-by-side in <strong>English Bible &amp; Malayalam Bible</strong>, listen to daily <strong>Audio Reading &amp; Reflection</strong> tracks, and record encrypted personal reflections.
           </p>
           <div class="home-mission-cta-row">
             <button type="button" class="ergonomic-btn primary-period" id="btn-home-start-reading">
@@ -191,7 +191,7 @@
               </svg>
             </div>
             <div class="home-anchor-body">
-              <div class="home-anchor-tag">73 Catholic Books • Prefix Search</div>
+              <div class="home-anchor-tag">73 Books • Prefix Search</div>
               <div class="home-anchor-title">Bible Search &amp; Canon</div>
               <div class="home-anchor-desc">Instant prefix lookup (A*) across Old &amp; New Testaments in English &amp; Malayalam Bible</div>
             </div>
@@ -404,7 +404,7 @@
               <span>Holy Scripture • വിശുദ്ധ ഗ്രന്ഥം</span>
             </div>
             <p class="bible-hero-subtitle">
-              73 Books of the Catholic Canon in Sacred Order — Read sequentially in English and Malayalam Bible, with Latin Vulgate.
+              73 Books in Sacred Order — Read sequentially in English and Malayalam Bible, with Latin Vulgate.
             </p>
             <div class="bible-resume-banner hidden" id="bible-resume-banner">
               <div>
@@ -768,23 +768,39 @@
        ======================================================================== -->
   <div class="modal-backdrop hidden" id="settings-drawer-backdrop" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title">
     <aside class="slide-over-drawer">
-      <div class="section-header-row" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.65rem;">
-        <h3 id="settings-drawer-title">⚙️ Settings & System Configuration</h3>
-        <button type="button" class="verse-icon-btn" id="btn-close-settings-drawer">✕ Close</button>
+      <!-- Modern Sticky Drawer Header -->
+      <div class="drawer-header-modern">
+        <div class="drawer-header-brand">
+          <div class="drawer-header-icon-box">⚙️</div>
+          <div>
+            <h3 class="drawer-header-title" id="settings-drawer-title">Settings</h3>
+            <div class="drawer-header-subtitle">Preferences &amp; System Configuration</div>
+          </div>
+        </div>
+        <button type="button" class="drawer-close-pill-btn" id="btn-close-settings-drawer" aria-label="Close Settings Drawer">
+          <span>✕</span>
+        </button>
       </div>
 
-      <!-- 1. Account & Cloud Sync Status -->
-      <div class="drawer-section">
-        <div class="context-item-label">Pilgrim Profile &amp; Cloud Sync</div>
+      <!-- 1. Account & Pilgrim Profile -->
+      <div class="drawer-section settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon-wrap user-icon">👤</div>
+          <div class="settings-card-title-wrap">
+            <div class="settings-card-title">Pilgrim Profile &amp; Account</div>
+            <div class="settings-card-subtitle">Sync reading across all your devices</div>
+          </div>
+        </div>
         
-        <!-- Signed-in State Card (shown when user is logged in) -->
+        <!-- Signed-in State Card -->
         <div id="drawer-account-signed-in" class="account-profile-summary hidden">
           <div class="account-name-badge">
             <div class="account-avatar" id="drawer-user-avatar">P</div>
             <div style="flex: 1;">
-              <h4 id="drawer-user-name" style="margin: 0; font-size: 1rem; color: var(--text-primary);">Pilgrim</h4>
-              <div id="drawer-user-contact" style="font-size: 0.76rem; color: var(--text-secondary);">Local Sanctuary</div>
+              <h4 id="drawer-user-name" style="margin: 0; font-size: 1rem; color: var(--text-primary); font-weight: 700;">Pilgrim</h4>
+              <div id="drawer-user-contact" style="font-size: 0.78rem; color: var(--text-secondary);">Local Sanctuary</div>
             </div>
+            <span class="cloud-status-pill online"><span class="pulse-dot"></span> Active</span>
           </div>
           <div class="account-stats-row">
             <div class="account-stat-box">
@@ -796,133 +812,167 @@
               <div class="account-stat-value" id="drawer-user-streak">0 Days</div>
             </div>
           </div>
-          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-            <span style="font-size: 0.78rem; color: #2ea043; font-weight: 600;">🟢 Cloud Sync Active</span>
-            <div style="display: flex; gap: 6px;">
-              <button type="button" class="verse-icon-btn" id="btn-drawer-sync-now" title="Refresh &amp; Sync Now">🔄 Sync</button>
-              <button type="button" class="verse-icon-btn" id="btn-drawer-sign-out" title="Sign out of this device" style="color: #ef4444;">🚪 Sign Out</button>
-            </div>
+          <div class="account-actions-row">
+            <button type="button" class="settings-action-btn primary" id="btn-drawer-sync-now" title="Refresh &amp; Sync Now">
+              🔄 Sync Now
+            </button>
+            <button type="button" class="settings-action-btn danger" id="btn-drawer-sign-out" title="Sign out of this device">
+              🚪 Sign Out
+            </button>
           </div>
         </div>
 
-        <!-- Signed-out State Card (shown when user is guest) -->
+        <!-- Signed-out State Card -->
         <div id="drawer-account-guest" class="account-profile-summary">
-          <p style="margin: 0; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.45;">
+          <p class="settings-card-desc">
             Sign in or create an account to save your 365-day reading progress and sync with your parish fellowship across all your phones, tablets, and computers.
           </p>
-          <button type="button" class="ergonomic-btn primary-period" id="btn-open-auth-modal" style="width: 100%; justify-content: center; margin-top: 4px;">
-            Sign In or Create Account
+          <button type="button" class="ergonomic-btn primary-period settings-cta-btn" id="btn-open-auth-modal">
+            <span>👤 Sign In or Create Account</span>
           </button>
         </div>
       </div>
 
-      <!-- 2. Google Sheets Master Database & Cloud Sync -->
-      <div class="drawer-section" id="drawer-sheets-sync-section">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div class="context-item-label">Cloud Backup &amp; Sync</div>
+      <!-- 2. Cloud Backup & Sync -->
+      <div class="drawer-section settings-card" id="drawer-sheets-sync-section">
+        <div class="settings-card-header">
+          <div class="settings-card-icon-wrap cloud-icon">☁️</div>
+          <div class="settings-card-title-wrap">
+            <div class="settings-card-title">Cloud Backup &amp; Live Sync</div>
+            <div class="settings-card-subtitle">Zero-config automated persistence</div>
+          </div>
           <span class="crypto-badge" id="sheets-sync-status-badge">🟢 Connected</span>
         </div>
-        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.35rem 0 0.5rem 0; line-height: 1.4;">
-          Your 365-day reading progress, audio bookmarks, and fellowship are automatically backed up to the Ephphatha master cloud database. No configuration needed.
+        <p class="settings-card-desc">
+          Your 365-day reading progress, audio bookmarks, and fellowship are automatically backed up to the Ephphatha master cloud database.
         </p>
 
-        <div style="display: flex; gap: 8px; margin-top: 6px;">
-          <button type="button" class="verse-icon-btn" id="btn-test-sheets-connection" style="flex: 1; justify-content: center; font-size: 0.82rem;">
-            ⚡ Check Cloud Status
-          </button>
-        </div>
+        <button type="button" class="settings-action-btn secondary" id="btn-test-sheets-connection" style="width: 100%; justify-content: center; margin-top: 8px;">
+          ⚡ Check Cloud Status
+        </button>
 
         <!-- Advanced Custom Parish Sheet (Collapsed) -->
-        <details style="margin-top: 10px; font-size: 0.78rem; color: var(--text-secondary);">
-          <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.76rem; user-select: none;">
-            ⚙️ Custom Parish Sheet (Advanced Override)
+        <details class="settings-custom-details">
+          <summary class="settings-custom-summary">
+            <span>⚙️ Custom Parish Sheet (Advanced Override)</span>
+            <span class="summary-chevron">▾</span>
           </summary>
-          <div style="margin-top: 8px; padding: 8px; border: 1px solid var(--border-subtle); border-radius: 8px; background: rgba(0,0,0,0.15);">
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 6px 0;">
-              Parishes wishing to route logs to their own private Google Sheet can paste their Web App URL below:
+          <div class="settings-custom-body">
+            <p style="font-size: 0.76rem; color: var(--text-secondary); margin: 0 0 6px 0; line-height: 1.4;">
+              Parishes wishing to route logs to their own private Cloud Sheet can paste their Web App URL below:
             </p>
             <input
               type="url"
               id="input-sheets-sync-url"
               class="sanctuary-input"
-              style="font-size: 0.78rem; padding: 0.4rem 0.6rem; width: 100%; box-sizing: border-box;"
-              placeholder="https://script.google.com/macros/s/.../exec" />
-            <div style="display: flex; gap: 6px; margin-top: 6px;">
-              <button type="button" class="ergonomic-btn primary-period" id="btn-save-sheets-sync-url" style="flex: 1; justify-content: center; font-size: 0.76rem;">
+              style="font-size: 0.78rem; padding: 0.45rem 0.65rem; width: 100%; box-sizing: border-box;"
+              placeholder="https://.../macros/s/.../exec" />
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+              <button type="button" class="ergonomic-btn primary-period" id="btn-save-sheets-sync-url" style="flex: 1; justify-content: center; font-size: 0.78rem;">
                 🔗 Save Custom Sheet
               </button>
-              <button type="button" class="verse-icon-btn" id="btn-reset-sheets-sync-url" style="flex: 1; justify-content: center; font-size: 0.76rem;">
-                🔄 Reset to Default
+              <button type="button" class="verse-icon-btn" id="btn-reset-sheets-sync-url" style="flex: 1; justify-content: center; font-size: 0.78rem;">
+                🔄 Reset Default
               </button>
             </div>
             <div style="margin-top: 6px; text-align: right;">
-              <a href="./setup-guide.html#step-google-sheet" target="_blank" rel="noopener" style="font-size: 0.72rem; color: var(--text-accent); text-decoration: none;">
-                📘 Setup Guide for Parishes
+              <a href="./setup-guide.html#step-cloud-sheet" target="_blank" rel="noopener" style="font-size: 0.74rem; color: var(--period-color); text-decoration: none; font-weight: 600;">
+                📘 Setup Guide for Parishes ↗
               </a>
             </div>
           </div>
         </details>
       </div>
 
-      <!-- 3. Scripture Translation & Language Display Settings -->
-      <div class="drawer-section">
-        <div class="context-item-label">Scripture Translation &amp; Languages</div>
-        
-        <div style="margin-top: 8px;">
-          <label class="auth-input-label" for="select-primary-bible-version">Primary Bible Translation (Saved to Account)</label>
-          <select id="select-primary-bible-version" class="sanctuary-input">
-            <option value="POC">POC Bible — പി.ഒ.സി. (Official Catholic Malayalam + English)</option>
-            <option value="RSV2CE">RSV-2CE (Revised Standard Version Catholic Edition)</option>
-            <option value="BSB">BSB (Berean Standard Bible)</option>
-            <option value="WEB">WEB (World English Bible)</option>
-          </select>
-        </div>
-
-        <div style="margin-top: 10px;">
-          <label class="auth-input-label" for="select-reading-languages">Default Display Languages</label>
-          <select id="select-reading-languages" class="sanctuary-input">
-            <option value="bilingual">Bilingual: English + Malayalam (Default)</option>
-            <option value="ml">Malayalam Only (പി.ഒ.സി. ബൈബിൾ മാത്രം)</option>
-            <option value="en">English Only</option>
-          </select>
-        </div>
-
-        <div style="margin-top: 10px;">
-          <label class="auth-input-label" for="select-verse-weight">Scripture Text Weight (Typography)</label>
-          <select id="select-verse-weight" class="sanctuary-input">
-            <option value="strong">Sturdy &amp; Strong (High Contrast Readability — Recommended)</option>
-            <option value="regular">Regular Weight</option>
-            <option value="bold">Extra Bold (Deep Contrast)</option>
-          </select>
-        </div>
-
-        <div style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <div style="font-size: 0.84rem; color: var(--text-primary); font-weight: 600;">Ancient Latin Vulgate</div>
-            <div style="font-size: 0.74rem; color: var(--text-secondary);">Show Nova Vulgata under verses (Default: Off)</div>
+      <!-- 3. Scripture Translation & Languages -->
+      <div class="drawer-section settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon-wrap bible-icon">📖</div>
+          <div class="settings-card-title-wrap">
+            <div class="settings-card-title">Scripture Translation &amp; Display</div>
+            <div class="settings-card-subtitle">Version, languages &amp; font styling</div>
           </div>
-          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-            <input type="checkbox" id="chk-show-latin-vulgate" style="width: 18px; height: 18px;" />
+        </div>
+        
+        <div class="settings-field-group">
+          <label class="settings-field-label" for="select-primary-bible-version">
+            <span>Primary Bible Translation</span>
+          </label>
+          <div class="settings-select-wrap">
+            <select id="select-primary-bible-version" class="sanctuary-input settings-custom-select">
+              <option value="POC">POC Bible — പി.ഒ.സി. (Official Catholic Malayalam + English)</option>
+              <option value="RSV2CE">RSV-2CE (Revised Standard Version Catholic Edition)</option>
+              <option value="BSB">BSB (Berean Standard Bible)</option>
+              <option value="WEB">WEB (World English Bible)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-field-group">
+          <label class="settings-field-label" for="select-reading-languages">
+            <span>Default Reading Mode</span>
+          </label>
+          <div class="settings-select-wrap">
+            <select id="select-reading-languages" class="sanctuary-input settings-custom-select">
+              <option value="bilingual">Bilingual: English + Malayalam (Default)</option>
+              <option value="ml">Malayalam Only (പി.ഒ.സി. ബൈബിൾ മാത്രം)</option>
+              <option value="en">English Only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-field-group">
+          <label class="settings-field-label" for="select-verse-weight">
+            <span>Typography Text Contrast</span>
+          </label>
+          <div class="settings-select-wrap">
+            <select id="select-verse-weight" class="sanctuary-input settings-custom-select">
+              <option value="strong">Sturdy &amp; Strong (High Contrast Readability — Recommended)</option>
+              <option value="regular">Regular Weight</option>
+              <option value="bold">Extra Bold (Deep Contrast)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-toggle-row">
+          <div class="toggle-text-wrap">
+            <div class="toggle-title">Ancient Latin Vulgate</div>
+            <div class="toggle-desc">Show Nova Vulgata text under verses (Default: Off)</div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="chk-show-latin-vulgate" />
+            <span class="ios-slider"></span>
           </label>
         </div>
       </div>
 
-      <!-- 3. Audio Reading & Reflection Preferences -->
-      <div class="drawer-section">
-        <div class="context-item-label">🎧 Audio Reading &amp; Reflection Preferences</div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
-          <span style="font-size: 0.85rem;">Daily Audio Track</span>
+      <!-- 4. Audio Reading & Reflection Preferences -->
+      <div class="drawer-section settings-card">
+        <div class="settings-card-header">
+          <div class="settings-card-icon-wrap audio-icon">🎧</div>
+          <div class="settings-card-title-wrap">
+            <div class="settings-card-title">Audio Reading &amp; Reflection</div>
+            <div class="settings-card-subtitle">Daily voice &amp; playback controls</div>
+          </div>
           <span class="crypto-badge" id="audio-setting-badge">HD Stream Ready</span>
         </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
-          <span style="font-size: 0.85rem;">Audio Source</span>
+
+        <div class="settings-row-item">
+          <div>
+            <div class="settings-item-title">Language Voice Track</div>
+            <div class="settings-item-sub">Choose between Malayalam or English voice</div>
+          </div>
           <div class="audio-lang-toggle" id="drawer-audio-lang-toggle" role="group" aria-label="Audio Language Selection">
-            <button type="button" class="lang-pill-btn active" id="btn-drawer-lang-ml" data-lang="ml">ML (Drive)</button>
-            <button type="button" class="lang-pill-btn" id="btn-drawer-lang-en" data-lang="en">EN (YouTube)</button>
+            <button type="button" class="lang-pill-btn active" id="btn-drawer-lang-ml" data-lang="ml">ML</button>
+            <button type="button" class="lang-pill-btn" id="btn-drawer-lang-en" data-lang="en">EN</button>
           </div>
         </div>
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
-          <span style="font-size: 0.85rem;">Playback Speed</span>
+
+        <div class="settings-row-item">
+          <div>
+            <div class="settings-item-title">Playback Speed</div>
+            <div class="settings-item-sub">Speech narration tempo</div>
+          </div>
           <div class="lang-mode-group">
             <button type="button" class="lang-mode-btn" data-set-speed="1">1x</button>
             <button type="button" class="lang-mode-btn" data-set-speed="1.15">1.15x</button>
@@ -931,32 +981,38 @@
         </div>
       </div>
 
-      <!-- 4. Progressive Web App (PWA) Installation -->
-      <div class="drawer-section" id="drawer-pwa-section">
-        <div class="context-item-label">📱 Install App on Device</div>
-        <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0.35rem 0 0.65rem 0; line-height: 1.4;">
-          Install Ephphatha as a standalone application on your mobile device, tablet, or desktop for 1-tap launch, full-screen reading without browser bars, and 100% offline access.
-        </p>
-        <button type="button" class="ergonomic-btn primary-period" id="btn-drawer-install-pwa" style="width: 100%; justify-content: center; padding: 0.65rem; font-weight: 700;">
-          📲 Install Ephphatha App
-        </button>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-          <button type="button" class="verse-icon-btn" id="btn-drawer-open-qr" style="width: 100%; justify-content: center; padding: 0.6rem; font-weight: 600;">
-            📷 Share Install Link with QR Code
-          </button>
+      <!-- 5. Progressive Web App (PWA) Installation -->
+      <div class="drawer-section settings-card" id="drawer-pwa-section">
+        <div class="settings-card-header">
+          <div class="settings-card-icon-wrap pwa-icon">📱</div>
+          <div class="settings-card-title-wrap">
+            <div class="settings-card-title">Install App on Device</div>
+            <div class="settings-card-subtitle">Full-screen &amp; offline readiness</div>
+          </div>
         </div>
-        <div id="pwa-install-hint" style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; margin-top: 0.5rem;">
+        <p class="settings-card-desc">
+          Install Ephphatha on your phone, tablet, or desktop for 1-tap launch, full-screen reading without browser bars, and 100% offline access.
+        </p>
+        <button type="button" class="ergonomic-btn primary-period settings-cta-btn" id="btn-drawer-install-pwa">
+          <span>📲 Install Ephphatha App</span>
+        </button>
+        <button type="button" class="settings-action-btn secondary" id="btn-drawer-open-qr" style="width: 100%; justify-content: center; margin-top: 8px;">
+          📷 Share Install Link with QR Code
+        </button>
+        <div id="pwa-install-hint" style="font-size: 0.74rem; color: var(--text-muted); text-align: center; margin-top: 8px;">
           You can also tap the browser menu (⋮) and select <strong>"Install page as app..."</strong> or <strong>"Install Ephphatha"</strong>.
         </div>
       </div>
 
-      <!-- 5. Advanced Diagnostics (Developer Only - Collapsed by Default) -->
-      <details class="context-accordion" style="opacity: 0.75;">
-        <summary class="context-summary-trigger">
-          <span>⚙️ Advanced Diagnostics (Developer Only)</span>
+      <!-- 6. Advanced Diagnostics (Developer Only - Collapsed) -->
+      <details class="settings-details-group">
+        <summary class="settings-details-summary">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>🛠️ Advanced Diagnostics &amp; Telemetry</span>
+          </div>
           <span class="crypto-badge" id="reader-tier-badge">Tier 1</span>
         </summary>
-        <div class="context-body">
+        <div class="settings-details-content">
           <div class="inspector-metric-grid">
             <div class="metric-box">
               <div class="context-item-label">Storage Latency</div>
@@ -975,56 +1031,15 @@
               <div class="metric-val" id="metric-outbox-count">0 queued</div>
             </div>
           </div>
-          <div style="display: flex; gap: 4px; margin-top: 6px;">
+          <div style="display: flex; gap: 6px; margin-top: 8px;">
             <input
               type="text"
               id="input-day-gdrive-id"
               class="sanctuary-input"
-              style="padding: 0.35rem 0.5rem; font-size: 0.75rem;"
-              placeholder="Override Audio ID..." />
+              style="padding: 0.4rem 0.6rem; font-size: 0.76rem;"
+              placeholder="Override Audio Track ID..." />
             <button type="button" class="verse-icon-btn" id="btn-set-day-gdrive-id">Set ID</button>
           </div>
-          <div style="margin-top: 6px;">
-            <input
-              type="url"
-              id="input-sheets-sync-url"
-              class="sanctuary-input"
-              style="padding: 0.35rem 0.5rem; font-size: 0.75rem;"
-              placeholder="Custom Web App URL Override..." />
-            <div style="display: flex; gap: 4px; margin-top: 4px;">
-              <button type="button" class="verse-icon-btn" id="btn-save-sheets-sync-url">Save URL</button>
-              <button type="button" class="verse-icon-btn" id="btn-test-sheets-connection">Test</button>
-            </div>
-          </div>
-        </div>
-      </details>
-
-      <!-- 6. System Telemetry & Failover Diagnostics (Developer Only) -->
-      <details class="context-accordion" style="opacity: 0.75; margin-top: 8px;">
-        <summary class="context-summary-trigger">
-          <span>🛡️ System Telemetry & Failover Diagnostics</span>
-          <span class="crypto-badge" id="reader-tier-badge">Tier 1</span>
-        </summary>
-        <div class="context-body">
-          <div class="inspector-metric-grid">
-            <div class="metric-box">
-              <div class="context-item-label">IndexedDB Write</div>
-              <div class="metric-val" id="metric-idb-latency">0.18 ms</div>
-            </div>
-            <div class="metric-box">
-              <div class="context-item-label">Bible API Tier</div>
-              <div class="metric-val" id="metric-active-tier">Tier 1</div>
-            </div>
-            <div class="metric-box">
-              <div class="context-item-label">Rate Limiter</div>
-              <div class="metric-val" id="metric-rate-tokens">30 / 30 rpm</div>
-            </div>
-            <div class="metric-box">
-              <div class="context-item-label">Sync Outbox</div>
-              <div class="metric-val" id="metric-outbox-count">0 pending</div>
-            </div>
-          </div>
-
           <div style="margin: 0.5rem 0;">
             <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; margin-bottom: 0.2rem;">
               <input type="checkbox" id="chk-fail-t1" /> Simulate Tier 1 Outage
@@ -1036,13 +1051,11 @@
               <input type="checkbox" id="chk-fail-t3" /> Simulate Tier 3 Outage (Offline Vault)
             </label>
           </div>
-
           <div style="display: flex; gap: 0.35rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
             <button type="button" class="verse-icon-btn" id="btn-flush-outbox-now">☁️ Flush Sync</button>
             <button type="button" class="verse-icon-btn" id="btn-test-xss-shield">🧪 Test XSS Guard</button>
             <button type="button" class="verse-icon-btn" id="btn-simulate-crdt-merge">🔄 CRDT Merge</button>
           </div>
-
           <div class="context-item-label" style="margin-bottom: 0.25rem;">
             HMAC: <span id="metric-hmac-sig" style="font-family: var(--font-mono);">Verified</span>
           </div>
@@ -1078,9 +1091,9 @@
 
       <button type="button" class="audio-mini-btn" id="btn-audio-fwd-15" title="Forward 15s">+15s</button>
 
-      <!-- Compact Audio Language Toggle: ML (Google Drive) | EN (YouTube) -->
+      <!-- Compact Audio Language Toggle: ML | EN (YouTube) -->
       <div class="audio-lang-toggle" id="audio-lang-toggle" role="group" aria-label="Audio Language">
-        <button type="button" class="lang-pill-btn active" id="btn-audio-lang-ml" data-lang="ml" title="Malayalam Audio (Google Drive)">ML</button>
+        <button type="button" class="lang-pill-btn active" id="btn-audio-lang-ml" data-lang="ml" title="Malayalam Audio (ML)">ML</button>
         <button type="button" class="lang-pill-btn" id="btn-audio-lang-en" data-lang="en" title="English Audio (YouTube - Fr. Mike Schmitz)">EN</button>
       </div>
 
@@ -1101,7 +1114,7 @@
         </svg>
         <span>Reading</span>
       </button>
-      <button type="button" class="tab-nav-btn" data-nav-tab="bible" title="Catholic Bible Search & 73 Books">
+      <button type="button" class="tab-nav-btn" data-nav-tab="bible" title="Bible Search & 73 Books">
         <svg class="nav-tab-svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H13"/>
           <path d="M6.5 2H19v9"/>
@@ -1317,7 +1330,7 @@
 
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.5.5';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.5.6';
 
     window.selectJumpDay = (d) => selectDay(d);
 

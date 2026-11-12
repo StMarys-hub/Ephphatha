@@ -189,7 +189,7 @@ export class EphphathaAudioEngine {
       http206HeaderStatus: isEn
         ? `🔴 EN • Fr. Mike Schmitz (The Bible in a Year)`
         : (this.usingEdgeStream
-          ? `🟢 Google Drive HTTP 206 Stream (${this.currentFileId.slice(0, 8)}...)`
+          ? `🟢 ML Audio Stream (${this.currentFileId.slice(0, 8)}...)`
           : `HTTP 206 • Day ${this.prefetchedNextDay || 2} Pre-Cached`)
     };
   }
