@@ -195,8 +195,9 @@ export class EphphathaAudioEngine {
   }
 
   loadDayAudio(daySchedule, savedTimestampSec = 0, autoPlay = false) {
-    const wasPlaying = this.isPlaying || autoPlay;
-    if (this.isPlaying && !wasPlaying) this.pause();
+    const wasPlaying = this.isPlaying || Boolean(autoPlay);
+    // Always stop and cleanly reset state before loading a new day's audio
+    this.pause();
 
     this.lastLoadedSchedule = daySchedule;
     this.currentDay = daySchedule.day_number;
@@ -212,13 +213,12 @@ export class EphphathaAudioEngine {
       const audioUrl = enData.audio_url;
       if (this.htmlAudio.src !== audioUrl) {
         this.htmlAudio.src = audioUrl;
-        this.htmlAudio.load();
       }
       this.htmlAudio.playbackRate = this.playbackRate;
 
       this.setupMediaSession(daySchedule);
       if (wasPlaying) {
-        this.play();
+        this.play(true);
       }
       this.emit();
       return;
@@ -237,7 +237,6 @@ export class EphphathaAudioEngine {
       const streamUrl = `${this.edgeProxyBaseUrl}/audio/${encodeURIComponent(this.currentFileId)}`;
       if (this.htmlAudio.src !== streamUrl) {
         this.htmlAudio.src = streamUrl;
-        this.htmlAudio.load();
       }
       this.htmlAudio.playbackRate = this.playbackRate;
     } else {
@@ -246,7 +245,7 @@ export class EphphathaAudioEngine {
 
     this.setupMediaSession(daySchedule);
     if (wasPlaying) {
-      this.play();
+      this.play(true);
     }
     this.emit();
   }
@@ -321,17 +320,21 @@ export class EphphathaAudioEngine {
     } catch (_) { /* ignore */ }
   }
 
-  async play() {
-    if (this.isPlaying) return;
+  async play(force = false) {
+    if (this.isPlaying && !force && this.htmlAudio && !this.htmlAudio.paused) return;
     this.isPlaying = true;
     this.stopAmbientSanctuaryPad();
 
-    if (this.usingEdgeStream && this.htmlAudio.src) {
+    if (this.usingEdgeStream && this.htmlAudio && this.htmlAudio.src) {
       try {
         await this.htmlAudio.play();
         this.emit();
         return;
       } catch (err) {
+        if (err.name === 'AbortError') {
+          // Play request was superseded by a newer track selection; safe to ignore
+          return;
+        }
         console.warn('[Ephphatha Audio] Play error:', err);
         // Try local `/audio/<ID>` proxy fallback for ML before falling back to synth
         if (this.activeAudioSource === 'ml' && !this.triedLocalProxyFallback && this.currentFileId) {
