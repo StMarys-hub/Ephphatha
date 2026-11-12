@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ephphatha — Alpha & Omega (Α & Ω) App Icon Design Showcase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card-bg: rgba(22, 30, 46, 0.85);
+      --card-border: rgba(148, 163, 184, 0.15);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --gold-1: #fde68a;
+      --gold-2: #f59e0b;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      padding: 32px 20px 80px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: var(--gold-1);
+      padding: 4px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--gold-1) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 720px;
+      margin: 0 auto 16px;
+    }
+    .scripture-quote {
+      font-family: 'Crimson Pro', serif;
+      font-style: italic;
+      color: var(--gold-1);
+      font-size: 1.15rem;
+      background: rgba(30, 41, 59, 0.6);
+      border-left: 3px solid var(--gold-2);
+      padding: 10px 18px;
+      border-radius: 6px;
+      display: inline-block;
+      max-width: 820px;
+      margin-bottom: 24px;
+    }
+    .scripture-quote cite {
+      display: block;
+      font-size: 0.88rem;
+      font-style: normal;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-family: 'Inter', sans-serif;
+    }
+    
+    /* Grid of 4 Design Concepts */
+    .designs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      margin-bottom: 50px;
+    }
+    .design-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      transition: all 0.25s ease;
+      backdrop-filter: blur(12px);
+    }
+    .design-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(245, 158, 11, 0.4);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    }
+    .design-tag {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .tag-recommended {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--gold-1);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+    .icon-preview-wrap {
+      width: 160px;
+      height: 160px;
+      margin: 20px 0 16px;
+      filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
+    }
+    .icon-preview-wrap svg {
+      width: 100%;
+      height: 100%;
+      border-radius: 36px;
+    }
+    .design-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .design-desc {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      flex-grow: 1;
+    }
+    .theology-point {
+      font-size: 0.78rem;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #cbd5e1;
+      text-align: left;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .theology-point strong {
+      color: var(--gold-1);
+    }
+    .scale-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 10px 0 4px;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      width: 100%;
+    }
+    .scale-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+    }
+
+    /* Mobile Home Screen Simulation */
+    .mobile-mockup-section {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 32px 24px;
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .mockup-grid {
+      display: flex;
+      justify-content: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+    .app-icon-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .app-icon-item .sim-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 14px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+    .app-icon-item span {
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="badge">👑 Divine Scripture Iconography</div>
+      <h1>Alpha &amp; Omega (Α &amp; Ω) App Icon Enhancement</h1>
+      <p class="subtitle">
+        In Biblical revelation, <strong>Alpha and Omega (ആൽഫയും ഒമേഗയും)</strong> is the supreme divine title of Almighty God and Jesus Christ as the eternal Lord of history.
+      </p>
+      <div class="scripture-quote">
+        "I am the Alpha and the Omega, the First and the Last, the Beginning and the End."
+        <cite>— Revelation 22:13 • വെളിപാട് 22:13 ("ഞാന്‍ ആല്‍ഫയും ഒമേഗയും, ഒന്നാമനും ഒടുക്കത്തവനും, ആദിയും അന്തവുമാകുന്നു")</cite>
+      </div>
+    </header>
+
+    <!-- 4 Design Variations -->
+    <div class="designs-grid">
+
+      <!-- OPTION 1: Two Sacred Open Pages (Left: Α, Right: Ω) -->
+      <div class="design-card">
+        <span class="design-tag tag-recommended">Option 1 • Recommended</span>
+        <div class="icon-preview-wrap">
+          <svg viewBox="0 0 512 512" width="100%" height="100%">
+            <defs>
+              <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1E293B" />
+                <stop offset="50%" stop-color="#0F172A" />
+                <stop offset="100%" stop-color="#020617" />
+              </linearGradient>
+              <radialGradient id="halo1" cx="50%" cy="45%" r="50%">
+                <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.35" />
+                <stop offset="50%" stop-color="#818CF8" stop-opacity="0.15" />
+                <stop offset="100%" stop-color="#0F172A" stop-opacity="0" />
+              </radialGradient>
+              <linearGradient id="gold1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FDE68A" />
+                <stop offset="50%" stop-color="#F59E0B" />
+                <stop offset="100%" stop-color="#D97706" />
+              </linearGradient>
+              <linearGradient id="pgL1" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#F8FAFC" />
+                <stop offset="100%" stop-color="#CBD5E1" />
+              </linearGradient>
+              <linearGradient id="pgR1" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#CBD5E1" />
+                <stop offset="100%" stop-color="#F8FAFC" />
+              </linearGradient>
+              <filter id="glow1">
+                <feGaussianBlur stdDeviation="6" result="b" />
+                <feComposite in="SourceGraphic" in2="b" operator="over" />
+              </filter>
+            </defs>
+            <rect width="512" height="512" rx="112" fill="url(#bg1)" />
+            <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#gold1)" stroke-width="3" stroke-opacity="0.4" />
+            <circle cx="256" cy="245" r="185" fill="url(#halo1)" />
+            <!-- Cross Rays -->
+            <g stroke="url(#gold1)" stroke-width="2.5" stroke-linecap="round" opacity="0.6">
+              <line x1="256" y1="75" x2="256" y2="110" />
+              <line x1="210" y1="88" x2="222" y2="118" />
+              <line x1="302" y1="88" x2="290" y2="118" />
+              <line x1="172" y1="120" x2="194" y2="142" />
+              <line x1="340" y1="120" x2="318" y2="142" />
+            </g>
+            <!-- Cross -->
+            <g filter="url(#glow1)">
+              <rect x="250" y="112" width="12" height="62" rx="3" fill="url(#gold1)" />
+              <rect x="236" y="128" width="40" height="10" rx="2" fill="url(#gold1)" />
+            </g>
+            <!-- Book Cover -->
+            <g transform="translate(0, 10)">
+              <path d="M 100,345 C 170,360 240,340 256,335 C 272,340 342,360 412,345 L 412,365 C 342,380 272,360 256,355 C 240,360 170,380 100,365 Z" fill="#92400E" />
+              <!-- Left Page (Genesis / Beginning) with Alpha -->
+              <path d="M 105,210 C 170,195 235,210 252,228 L 252,345 C 235,328 170,315 105,330 Z" fill="url(#pgL1)" />
+              <text x="178" y="292" font-family="'Crimson Pro', Georgia, serif" font-size="76" font-weight="800" fill="url(#gold1)" text-anchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))">Α</text>
+              <line x1="125" y1="312" x2="230" y2="310" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round" />
+              
+              <!-- Right Page (Revelation / End) with Omega -->
+              <path d="M 407,210 C 342,195 277,210 260,228 L 260,345 C 277,328 342,315 407,330 Z" fill="url(#pgR1)" />
+              <text x="334" y="292" font-family="'Crimson Pro', Georgia, serif" font-size="76" font-weight="800" fill="url(#gold1)" text-anchor="middle" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.25))">Ω</text>
+              <line x1="282" y1="310" x2="387" y2="312" stroke="#94A3B8" stroke-width="2.5" stroke-linecap="round" />
+              
+              <!-- Ribbon & Center Cross Seal -->
+              <path d="M 252,226 Q 256,224 260,226 L 260,380 L 256,370 L 252,380 Z" fill="#DC2626" />
+              <circle cx="256" cy="275" r="22" fill="#0F172A" stroke="url(#gold1)" stroke-width="2.5" />
+              <!-- Miniature Cross in Center Seal -->
+              <rect x="254" y="261" width="4" height="28" rx="1" fill="url(#gold1)" />
+              <rect x="246" y="268" width="20" height="4" rx="1" fill="url(#gold1)" />
+            </g>
+            <text x="256" y="440" font-family="system-ui, sans-serif" font-size="34" font-weight="800" letter-spacing="4" fill="#F8FAFC" text-anchor="middle">EPHPHATHA</text>
+            <text x="256" y="470" font-family="'Manjari', sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#38BDF8" text-anchor="middle">എഫ്ഫാത്താ • BE OPENED</text>
+          </svg>
+        </div>
+        <h3 class="design-title">Two Sacred Pages</h3>
+        <p class="design-desc">
+          Illuminated golden <strong>Α</strong> on the left page (Beginning / Creation) and golden <strong>Ω</strong> on the right page (End / Consummation), united by Christ's central red ribbon and cross.
+        </p>
+        <div class="theology-point">
+          <strong>Visual Impact:</strong> Opening the app is literally opening God's Word from Genesis to Revelation. Highest readability on phone screens.
+        </div>
+        <div class="scale-row">
+          <div class="scale-item"><span>64px</span><div style="width:24px;height:24px;border-radius:6px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:10px;color:#f59e0b;font-weight:bold;">ΑΩ</div></div>
+          <div class="scale-item"><span>32px</span><div style="width:16px;height:16px;border-radius:4px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:8px;color:#f59e0b;font-weight:bold;">ΑΩ</div></div>
+        </div>
+      </div>
+
+      <!-- OPTION 2: Sacred Intertwined Byzantine Monogram (Α inside Ω arch) -->
+      <div class="design-card">
+        <span class="design-tag">Option 2 • Classical Byzantine</span>
+        <div class="icon-preview-wrap">
+          <svg viewBox="0 0 512 512" width="100%" height="100%">
+            <defs>
+              <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#1E293B" /><stop offset="50%" stop-color="#0F172A" /><stop offset="100%" stop-color="#020617" />
+              </linearGradient>
+              <linearGradient id="gold2" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FDE68A" /><stop offset="50%" stop-color="#F59E0B" /><stop offset="100%" stop-color="#D97706" />
+              </linearGradient>
+            </defs>
+            <rect width="512" height="512" rx="112" fill="url(#bg2)" />
+            <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#gold2)" stroke-width="3" stroke-opacity="0.4" />
+            <circle cx="256" cy="245" r="185" fill="url(#halo1)" />
+            <!-- Radiant Cross -->
+            <rect x="250" y="112" width="12" height="62" rx="3" fill="url(#gold2)" />
+            <rect x="236" y="128" width="40" height="10" rx="2" fill="url(#gold2)" />
+            <!-- Book Cover -->
+            <g transform="translate(0, 10)">
+              <path d="M 100,345 C 170,360 240,340 256,335 C 272,340 342,360 412,345 L 412,365 C 342,380 272,360 256,355 C 240,360 170,380 100,365 Z" fill="#92400E" />
+              <path d="M 105,210 C 170,195 235,210 252,228 L 252,345 C 235,328 170,315 105,330 Z" fill="url(#pgL1)" />
+              <path d="M 407,210 C 342,195 277,210 260,228 L 260,345 C 277,328 342,315 407,330 Z" fill="url(#pgR1)" />
+              <!-- Scripture lines -->
+              <line x1="125" y1="240" x2="230" y2="238" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="125" y1="265" x2="230" y2="263" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="125" y1="290" x2="215" y2="288" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="238" x2="387" y2="240" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="263" x2="387" y2="265" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="288" x2="372" y2="290" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <path d="M 252,226 Q 256,224 260,226 L 260,380 L 256,370 L 252,380 Z" fill="#DC2626" />
+              
+              <!-- Large Medallion with Intertwined Omega Arch and Alpha inside -->
+              <circle cx="256" cy="275" r="38" fill="#0F172A" stroke="url(#gold2)" stroke-width="2.5" />
+              <!-- Omega Arch -->
+              <text x="256" y="294" font-family="'Crimson Pro', Georgia, serif" font-size="52" font-weight="800" fill="url(#gold2)" text-anchor="middle" opacity="0.95">Ω</text>
+              <!-- Alpha nestled inside -->
+              <text x="256" y="291" font-family="'Crimson Pro', Georgia, serif" font-size="30" font-weight="900" fill="#F8FAFC" text-anchor="middle">Α</text>
+            </g>
+            <text x="256" y="440" font-family="system-ui, sans-serif" font-size="34" font-weight="800" letter-spacing="4" fill="#F8FAFC" text-anchor="middle">EPHPHATHA</text>
+            <text x="256" y="470" font-family="'Manjari', sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#38BDF8" text-anchor="middle">എഫ്ഫാത്താ • BE OPENED</text>
+          </svg>
+        </div>
+        <h3 class="design-title">Byzantine Monogram</h3>
+        <p class="design-desc">
+          The uppercase Greek <strong>Ω</strong> forms an overarching triumphal dome of Eternity, with the Greek <strong>Α</strong> nested gracefully at its center.
+        </p>
+        <div class="theology-point">
+          <strong>Theological Meaning:</strong> Signifies that the beginning of all creation (Alpha) is enclosed and protected within God's infinite eternity (Omega).
+        </div>
+        <div class="scale-row">
+          <div class="scale-item"><span>64px</span><div style="width:24px;height:24px;border-radius:6px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:12px;color:#f59e0b;font-weight:bold;">Ω</div></div>
+          <div class="scale-item"><span>32px</span><div style="width:16px;height:16px;border-radius:4px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:9px;color:#f59e0b;font-weight:bold;">Ω</div></div>
+        </div>
+      </div>
+
+      <!-- OPTION 3: Alpha & Omega Flanking the Golden Cross (Α ✟ Ω) -->
+      <div class="design-card">
+        <span class="design-tag">Option 3 • Early Christian Catacomb</span>
+        <div class="icon-preview-wrap">
+          <svg viewBox="0 0 512 512" width="100%" height="100%">
+            <rect width="512" height="512" rx="112" fill="url(#bg1)" />
+            <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#gold1)" stroke-width="3" stroke-opacity="0.4" />
+            <circle cx="256" cy="245" r="185" fill="url(#halo1)" />
+            <!-- Radiant Cross -->
+            <rect x="250" y="105" width="12" height="70" rx="3" fill="url(#gold1)" />
+            <rect x="230" y="125" width="52" height="10" rx="2" fill="url(#gold1)" />
+            <!-- Suspended Alpha under left beam -->
+            <text x="216" y="156" font-family="'Crimson Pro', Georgia, serif" font-size="24" font-weight="800" fill="url(#gold1)" text-anchor="middle">Α</text>
+            <line x1="216" y1="135" x2="216" y2="142" stroke="url(#gold1)" stroke-width="1.5" />
+            <!-- Suspended Omega under right beam -->
+            <text x="296" y="156" font-family="'Crimson Pro', Georgia, serif" font-size="24" font-weight="800" fill="url(#gold1)" text-anchor="middle">Ω</text>
+            <line x1="296" y1="135" x2="296" y2="142" stroke="url(#gold1)" stroke-width="1.5" />
+            <!-- Book Cover -->
+            <g transform="translate(0, 10)">
+              <path d="M 100,345 C 170,360 240,340 256,335 C 272,340 342,360 412,345 L 412,365 C 342,380 272,360 256,355 C 240,360 170,380 100,365 Z" fill="#92400E" />
+              <path d="M 105,210 C 170,195 235,210 252,228 L 252,345 C 235,328 170,315 105,330 Z" fill="url(#pgL1)" />
+              <path d="M 407,210 C 342,195 277,210 260,228 L 260,345 C 277,328 342,315 407,330 Z" fill="url(#pgR1)" />
+              <line x1="125" y1="240" x2="230" y2="238" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="125" y1="265" x2="230" y2="263" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="125" y1="290" x2="215" y2="288" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="238" x2="387" y2="240" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="263" x2="387" y2="265" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="288" x2="372" y2="290" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <path d="M 252,226 Q 256,224 260,226 L 260,380 L 256,370 L 252,380 Z" fill="#DC2626" />
+              <!-- Center Medallion with Α • Ω -->
+              <circle cx="256" cy="275" r="30" fill="#0F172A" stroke="url(#gold1)" stroke-width="2.5" />
+              <text x="256" y="284" font-family="'Crimson Pro', Georgia, serif" font-size="22" font-weight="800" fill="url(#gold1)" text-anchor="middle">Α•Ω</text>
+            </g>
+            <text x="256" y="440" font-family="system-ui, sans-serif" font-size="34" font-weight="800" letter-spacing="4" fill="#F8FAFC" text-anchor="middle">EPHPHATHA</text>
+            <text x="256" y="470" font-family="'Manjari', sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#38BDF8" text-anchor="middle">എഫ്ഫാത്താ • BE OPENED</text>
+          </svg>
+        </div>
+        <h3 class="design-title">Cruciform Flanking</h3>
+        <p class="design-desc">
+          Early Christian Roman basilica motif: Golden <strong>Α</strong> and <strong>Ω</strong> hang suspended beneath the arms of the radiant Cross above the sacred Scriptures.
+        </p>
+        <div class="theology-point">
+          <strong>Theological Meaning:</strong> Christ on the Cross is the Lord of Creation and the Final Judge.
+        </div>
+        <div class="scale-row">
+          <div class="scale-item"><span>64px</span><div style="width:24px;height:24px;border-radius:6px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:10px;color:#f59e0b;font-weight:bold;">✟</div></div>
+          <div class="scale-item"><span>32px</span><div style="width:16px;height:16px;border-radius:4px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:8px;color:#f59e0b;font-weight:bold;">✟</div></div>
+        </div>
+      </div>
+
+      <!-- OPTION 4: Sacred Center Covenant Seal (Α ✟ Ω in center medallion) -->
+      <div class="design-card">
+        <span class="design-tag">Option 4 • Regal Covenant Seal</span>
+        <div class="icon-preview-wrap">
+          <svg viewBox="0 0 512 512" width="100%" height="100%">
+            <rect width="512" height="512" rx="112" fill="url(#bg1)" />
+            <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#gold1)" stroke-width="3" stroke-opacity="0.4" />
+            <circle cx="256" cy="245" r="185" fill="url(#halo1)" />
+            <!-- Radiant Cross -->
+            <rect x="250" y="112" width="12" height="62" rx="3" fill="url(#gold1)" />
+            <rect x="236" y="128" width="40" height="10" rx="2" fill="url(#gold1)" />
+            <!-- Book Cover -->
+            <g transform="translate(0, 10)">
+              <path d="M 100,345 C 170,360 240,340 256,335 C 272,340 342,360 412,345 L 412,365 C 342,380 272,360 256,355 C 240,360 170,380 100,365 Z" fill="#92400E" />
+              <path d="M 105,210 C 170,195 235,210 252,228 L 252,345 C 235,328 170,315 105,330 Z" fill="url(#pgL1)" />
+              <path d="M 407,210 C 342,195 277,210 260,228 L 260,345 C 277,328 342,315 407,330 Z" fill="url(#pgR1)" />
+              <line x1="125" y1="240" x2="230" y2="238" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="125" y1="265" x2="230" y2="263" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="125" y1="290" x2="215" y2="288" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="238" x2="387" y2="240" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="263" x2="387" y2="265" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <line x1="282" y1="288" x2="372" y2="290" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" />
+              <path d="M 252,226 Q 256,224 260,226 L 260,380 L 256,370 L 252,380 Z" fill="#DC2626" />
+              
+              <!-- Oval Covenant Seal with Α ✟ Ω -->
+              <rect x="214" y="252" width="84" height="46" rx="23" fill="#0F172A" stroke="url(#gold1)" stroke-width="2.5" />
+              <text x="233" y="282" font-family="'Crimson Pro', Georgia, serif" font-size="26" font-weight="800" fill="url(#gold1)" text-anchor="middle">Α</text>
+              <!-- Center Cross -->
+              <rect x="254" y="260" width="4" height="24" rx="1" fill="#F8FAFC" />
+              <rect x="248" y="266" width="16" height="4" rx="1" fill="#F8FAFC" />
+              <text x="279" y="282" font-family="'Crimson Pro', Georgia, serif" font-size="26" font-weight="800" fill="url(#gold1)" text-anchor="middle">Ω</text>
+            </g>
+            <text x="256" y="440" font-family="system-ui, sans-serif" font-size="34" font-weight="800" letter-spacing="4" fill="#F8FAFC" text-anchor="middle">EPHPHATHA</text>
+            <text x="256" y="470" font-family="'Manjari', sans-serif" font-size="18" font-weight="700" letter-spacing="2" fill="#38BDF8" text-anchor="middle">എഫ്ഫാത്താ • BE OPENED</text>
+          </svg>
+        </div>
+        <h3 class="design-title">Covenant Seal (Α ✟ Ω)</h3>
+        <p class="design-desc">
+          An elongated golden medallion resting upon the scarlet ribbon, bearing <strong>Α</strong> on the left, a radiant Cross in the center, and <strong>Ω</strong> on the right.
+        </p>
+        <div class="theology-point">
+          <strong>Theological Meaning:</strong> The Cross of Salvation stands at the center between the Beginning and the End of time.
+        </div>
+        <div class="scale-row">
+          <div class="scale-item"><span>64px</span><div style="width:30px;height:20px;border-radius:6px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:9px;color:#f59e0b;font-weight:bold;">Α✟Ω</div></div>
+          <div class="scale-item"><span>32px</span><div style="width:24px;height:16px;border-radius:4px;background:#0f172a;border:1px solid #f59e0b;display:flex;align-items:center;justify-content:center;font-size:8px;color:#f59e0b;font-weight:bold;">Α✟Ω</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Phone Screen Mockup Simulation -->
+    <div class="mobile-mockup-section">
+      <h3 style="font-size: 1.3rem; margin-bottom: 8px;">Mobile Home Screen App Icon Preview (64 &times; 64 px)</h3>
+      <p style="color: var(--text-muted); font-size: 0.92rem;">
+        See how each design renders on a mobile launcher with app grid spacing:
+      </p>
+      <div class="mockup-grid">
+        <div class="app-icon-item">
+          <div class="sim-icon">
+            <svg viewBox="0 0 512 512" width="64" height="64" style="border-radius: 14px;">
+              <rect width="512" height="512" fill="#0F172A" />
+              <!-- Mini Open Book Representation -->
+              <path d="M 80,360 C 160,375 235,355 256,350 C 277,355 352,375 432,360 L 432,220 C 352,205 277,220 256,238 C 235,220 160,205 80,220 Z" fill="#E2E8F0" />
+              <path d="M 250,230 Q 256,225 262,230 L 262,390 L 256,380 L 250,390 Z" fill="#DC2626" />
+              <text x="170" y="310" font-family="'Crimson Pro', serif" font-size="95" font-weight="900" fill="#F59E0B" text-anchor="middle">Α</text>
+              <text x="342" y="310" font-family="'Crimson Pro', serif" font-size="95" font-weight="900" fill="#F59E0B" text-anchor="middle">Ω</text>
+              <!-- Radiant Cross Top -->
+              <rect x="250" y="100" width="12" height="70" rx="3" fill="#F59E0B" />
+              <rect x="230" y="120" width="52" height="12" rx="2" fill="#F59E0B" />
+            </svg>
+          </div>
+          <span>Option 1 (Pages)</span>
+        </div>
+        <div class="app-icon-item">
+          <div class="sim-icon">
+            <svg viewBox="0 0 512 512" width="64" height="64" style="border-radius: 14px;">
+              <rect width="512" height="512" fill="#0F172A" />
+              <circle cx="256" cy="256" r="160" fill="none" stroke="#F59E0B" stroke-width="12" />
+              <text x="256" y="300" font-family="'Crimson Pro', serif" font-size="160" font-weight="800" fill="#F59E0B" text-anchor="middle">Ω</text>
+              <text x="256" y="290" font-family="'Crimson Pro', serif" font-size="90" font-weight="900" fill="#FFFFFF" text-anchor="middle">Α</text>
+            </svg>
+          </div>
+          <span>Option 2 (Arch)</span>
+        </div>
+        <div class="app-icon-item">
+          <div class="sim-icon">
+            <svg viewBox="0 0 512 512" width="64" height="64" style="border-radius: 14px;">
+              <rect width="512" height="512" fill="#0F172A" />
+              <rect x="246" y="110" width="20" height="180" rx="4" fill="#F59E0B" />
+              <rect x="180" y="150" width="152" height="20" rx="4" fill="#F59E0B" />
+              <text x="140" y="230" font-family="'Crimson Pro', serif" font-size="80" font-weight="800" fill="#F59E0B" text-anchor="middle">Α</text>
+              <text x="372" y="230" font-family="'Crimson Pro', serif" font-size="80" font-weight="800" fill="#F59E0B" text-anchor="middle">Ω</text>
+            </svg>
+          </div>
+          <span>Option 3 (Cross)</span>
+        </div>
+        <div class="app-icon-item">
+          <div class="sim-icon">
+            <svg viewBox="0 0 512 512" width="64" height="64" style="border-radius: 14px;">
+              <rect width="512" height="512" fill="#0F172A" />
+              <rect x="60" y="180" width="392" height="160" rx="80" fill="#1E293B" stroke="#F59E0B" stroke-width="12" />
+              <text x="140" y="290" font-family="'Crimson Pro', serif" font-size="100" font-weight="800" fill="#F59E0B" text-anchor="middle">Α</text>
+              <rect x="250" y="210" width="12" height="100" rx="2" fill="#FFFFFF" />
+              <rect x="226" y="236" width="60" height="12" rx="2" fill="#FFFFFF" />
+              <text x="372" y="290" font-family="'Crimson Pro', serif" font-size="100" font-weight="800" fill="#F59E0B" text-anchor="middle">Ω</text>
+            </svg>
+          </div>
+          <span>Option 4 (Seal)</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

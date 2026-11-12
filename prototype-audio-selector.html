@@ -539,7 +539,7 @@
           <input type="range" id="audio-scrubber" class="audio-range-input" min="0" max="1345" value="0" oninput="onScrub(this.value)">
           <div class="scrubber-meta">
             <span id="time-current">00:00</span>
-            <span class="audio-status-pill" id="track-status-pill">ML • Google Drive</span>
+            <span class="audio-status-pill" id="track-status-pill">ML Audio</span>
             <span id="time-total">22:25</span>
           </div>
         </div>
@@ -676,9 +676,9 @@
 
       if (lang === 'ml') {
         metaCard.classList.remove('en-mode');
-        sourceBadge.innerHTML = '<span>🇮🇳 Malayalam Audio</span> <span style="font-size: 0.65rem; color: var(--text-muted);">(Google Drive Cloudflare Edge)</span>';
-        trackDetail.textContent = 'Drive File: ' + dayData.gdrive_id;
-        statusPill.textContent = 'ML • Google Drive';
+        sourceBadge.innerHTML = '<span>🇮🇳 Malayalam Audio</span> <span style="font-size: 0.65rem; color: var(--text-muted);">(Cloudflare Edge Stream)</span>';
+        trackDetail.textContent = 'Audio Track: ' + dayData.gdrive_id;
+        statusPill.textContent = 'ML Audio';
         scrubber.classList.remove('en-track');
         playFab.classList.remove('en-playing');
       } else {

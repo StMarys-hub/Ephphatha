@@ -162,7 +162,7 @@ body {
 }
 
 .brand-emblem {
-  width: 32px;
+  width: 34px;
   height: 32px;
   border-radius: 8px;
   background: var(--bg-subtle-surface);
@@ -173,7 +173,9 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.85rem;
+  letter-spacing: -0.5px;
+  font-family: var(--font-serif);
   flex-shrink: 0;
 }
 
@@ -1055,6 +1057,33 @@ html[data-verse-weight="strong"] .verse-text-en  { font-weight: 550; }
 html[data-verse-weight="strong"] .verse-text-ml  { font-weight: 600; }
 html[data-verse-weight="bold"] .verse-text-en    { font-weight: 700; }
 html[data-verse-weight="bold"] .verse-text-ml    { font-weight: 700; }
+
+/* User configurable English Scripture Reading Font */
+html[data-english-font="crimson"] .verse-text-en,
+html[data-english-font="crimson"] .canonical-verse-en {
+  font-family: 'Crimson Pro', Georgia, serif;
+}
+html[data-english-font="garamond"] .verse-text-en,
+html[data-english-font="garamond"] .canonical-verse-en {
+  font-family: 'EB Garamond', Garamond, 'Georgia', serif;
+}
+html[data-english-font="literata"] .verse-text-en,
+html[data-english-font="literata"] .canonical-verse-en {
+  font-family: 'Literata', 'Crimson Pro', Georgia, serif;
+}
+html[data-english-font="merriweather"] .verse-text-en,
+html[data-english-font="merriweather"] .canonical-verse-en {
+  font-family: 'Merriweather', Georgia, serif;
+}
+html[data-english-font="inter"] .verse-text-en,
+html[data-english-font="inter"] .canonical-verse-en {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  letter-spacing: -0.01em;
+}
+html[data-english-font="system-serif"] .verse-text-en,
+html[data-english-font="system-serif"] .canonical-verse-en {
+  font-family: Georgia, 'Times New Roman', serif;
+}
 
 .verse-text-la,
 .canonical-verse-la {

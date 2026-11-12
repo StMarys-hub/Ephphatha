@@ -62,11 +62,11 @@ export function generateQrSvg(url, options = {}) {
       <rect width="${totalSize}" height="${totalSize}" fill="#FFFFFF" rx="12" />
       <!-- QR Dark Modules -->
       ${rects}
-      <!-- Center Ephphatha Aleph Emblem [א] -->
+      <!-- Center Ephphatha Alpha & Omega Emblem [ΑΩ] -->
       <g>
         <circle cx="${emblemCenter}" cy="${emblemCenter}" r="${emblemDim * 0.46}" fill="#0F172A" stroke="#F59E0B" stroke-width="2.5" />
         <circle cx="${emblemCenter}" cy="${emblemCenter}" r="${emblemDim * 0.38}" fill="#1E293B" />
-        <text x="${emblemCenter}" y="${emblemCenter + emblemDim * 0.17}" font-family="serif, 'Times New Roman'" font-size="${emblemDim * 0.5}" font-weight="bold" fill="#F59E0B" text-anchor="middle">א</text>
+        <text x="${emblemCenter}" y="${emblemCenter + emblemDim * 0.15}" font-family="'Crimson Pro', serif" font-size="${emblemDim * 0.38}" font-weight="800" letter-spacing="-0.5" fill="#F59E0B" text-anchor="middle">ΑΩ</text>
       </g>
     </svg>
   `;

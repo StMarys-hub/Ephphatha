@@ -21,7 +21,7 @@
   <link rel="preload" href="./assets/fonts/Manjari-Bold.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="./src/styles/main.css?v=3.4.4" />
 </head>
@@ -32,7 +32,7 @@
   <header class="top-header" role="banner">
     <div class="header-inner">
       <div class="brand-cluster" id="btn-brand-home" role="button" tabindex="0" title="Return to Home Dashboard">
-        <div class="brand-emblem" aria-hidden="true">א</div>
+        <div class="brand-emblem" aria-hidden="true" title="Alpha and Omega — Revelation 22:13">ΑΩ</div>
         <div class="brand-titles">
           <h1>
             <span>Ephphatha</span>
@@ -934,6 +934,22 @@
           </div>
         </div>
 
+        <div class="settings-field-group">
+          <label class="settings-field-label" for="select-english-font">
+            <span>English Scripture Reading Font</span>
+          </label>
+          <div class="settings-select-wrap">
+            <select id="select-english-font" class="sanctuary-input settings-custom-select">
+              <option value="crimson">Crimson Pro (Classical Scripture Serif — Recommended)</option>
+              <option value="garamond">EB Garamond (Traditional Literary Bible Serif)</option>
+              <option value="literata">Literata (Digital Screen &amp; E-Reader Book Serif)</option>
+              <option value="merriweather">Merriweather (High-Legibility Modern Serif)</option>
+              <option value="inter">Inter (Clean Modern Sans-Serif)</option>
+              <option value="system-serif">Georgia / System Serif (Offline Standard)</option>
+            </select>
+          </div>
+        </div>
+
         <div class="settings-toggle-row">
           <div class="toggle-text-wrap">
             <div class="toggle-title">Ancient Latin Vulgate</div>
@@ -1156,7 +1172,7 @@
       </div>
 
       <div class="auth-header">
-        <div class="auth-emblem">א</div>
+        <div class="auth-emblem">ΑΩ</div>
         <h3 class="auth-title" id="auth-modal-title">Ephphatha Sanctuary</h3>
         <p class="auth-subtitle">Save your 365-day reading progress and sync with your parish fellowship across all devices.</p>
       </div>

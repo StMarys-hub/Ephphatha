@@ -92,6 +92,7 @@ const appState = {
   showLatinVulgate: localStorage.getItem('ephphatha_show_latin') === 'true', // Default to false
   preferredBibleVersion: localStorage.getItem('ephphatha_preferred_bible_version') || 'POC',
   verseWeight: localStorage.getItem('ephphatha_verse_weight') || 'strong',
+  englishFont: localStorage.getItem('ephphatha_english_font') || 'crimson',
   periods: [],
   scheduleByDay: {},
   currentPassageData: null,
@@ -368,6 +369,7 @@ function applyPeriodColorTokens(period) {
 
 export function applyTypographyAndLanguagePreferences() {
   document.documentElement.setAttribute('data-verse-weight', appState.verseWeight || 'strong');
+  document.documentElement.setAttribute('data-english-font', appState.englishFont || 'crimson');
   document.body.setAttribute('data-lang-pref', appState.langMode || 'bilingual');
   document.body.classList.toggle('show-latin-vulgata', Boolean(appState.showLatinVulgate));
 }
@@ -2187,6 +2189,24 @@ function bindGlobalControls() {
     });
   }
 
+  // Drawer Settings: English Scripture Reading Font
+  const selEnglishFont = document.getElementById('select-english-font');
+  if (selEnglishFont) {
+    selEnglishFont.value = appState.englishFont || 'crimson';
+    selEnglishFont.addEventListener('change', (e) => {
+      const font = e.target.value;
+      appState.englishFont = font;
+      localStorage.setItem('ephphatha_english_font', font);
+      applyTypographyAndLanguagePreferences();
+      if (appState.userProfile) {
+        appState.userProfile.englishFont = font;
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(appState.userProfile));
+        const localMap = getAllRecordsMapSync('progress');
+        syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
+      }
+    });
+  }
+
   // Google Sheets Master Database Connection Controls
   document.getElementById('btn-save-sheets-sync-url')?.addEventListener('click', async () => {
     const input = document.getElementById('input-sheets-sync-url');
@@ -2455,6 +2475,12 @@ function restoreUserSettingsFromCloudProfile(user) {
     localStorage.setItem('ephphatha_verse_weight', appState.verseWeight);
     const selW = document.getElementById('select-verse-weight');
     if (selW) selW.value = appState.verseWeight;
+  }
+  if (user.englishFont) {
+    appState.englishFont = user.englishFont;
+    localStorage.setItem('ephphatha_english_font', appState.englishFont);
+    const selF = document.getElementById('select-english-font');
+    if (selF) selF.value = appState.englishFont;
   }
   applyTypographyAndLanguagePreferences();
 }
