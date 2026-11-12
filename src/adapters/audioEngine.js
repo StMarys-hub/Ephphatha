@@ -136,6 +136,7 @@ export class EphphathaAudioEngine {
     try {
       localStorage.setItem('ephphatha_audio_lang', nextLang);
     } catch (_) { /* ignore */ }
+    this.youtubeAdapter.updateHostVisibility(nextLang);
 
     if (nextLang === 'en') {
       if (wasPlaying) {

@@ -1314,11 +1314,11 @@
     </div>
   </div>
 
-  <!-- In-Viewport 16:9 Host Container for YouTube IFrame Audio Streaming -->
-  <div id="ephphatha-yt-audio-host" aria-hidden="true" style="position: fixed; bottom: 80px; right: 10px; width: 240px; height: 135px; opacity: 0.001; pointer-events: none; z-index: 1; overflow: hidden;"></div>
+  <!-- Floating In-Viewport Mini Player for English YouTube Audio -->
+  <div id="ephphatha-yt-audio-host" aria-hidden="true" style="position: fixed; bottom: 84px; right: 12px; width: 200px; height: 112px; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 95; background: #000; overflow: hidden; display: none;"></div>
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.5.2';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.5.3';
 
     window.selectJumpDay = (d) => selectDay(d);
 

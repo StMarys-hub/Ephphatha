@@ -102,6 +102,9 @@ const appState = {
 };
 
 const audioEngine = new EphphathaAudioEngine();
+if (typeof window !== 'undefined') {
+  window.audioEngine = audioEngine;
+}
 
 export async function bootstrapEphphathaApp() {
   // 1. Apply eye-soothing theme (#FAF7F2 Parchment or #1E2430 Warm Dusk — Never #000000) & Font Scale

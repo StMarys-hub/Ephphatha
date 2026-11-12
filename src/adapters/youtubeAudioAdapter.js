@@ -1,7 +1,7 @@
 /**
  * EPHPHATHA ADAPTER LAYER: YOUTUBE AUDIO ADAPTER (THE BIBLE IN A YEAR - FR. MIKE SCHMITZ)
  * Zero-latency in-memory mapping for all 365 daily episodes with seamless continuous playback,
- * robust transition-guarding across day switches, timeline scrubber synchronization, and instant play.
+ * visible in-viewport mini-dock player for full browser autoplay compliance, and instant day transitions.
  */
 
 import { YOUTUBE_365_MAP } from '../domain/youtubeBibleMap.js';
@@ -62,6 +62,14 @@ export class YouTubeAudioAdapter {
     };
   }
 
+  updateHostVisibility(activeSource = 'ml') {
+    if (typeof document === 'undefined') return;
+    const host = document.getElementById('ephphatha-yt-audio-host');
+    if (!host) return;
+    const isEn = activeSource === 'en';
+    host.style.display = isEn ? 'block' : 'none';
+  }
+
   initYouTubeApi() {
     if (typeof window === 'undefined') return;
 
@@ -71,14 +79,16 @@ export class YouTubeAudioAdapter {
       host.id = 'ephphatha-yt-audio-host';
       host.setAttribute('aria-hidden', 'true');
       host.style.position = 'fixed';
-      host.style.bottom = '80px';
-      host.style.right = '10px';
-      host.style.width = '240px';
-      host.style.height = '135px';
-      host.style.opacity = '0.001';
-      host.style.pointerEvents = 'none';
+      host.style.bottom = '84px';
+      host.style.right = '12px';
+      host.style.width = '200px';
+      host.style.height = '112px';
+      host.style.borderRadius = '8px';
+      host.style.boxShadow = '0 4px 16px rgba(0,0,0,0.5)';
+      host.style.zIndex = '95';
+      host.style.background = '#000';
       host.style.overflow = 'hidden';
-      host.style.zIndex = '1';
+      host.style.display = 'none';
       document.body.appendChild(host);
     }
 
@@ -86,14 +96,14 @@ export class YouTubeAudioAdapter {
       this.isApiLoaded = true;
       try {
         this.player = new window.YT.Player('ephphatha-yt-audio-host', {
-          height: '135',
-          width: '240',
+          height: '112',
+          width: '200',
           videoId: this.currentVideoId || 'BW0gXbEVYgA',
           playerVars: {
             autoplay: 0,
-            controls: 0,
-            disablekb: 1,
-            fs: 0,
+            controls: 1,
+            disablekb: 0,
+            fs: 1,
             playsinline: 1,
             rel: 0,
             modestbranding: 1
@@ -185,7 +195,7 @@ export class YouTubeAudioAdapter {
         break;
 
       case window.YT.PlayerState.BUFFERING:
-        // Do not cancel playback state while YouTube buffers
+        // Keep ticker / active status while buffering
         break;
 
       default:
@@ -291,7 +301,7 @@ export class YouTubeAudioAdapter {
     if (this.transitionTimer) clearTimeout(this.transitionTimer);
     this.transitionTimer = setTimeout(() => {
       this.isTransitioning = false;
-    }, 3500);
+    }, 4000);
 
     if (!this.isPlayerReady || !this.player || typeof this.player.loadVideoById !== 'function') {
       this.pendingAutoPlay = true;
@@ -305,9 +315,6 @@ export class YouTubeAudioAdapter {
         startSeconds: startSec || 0
       });
       try { this.player.unMute(); this.player.setVolume(100); } catch (_) {}
-      if (typeof this.player.playVideo === 'function') {
-        this.player.playVideo();
-      }
       if (this.playbackRate !== 1.0) {
         try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
       }
@@ -329,17 +336,15 @@ export class YouTubeAudioAdapter {
     }
 
     try {
-      this.loadedVideoId = this.currentVideoId;
       try { this.player.unMute(); this.player.setVolume(100); } catch (_) {}
 
-      // If video differs or player is stopped, load and play
-      if (typeof this.player.loadVideoById === 'function') {
+      if (this.loadedVideoId !== this.currentVideoId || typeof this.player.playVideo !== 'function') {
+        this.loadedVideoId = this.currentVideoId;
         this.player.loadVideoById({
           videoId: this.currentVideoId,
           startSeconds: this.currentTimeSec || 0
         });
-      }
-      if (typeof this.player.playVideo === 'function') {
+      } else {
         this.player.playVideo();
       }
       this.isPlaying = true;
