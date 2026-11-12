@@ -622,6 +622,33 @@ body {
 /* ============================================================================
  * 4. COMPACT DAY HERO CARD
  * ============================================================================ */
+/* Sticky Sanctuary Day Navigation Toolbar (Auto-hiding on Scroll Down) */
+.sanctuary-nav-toolbar {
+  position: sticky;
+  top: 52px;
+  z-index: 20;
+  background: var(--bg-elevated-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 10px);
+  padding: 6px 8px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform, opacity;
+}
+
+.sanctuary-nav-toolbar .day-nav-row {
+  margin-bottom: 0;
+}
+
+.sanctuary-nav-toolbar.toolbar-hidden {
+  transform: translateY(calc(-100% - 65px));
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: none;
+}
+
 .day-hero-card {
   background: var(--bg-elevated-card);
   border: 1px solid var(--border-subtle);

@@ -174,6 +174,9 @@ export async function bootstrapEphphathaApp() {
   renderHomeDashboardView();
   switchMainTab(appState.activeTab);
 
+  // Initialize auto-hiding day navigation toolbar on scroll in Reading view
+  initSanctuaryToolbarAutoHideOnScroll();
+
   // 9. Initialize Google Sheets Master Database sync & multi-user live polling
   initGoogleSheetsSyncOnBoot();
 }
@@ -397,6 +400,12 @@ export async function selectDay(dayNum, options = {}) {
 
   const daySchedule = appState.scheduleByDay[clamped];
   if (!daySchedule) return;
+
+  // Scroll to top of reading page when changing days
+  if (options.scrollToTop || (!options.initialBoot && appState.activeTab === 'sanctuary')) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.getElementById('sanctuary-nav-toolbar')?.classList.remove('toolbar-hidden');
+  }
 
   // 1. Morph Dynamic Period Theme Tokens (--period-color & --period-bg-soft)
   applyPeriodColorTokens(daySchedule.period);
@@ -1787,16 +1796,16 @@ function bindGlobalControls() {
   document.getElementById('btn-prev-day')?.addEventListener('click', async () => {
     if (appState.selectedDay <= 1) return;
     const wasPlaying = audioEngine.isPlaying;
-    await selectDay(appState.selectedDay - 1, { autoPlay: wasPlaying });
+    await selectDay(appState.selectedDay - 1, { autoPlay: wasPlaying, scrollToTop: true });
   });
   document.getElementById('btn-next-day')?.addEventListener('click', async () => {
     if (appState.selectedDay >= 365) return;
     const wasPlaying = audioEngine.isPlaying;
-    await selectDay(appState.selectedDay + 1, { autoPlay: wasPlaying });
+    await selectDay(appState.selectedDay + 1, { autoPlay: wasPlaying, scrollToTop: true });
   });
   document.getElementById('day-select-dropdown')?.addEventListener('change', async (e) => {
     const wasPlaying = audioEngine.isPlaying;
-    await selectDay(Number(e.target.value), { autoPlay: wasPlaying });
+    await selectDay(Number(e.target.value), { autoPlay: wasPlaying, scrollToTop: true });
   });
 
   // Mark Day Complete (<5ms Optimistic IndexedDB write)
@@ -2441,6 +2450,8 @@ function switchMainTab(tabName) {
 
   if (tabName === 'home') {
     renderHomeDashboardView();
+  } else if (tabName === 'sanctuary') {
+    document.getElementById('sanctuary-nav-toolbar')?.classList.remove('toolbar-hidden');
   } else if (tabName === 'bible') {
     renderBibleView();
   } else if (tabName === 'fellowship') {
@@ -2858,5 +2869,66 @@ function bindFellowshipModuleEvents() {
 function setText(id, text) {
   const el = document.getElementById(id);
   if (el) el.textContent = text;
+}
+
+/**
+ * Auto-hiding sticky day navigation bar on scroll down in Sanctuary Reading view,
+ * reappearing on scroll up or reaching page bottom for effortless day completion/advancement.
+ */
+function initSanctuaryToolbarAutoHideOnScroll() {
+  let lastScrollY = window.scrollY || 0;
+  let ticking = false;
+  const SCROLL_THRESHOLD = 8; // Small delta to prevent micro-jitter
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        handleScroll();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  function handleScroll() {
+    const sanctuaryView = document.getElementById('view-sanctuary');
+    if (!sanctuaryView || sanctuaryView.classList.contains('hidden')) return;
+
+    const toolbar = document.getElementById('sanctuary-nav-toolbar');
+    if (!toolbar) return;
+
+    const currentScrollY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+    const delta = currentScrollY - lastScrollY;
+
+    // Always show toolbar when close to the top
+    if (currentScrollY <= 40) {
+      toolbar.classList.remove('toolbar-hidden');
+      lastScrollY = currentScrollY;
+      return;
+    }
+
+    // Always reveal toolbar when near the bottom of reading page (within 80px)
+    const isAtBottom = (window.innerHeight + currentScrollY) >= (document.documentElement.scrollHeight - 80);
+    if (isAtBottom) {
+      toolbar.classList.remove('toolbar-hidden');
+      lastScrollY = currentScrollY;
+      return;
+    }
+
+    // Ignore tiny scroll changes
+    if (Math.abs(delta) < SCROLL_THRESHOLD) {
+      return;
+    }
+
+    if (delta > 0) {
+      // User is scrolling DOWN to read verses -> hide toolbar to maximize vertical reading area
+      toolbar.classList.add('toolbar-hidden');
+    } else {
+      // User is scrolling UP -> reveal navigation toolbar
+      toolbar.classList.remove('toolbar-hidden');
+    }
+
+    lastScrollY = currentScrollY;
+  }
 }
 
