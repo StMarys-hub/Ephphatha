@@ -162,21 +162,18 @@ body {
 }
 
 .brand-emblem {
-  width: 34px;
-  height: 32px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   background: var(--bg-subtle-surface);
   border: 1px solid var(--period-color);
   border-left: 3px solid var(--period-color);
-  color: var(--period-text, var(--period-color));
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: -0.5px;
-  font-family: var(--font-serif);
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
 }
 
 .brand-titles {
@@ -1197,6 +1194,10 @@ body[data-lang-pref="en"] .canonical-verse-ml {
   gap: 6px;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.ergonomic-btn svg {
+  flex-shrink: 0;
 }
 
 .ergonomic-btn.primary-period {
@@ -3029,16 +3030,38 @@ body[data-lang-pref="en"] .canonical-verse-ml {
 
 .home-mission-cta-row {
   display: flex;
-  align-items: center;
-  gap: 0.55rem;
+  align-items: stretch;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  margin-top: 0.35rem;
+  margin-top: 0.5rem;
+  width: 100%;
 }
 
 .home-mission-cta-row .ergonomic-btn {
-  height: 40px;
-  padding: 0 14px;
-  font-size: 0.83rem;
+  min-height: 44px;
+  height: auto;
+  padding: 10px 18px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+  box-sizing: border-box;
+  flex: 1 1 260px;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.home-mission-cta-row .ergonomic-btn svg {
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+.home-mission-cta-row .ergonomic-btn span {
+  display: inline;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .home-anchors-header {
@@ -3064,12 +3087,22 @@ body[data-lang-pref="en"] .canonical-verse-ml {
 }
 
 @media (max-width: 540px) {
+  .home-mission-card {
+    padding: 1.1rem 0.95rem;
+  }
   .home-anchors-grid {
     grid-template-columns: 1fr;
     gap: 8px;
   }
+  .home-mission-cta-row {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
   .home-mission-cta-row .ergonomic-btn {
     width: 100%;
+    flex: 1 1 100%;
+    padding: 10px 14px;
+    font-size: 0.84rem;
   }
 }
 

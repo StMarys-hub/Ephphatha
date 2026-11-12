@@ -1371,12 +1371,13 @@ function renderHomeDashboardView() {
   if (!daySchedule) return;
 
   const period = daySchedule.period || {};
-  setText('btn-home-start-reading-label', `Open Today's Reading (Day ${dayNum} • ${period.name || ''})`);
+  const periodLabel = period.name ? ` • ${period.name}` : '';
+  setText('btn-home-start-reading-label', `Open Day ${dayNum} Reading${periodLabel}`);
 
   const isPlaying = audioEngine.isPlaying;
   setText(
     'btn-home-play-audio-label',
-    isPlaying ? `Pause Audio Reading & Reflection (Day ${dayNum})` : `Play Audio Reading & Reflection (Day ${dayNum})`
+    isPlaying ? `Pause Day ${dayNum} Audio` : `Play Day ${dayNum} Audio Reading & Reflection`
   );
 
   // Anchor 1: Daily Reading

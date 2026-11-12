@@ -4,7 +4,7 @@
  * preserving 100% offline readiness in Tier 4.
  */
 
-const CACHE_NAME = 'ephphatha-sanctuary-v3.5.7';
+const CACHE_NAME = 'ephphatha-sanctuary-v3.5.8';
 const CORE_ASSETS = [
   './',
   './index.html',
