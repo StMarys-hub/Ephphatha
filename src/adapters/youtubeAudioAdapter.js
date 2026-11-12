@@ -1,7 +1,7 @@
 /**
  * EPHPHATHA ADAPTER LAYER: YOUTUBE AUDIO ADAPTER (THE BIBLE IN A YEAR - FR. MIKE SCHMITZ)
  * Zero-latency in-memory mapping for all 365 daily episodes with seamless continuous playback,
- * in-viewport active audio streaming, timeline scrubber synchronization, and instant day transitions.
+ * robust transition-guarding across day switches, timeline scrubber synchronization, and instant play.
  */
 
 import { YOUTUBE_365_MAP } from '../domain/youtubeBibleMap.js';
@@ -12,6 +12,9 @@ export class YouTubeAudioAdapter {
     this.isApiLoaded = false;
     this.isPlayerReady = false;
     this.isPlaying = false;
+    this.isTransitioning = false;
+    this.transitionTimer = null;
+
     this.currentDay = 1;
     this.currentVideoId = '';
     this.loadedVideoId = '';
@@ -62,7 +65,6 @@ export class YouTubeAudioAdapter {
   initYouTubeApi() {
     if (typeof window === 'undefined') return;
 
-    // Ensure host container exists with in-viewport dimensions so Chrome/Safari never suspend audio
     let host = document.getElementById('ephphatha-yt-audio-host');
     if (!host) {
       host = document.createElement('div');
@@ -100,6 +102,7 @@ export class YouTubeAudioAdapter {
             onReady: () => {
               this.isPlayerReady = true;
               this.loadedVideoId = this.currentVideoId;
+              try { this.player.unMute(); this.player.setVolume(100); } catch (_) {}
               if (this.playbackRate !== 1.0) {
                 try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
               }
@@ -147,8 +150,14 @@ export class YouTubeAudioAdapter {
 
   handleStateChange(state) {
     if (!window.YT) return;
+
     switch (state) {
       case window.YT.PlayerState.PLAYING:
+        this.isTransitioning = false;
+        if (this.transitionTimer) {
+          clearTimeout(this.transitionTimer);
+          this.transitionTimer = null;
+        }
         this.isPlaying = true;
         if (this.player && typeof this.player.getDuration === 'function') {
           const d = this.player.getDuration();
@@ -158,17 +167,27 @@ export class YouTubeAudioAdapter {
         }
         this.startTicker();
         break;
+
       case window.YT.PlayerState.PAUSED:
+        // Ignore transient unload PAUSED state during video transition
+        if (this.isTransitioning) {
+          return;
+        }
         this.isPlaying = false;
         this.stopTicker();
         break;
+
       case window.YT.PlayerState.ENDED:
+        this.isTransitioning = false;
         this.isPlaying = false;
         this.stopTicker();
         this.triggerEnded();
         break;
+
       case window.YT.PlayerState.BUFFERING:
+        // Do not cancel playback state while YouTube buffers
         break;
+
       default:
         break;
     }
@@ -239,16 +258,14 @@ export class YouTubeAudioAdapter {
     };
   }
 
-  /**
-   * Cues day metadata without auto-starting playback.
-   */
   cueDay(dayNum = 1) {
     this.syncDayMetadata(dayNum);
     this.currentTimeSec = 0;
     this.isPlaying = false;
+    this.isTransitioning = false;
     this.stopTicker();
 
-    if (this.isPlayerReady && this.player && typeof this.player.cueVideoById === 'function') {
+    if (this.isPlayerReady && this.player) {
       try {
         if (this.loadedVideoId !== this.currentVideoId) {
           this.player.cueVideoById({
@@ -264,15 +281,17 @@ export class YouTubeAudioAdapter {
     this.emit();
   }
 
-  /**
-   * Instantly switches to the requested day and starts playing immediately.
-   * Used when switching days while audio is playing.
-   */
   loadAndPlayDay(dayNum = 1, startSec = 0) {
     this.syncDayMetadata(dayNum);
     this.currentTimeSec = startSec;
     this.isPlaying = true;
+    this.isTransitioning = true;
     this.loadedVideoId = this.currentVideoId;
+
+    if (this.transitionTimer) clearTimeout(this.transitionTimer);
+    this.transitionTimer = setTimeout(() => {
+      this.isTransitioning = false;
+    }, 3500);
 
     if (!this.isPlayerReady || !this.player || typeof this.player.loadVideoById !== 'function') {
       this.pendingAutoPlay = true;
@@ -285,6 +304,10 @@ export class YouTubeAudioAdapter {
         videoId: this.currentVideoId,
         startSeconds: startSec || 0
       });
+      try { this.player.unMute(); this.player.setVolume(100); } catch (_) {}
+      if (typeof this.player.playVideo === 'function') {
+        this.player.playVideo();
+      }
       if (this.playbackRate !== 1.0) {
         try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
       }
@@ -306,13 +329,17 @@ export class YouTubeAudioAdapter {
     }
 
     try {
-      if (this.loadedVideoId !== this.currentVideoId || typeof this.player.playVideo !== 'function') {
-        this.loadedVideoId = this.currentVideoId;
+      this.loadedVideoId = this.currentVideoId;
+      try { this.player.unMute(); this.player.setVolume(100); } catch (_) {}
+
+      // If video differs or player is stopped, load and play
+      if (typeof this.player.loadVideoById === 'function') {
         this.player.loadVideoById({
           videoId: this.currentVideoId,
           startSeconds: this.currentTimeSec || 0
         });
-      } else {
+      }
+      if (typeof this.player.playVideo === 'function') {
         this.player.playVideo();
       }
       this.isPlaying = true;
@@ -328,8 +355,11 @@ export class YouTubeAudioAdapter {
 
   pause() {
     this.isPlaying = false;
+    this.isTransitioning = false;
     this.pendingAutoPlay = false;
+    if (this.transitionTimer) clearTimeout(this.transitionTimer);
     this.stopTicker();
+
     if (this.isPlayerReady && this.player && typeof this.player.pauseVideo === 'function') {
       try {
         this.player.pauseVideo();
