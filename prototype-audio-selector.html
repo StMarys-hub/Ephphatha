@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ephphatha Audio Selector Prototype (ML / EN)</title>
+  <style>
+    :root {
+      --bg-base: #FAF6F0;
+      --bg-surface: #FFFFFF;
+      --bg-subtle-surface: #F3EDE2;
+      --text-main: #24211E;
+      --text-muted: #6E685E;
+      --border-subtle: #E6DEC8;
+      --period-color: #2B8CBE;
+      --period-text: #195270;
+      --gold-accent: #C59B27;
+      --yt-red: #CC0000;
+      --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-base: #181A1F;
+        --bg-surface: #20242B;
+        --bg-subtle-surface: #292E37;
+        --text-main: #EDE7DC;
+        --text-muted: #9E978A;
+        --border-subtle: #323842;
+        --period-color: #4AA3D4;
+        --period-text: #8ED1F7;
+      }
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-main);
+      background: #0f1115;
+      color: #e6e6e6;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 16px 8px;
+    }
+
+    .proto-controls {
+      max-width: 600px;
+      width: 100%;
+      background: #1b1e24;
+      border: 1px solid #2d333f;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .proto-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #e5b95c;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .proto-desc {
+      font-size: 0.82rem;
+      color: #9aa1b0;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    .proto-nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .proto-option-btn {
+      flex: 1;
+      min-width: 120px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid #3a4252;
+      border-radius: 8px;
+      background: #252b36;
+      color: #cbd5e1;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .proto-option-btn.active {
+      background: #2B8CBE;
+      border-color: #55b2e6;
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(43, 140, 190, 0.4);
+    }
+
+    /* Mobile Device Frame */
+    .mobile-frame {
+      width: 100%;
+      max-width: 390px;
+      height: 780px;
+      background: var(--bg-base);
+      color: var(--text-main);
+      border-radius: 36px;
+      border: 8px solid #2d323b;
+      box-shadow: 0 16px 36px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Mobile Status Bar */
+    .mobile-status-bar {
+      height: 38px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .status-notch {
+      width: 120px;
+      height: 18px;
+      background: #111;
+      border-radius: 0 0 12px 12px;
+    }
+
+    /* Screen Content */
+    .screen-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px 130px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Period Badge */
+    .period-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: var(--bg-subtle-surface);
+      color: var(--period-text);
+      border: 1px solid var(--period-color);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      align-self: flex-start;
+    }
+
+    /* Day Card */
+    .day-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .day-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .day-stepper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-subtle-surface);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+    .day-btn {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 4px 6px;
+    }
+    .day-val {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Compact ML/EN Toggle Pill */
+    .compact-lang-pill {
+      display: inline-flex;
+      align-items: center;
+      background: var(--bg-subtle-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 2px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+    .compact-lang-pill button {
+      background: transparent;
+      border: none;
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      line-height: 1.2;
+    }
+    .compact-lang-pill button.active {
+      background: var(--period-color);
+      color: #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    }
+    .compact-lang-pill button.active.en-active {
+      background: #CC0000;
+    }
+
+    .ep-title-en {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+    .ep-title-ml {
+      font-size: 0.88rem;
+      color: var(--period-text);
+      line-height: 1.35;
+      font-weight: 600;
+    }
+
+    .reading-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .reading-chip {
+      background: var(--bg-subtle-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.73rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .active-audio-meta-card {
+      background: var(--bg-subtle-surface);
+      border: 1px solid var(--border-subtle);
+      border-left: 3px solid var(--period-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 0.73rem;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .active-audio-meta-card.en-mode {
+      border-left-color: #CC0000;
+    }
+    .audio-source-badge {
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Compact Dock Player */
+    .dock-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+      z-index: 100;
+    }
+
+    /* Single-Row Compact Audio Bar (Matches User's Existing Malayalam Player) */
+    .audio-player-bar {
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+
+    .play-fab {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--bg-subtle-surface);
+      color: var(--period-color);
+      border: 1.5px solid var(--period-color);
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+    .play-fab.en-playing {
+      color: #CC0000;
+      border-color: #CC0000;
+    }
+
+    .audio-mini-btn {
+      background: var(--bg-subtle-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      border-radius: 6px;
+      height: 28px;
+      padding: 0 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      cursor: pointer;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .audio-scrubber-wrap {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .audio-range-input {
+      width: 100%;
+      height: 4px;
+      -webkit-appearance: none;
+      background: var(--border-subtle);
+      border-radius: 2px;
+      outline: none;
+    }
+    .audio-range-input::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--period-color);
+      cursor: pointer;
+    }
+    .audio-range-input.en-track::-webkit-slider-thumb {
+      background: #CC0000;
+    }
+
+    .scrubber-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .audio-status-pill {
+      font-size: 0.62rem;
+      padding: 1px 5px;
+      border-radius: 6px;
+      background: var(--bg-subtle-surface);
+      color: var(--text-muted);
+      max-width: 120px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Option Highlighting Badges */
+    .option-callout {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: #2B8CBE;
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      z-index: 10;
+    }
+
+    /* Bottom Nav Bar */
+    .bottom-tab-nav {
+      display: flex;
+      justify-content: space-around;
+      padding: 6px 4px 8px;
+      background: var(--bg-surface);
+    }
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      font-size: 0.62rem;
+      color: var(--text-muted);
+    }
+    .tab-item.active {
+      color: var(--period-color);
+      font-weight: 700;
+    }
+    .tab-icon {
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Prototype Option Switcher -->
+  <div class="proto-controls">
+    <div class="proto-title">
+      <span>🎧 Ephphatha Audio Selector Prototype</span>
+      <span style="font-size: 0.7rem; background: #e5b95c; color: #111; padding: 2px 6px; border-radius: 4px; font-weight: 800;">DEV BRANCH</span>
+    </div>
+    <div class="proto-desc">
+      Compare the 3 compact layouts for the <strong>ML (Google Drive)</strong> and <strong>EN (YouTube)</strong> audio buttons.
+      Every option maintains the <strong>exact same small play button + progress scrubber</strong> as requested!
+    </div>
+    <div class="proto-nav">
+      <button type="button" class="proto-option-btn active" id="btn-opt-1" onclick="selectOption(1)">
+        Option 1: Inside Bottom Audio Bar
+      </button>
+      <button type="button" class="proto-option-btn" id="btn-opt-2" onclick="selectOption(2)">
+        Option 2: Inside Reading Header Card
+      </button>
+      <button type="button" class="proto-option-btn" id="btn-opt-3" onclick="selectOption(3)">
+        Option 3: Synchronized Both Places
+      </button>
+    </div>
+  </div>
+
+  <!-- Interactive Mobile Device Layout Frame -->
+  <div class="mobile-frame">
+    <!-- Status Notch -->
+    <div class="mobile-status-bar">
+      <span>9:41</span>
+      <div class="status-notch"></div>
+      <span>100% ⚡</span>
+    </div>
+
+    <!-- Screen Scrollable Area -->
+    <div class="screen-scroll-area">
+      <div class="period-badge">Period 01 • Early World</div>
+
+      <!-- Daily Reading Card -->
+      <div class="day-card">
+        <div class="day-row">
+          <div class="day-stepper">
+            <button class="day-btn" onclick="prevDay()">◀</button>
+            <span class="day-val" id="disp-day-num">Day 1</span>
+            <button class="day-btn" onclick="nextDay()">▶</button>
+          </div>
+
+          <!-- OPTION 2 / 3: Header Lang Pill (Hidden in Option 1) -->
+          <div id="header-lang-wrapper" style="display: none; align-items: center; gap: 6px;">
+            <span style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600;">Audio:</span>
+            <div class="compact-lang-pill" id="header-lang-pill">
+              <button type="button" class="active" id="header-btn-ml" onclick="switchLanguage('ml')">ML</button>
+              <button type="button" id="header-btn-en" onclick="switchLanguage('en')">EN</button>
+            </div>
+          </div>
+
+          <div style="font-size: 0.72rem; color: #2B8CBE; font-weight: 700;">365 Days</div>
+        </div>
+
+        <div class="ep-title-en" id="disp-ep-en">Day 1: In the Beginning</div>
+        <div class="ep-title-ml" id="disp-ep-ml">ആദിയിൽ: സൃഷ്ടിയും അനുഗ്രഹവും</div>
+
+        <div class="reading-chip-row">
+          <div class="reading-chip">Genesis 1–2</div>
+          <div class="reading-chip">Job 1–2</div>
+          <div class="reading-chip">Psalm 104</div>
+        </div>
+
+        <!-- Dynamic Audio Status Banner -->
+        <div class="active-audio-meta-card" id="audio-meta-card">
+          <div class="audio-source-badge" id="disp-source-badge">
+            <span>🇮🇳 Malayalam Audio</span>
+            <span style="font-size: 0.65rem; color: var(--text-muted);">(Google Drive Cloudflare Edge)</span>
+          </div>
+          <div id="disp-audio-track" style="color: var(--text-muted); font-size: 0.68rem;">
+            Track: 1Ephphatha_Day_001_01_64kbps_HEAAC.mp3
+          </div>
+        </div>
+      </div>
+
+      <!-- Sample Scripture Section -->
+      <div class="day-card" style="font-size: 0.82rem; line-height: 1.5;">
+        <div style="font-weight: 700; color: var(--period-color); margin-bottom: 4px;">Genesis 1:1–3</div>
+        <div style="color: var(--text-main); margin-bottom: 6px;">
+          <em>1</em> In the beginning God created the heavens and the earth. 
+          <em>2</em> The earth was without form and void, and darkness was upon the face of the deep.
+        </div>
+        <div style="color: var(--text-muted); font-size: 0.8rem;">
+          <em>1</em> ആദിയില്‍ ദൈവം ആകാശവും ഭൂമിയും സൃഷ്ടിച്ചു. 
+          <em>2</em> ഭൂമി രൂപരഹിതവും ശൂന്യവുമായിരുന്നു; ആഴത്തിന്മീതെ ഇരുള്‍ വ്യാപിച്ചിരുന്നു.
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Docked Audio Player & Tabs -->
+    <div class="dock-container">
+      
+      <!-- Option 1 & 3: Compact Single-Row Audio Player Bar with ML/EN Pill -->
+      <div class="audio-player-bar" id="audio-player-bar">
+        
+        <!-- Small Play FAB (Identical to existing) -->
+        <button type="button" class="play-fab" id="btn-play-pause" onclick="togglePlay()" title="Play / Pause Audio">
+          <span id="play-icon">▶</span>
+        </button>
+
+        <button type="button" class="audio-mini-btn" onclick="seekOffset(-15)" title="Rewind 15s">-15s</button>
+
+        <!-- Scrubber and Progress Bar (Identical to existing) -->
+        <div class="audio-scrubber-wrap">
+          <input type="range" id="audio-scrubber" class="audio-range-input" min="0" max="1345" value="0" oninput="onScrub(this.value)">
+          <div class="scrubber-meta">
+            <span id="time-current">00:00</span>
+            <span class="audio-status-pill" id="track-status-pill">ML • Google Drive</span>
+            <span id="time-total">22:25</span>
+          </div>
+        </div>
+
+        <button type="button" class="audio-mini-btn" onclick="seekOffset(15)" title="Forward 15s">+15s</button>
+
+        <!-- OPTION 1 / 3: Compact ML / EN Pill in bottom bar (Hidden in Option 2) -->
+        <div class="compact-lang-pill" id="bottom-lang-pill">
+          <button type="button" class="active" id="bottom-btn-ml" onclick="switchLanguage('ml')">ML</button>
+          <button type="button" id="bottom-btn-en" onclick="switchLanguage('en')">EN</button>
+        </div>
+
+        <button type="button" class="audio-mini-btn" id="btn-speed" onclick="cycleSpeed()">1x</button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="bottom-tab-nav">
+        <div class="tab-item">
+          <span class="tab-icon">🏠</span>
+          <span>Home</span>
+        </div>
+        <div class="tab-item active">
+          <span class="tab-icon">📖</span>
+          <span>Reading</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">📜</span>
+          <span>Bible</span>
+        </div>
+        <div class="tab-item">
+          <span class="tab-icon">📊</span>
+          <span>Curriculum</span>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <script>
+    // 365-Day Sample Dataset (Pre-extracted from Ascension YouTube Playlist)
+    const SAMPLE_DAYS = {
+      1: {
+        en_title: "Day 1: In the Beginning — The Bible in a Year (with Fr. Mike Schmitz)",
+        ml_title: "ആദിയിൽ: സൃഷ്ടിയും അനുഗ്രഹവും",
+        yt_id: "BW0gXbEVYgA",
+        gdrive_id: "1Ephphatha_Day_001_01_64kbps_HEAAC.mp3",
+        duration_sec: 1345
+      },
+      2: {
+        en_title: "Day 2: The Fall of Adam and Eve — The Bible in a Year (with Fr. Mike Schmitz)",
+        ml_title: "വീഴ്ചയും രക്ഷയുടെ ആദ്യ വാഗ്ദാനവും",
+        yt_id: "WBg_xK44V0E",
+        gdrive_id: "1Ephphatha_Day_002_01_64kbps_HEAAC.mp3",
+        duration_sec: 1290
+      },
+      3: {
+        en_title: "Day 3: Noah's Ark — The Bible in a Year (with Fr. Mike Schmitz)",
+        ml_title: "നോഹയുടെ പെട്ടകം",
+        yt_id: "xs41k9YG7tQ",
+        gdrive_id: "1Ephphatha_Day_003_01_64kbps_HEAAC.mp3",
+        duration_sec: 1410
+      },
+      4: {
+        en_title: "Day 4: The Flood — The Bible in a Year (with Fr. Mike Schmitz)",
+        ml_title: "ജലപ്രളയവും പുതിയ തുടക്കവും",
+        yt_id: "k4ksCrLNO2U",
+        gdrive_id: "1Ephphatha_Day_004_01_64kbps_HEAAC.mp3",
+        duration_sec: 1320
+      },
+      5: {
+        en_title: "Day 5: Tower of Babel — The Bible in a Year (with Fr. Mike Schmitz)",
+        ml_title: "ബാബേൽ ഗോപുരം",
+        yt_id: "nBoRts9y6Ko",
+        gdrive_id: "1Ephphatha_Day_005_01_64kbps_HEAAC.mp3",
+        duration_sec: 1380
+      }
+    };
+
+    let currentDay = 1;
+    let currentLang = 'ml'; // 'ml' | 'en'
+    let currentOption = 1;  // 1: Bottom Bar, 2: Reading Header, 3: Both
+    let isPlaying = false;
+    let currentTime = 0;
+    let timer = null;
+    let currentSpeed = 1.0;
+
+    function selectOption(opt) {
+      currentOption = opt;
+      document.querySelectorAll('.proto-option-btn').forEach((btn, idx) => {
+        btn.classList.toggle('active', (idx + 1) === opt);
+      });
+
+      const bottomPill = document.getElementById('bottom-lang-pill');
+      const headerPillWrap = document.getElementById('header-lang-wrapper');
+
+      if (opt === 1) {
+        // Option 1: In Bottom Player Bar only
+        bottomPill.style.display = 'inline-flex';
+        headerPillWrap.style.display = 'none';
+      } else if (opt === 2) {
+        // Option 2: In Reading Header Card only
+        bottomPill.style.display = 'none';
+        headerPillWrap.style.display = 'inline-flex';
+      } else {
+        // Option 3: Synchronized in both places
+        bottomPill.style.display = 'inline-flex';
+        headerPillWrap.style.display = 'inline-flex';
+      }
+    }
+
+    function switchLanguage(lang) {
+      currentLang = lang;
+      
+      // Update Bottom Pill Buttons
+      document.getElementById('bottom-btn-ml').classList.toggle('active', lang === 'ml');
+      const btnEnBottom = document.getElementById('bottom-btn-en');
+      btnEnBottom.classList.toggle('active', lang === 'en');
+      btnEnBottom.classList.toggle('en-active', lang === 'en');
+
+      // Update Header Pill Buttons
+      document.getElementById('header-btn-ml').classList.toggle('active', lang === 'ml');
+      const btnEnHeader = document.getElementById('header-btn-en');
+      btnEnHeader.classList.toggle('active', lang === 'en');
+      btnEnHeader.classList.toggle('en-active', lang === 'en');
+
+      // Update UI Banner and Scrubber styling
+      const metaCard = document.getElementById('audio-meta-card');
+      const sourceBadge = document.getElementById('disp-source-badge');
+      const trackDetail = document.getElementById('disp-audio-track');
+      const statusPill = document.getElementById('track-status-pill');
+      const scrubber = document.getElementById('audio-scrubber');
+      const playFab = document.getElementById('btn-play-pause');
+
+      const dayData = SAMPLE_DAYS[currentDay] || SAMPLE_DAYS[1];
+
+      if (lang === 'ml') {
+        metaCard.classList.remove('en-mode');
+        sourceBadge.innerHTML = '<span>🇮🇳 Malayalam Audio</span> <span style="font-size: 0.65rem; color: var(--text-muted);">(Google Drive Cloudflare Edge)</span>';
+        trackDetail.textContent = 'Drive File: ' + dayData.gdrive_id;
+        statusPill.textContent = 'ML • Google Drive';
+        scrubber.classList.remove('en-track');
+        playFab.classList.remove('en-playing');
+      } else {
+        metaCard.classList.add('en-mode');
+        sourceBadge.innerHTML = '<span style="color: #CC0000;">🔴 English Audio (YouTube)</span> <span style="font-size: 0.65rem; color: var(--text-muted);">(Fr. Mike Schmitz)</span>';
+        trackDetail.innerHTML = '<strong>' + dayData.en_title + '</strong><br><span style="color: #CC0000;">YouTube Video ID: ' + dayData.yt_id + '</span>';
+        statusPill.textContent = 'EN • YouTube (Fr. Mike)';
+        scrubber.classList.add('en-track');
+        if (isPlaying) playFab.classList.add('en-playing');
+      }
+
+      // Reset progress
+      currentTime = 0;
+      updateTimeDisplay();
+    }
+
+    function updateDayView() {
+      const d = SAMPLE_DAYS[currentDay] || SAMPLE_DAYS[1];
+      document.getElementById('disp-day-num').textContent = `Day ${currentDay}`;
+      document.getElementById('disp-ep-en').textContent = d.en_title.split('—')[0].trim();
+      document.getElementById('disp-ep-ml').textContent = d.ml_title;
+      document.getElementById('time-total').textContent = formatTime(d.duration_sec);
+      document.getElementById('audio-scrubber').max = d.duration_sec;
+      switchLanguage(currentLang);
+    }
+
+    function prevDay() {
+      if (currentDay > 1) {
+        currentDay--;
+        updateDayView();
+      }
+    }
+
+    function nextDay() {
+      if (currentDay < 5) {
+        currentDay++;
+        updateDayView();
+      }
+    }
+
+    function togglePlay() {
+      isPlaying = !isPlaying;
+      const playIcon = document.getElementById('play-icon');
+      const playFab = document.getElementById('btn-play-pause');
+
+      if (isPlaying) {
+        playIcon.textContent = '❚❚';
+        if (currentLang === 'en') playFab.classList.add('en-playing');
+        timer = setInterval(() => {
+          currentTime += currentSpeed;
+          const d = SAMPLE_DAYS[currentDay] || SAMPLE_DAYS[1];
+          if (currentTime >= d.duration_sec) {
+            currentTime = 0;
+            togglePlay();
+          }
+          updateTimeDisplay();
+        }, 1000);
+      } else {
+        playIcon.textContent = '▶';
+        playFab.classList.remove('en-playing');
+        if (timer) clearInterval(timer);
+      }
+    }
+
+    function seekOffset(delta) {
+      const d = SAMPLE_DAYS[currentDay] || SAMPLE_DAYS[1];
+      currentTime = Math.max(0, Math.min(d.duration_sec, currentTime + delta));
+      updateTimeDisplay();
+    }
+
+    function onScrub(val) {
+      currentTime = Number(val);
+      updateTimeDisplay();
+    }
+
+    function cycleSpeed() {
+      const speeds = [1.0, 1.25, 1.5, 2.0];
+      const idx = speeds.indexOf(currentSpeed);
+      currentSpeed = speeds[(idx + 1) % speeds.length];
+      document.getElementById('btn-speed').textContent = `${currentSpeed}x`;
+    }
+
+    function formatTime(sec) {
+      const s = Math.floor(sec || 0);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+
+    function updateTimeDisplay() {
+      document.getElementById('time-current').textContent = formatTime(currentTime);
+      document.getElementById('audio-scrubber').value = currentTime;
+    }
+
+    // Initialize
+    updateDayView();
+    selectOption(1);
+  </script>
+</body>
+</html>
