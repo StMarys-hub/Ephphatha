@@ -219,7 +219,7 @@ export class EphphathaAudioEngine {
 
   loadDayAudio(daySchedule, savedTimestampSec = 0, autoPlay = false) {
     const wasPlaying = this.isPlaying || autoPlay;
-    if (this.isPlaying) this.pause();
+    if (this.isPlaying && !wasPlaying) this.pause();
 
     this.lastLoadedSchedule = daySchedule;
     this.currentDay = daySchedule.day_number;
@@ -234,9 +234,10 @@ export class EphphathaAudioEngine {
       this.setupMediaSession(daySchedule);
 
       if (wasPlaying) {
-        this.youtubeAdapter.loadAndPlayDay(this.currentDay, 0);
         this.isPlaying = true;
+        this.youtubeAdapter.loadAndPlayDay(this.currentDay, 0);
       } else {
+        this.isPlaying = false;
         this.youtubeAdapter.cueDay(this.currentDay);
       }
       this.emit();

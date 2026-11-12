@@ -1,7 +1,7 @@
 /**
  * EPHPHATHA ADAPTER LAYER: YOUTUBE AUDIO ADAPTER (THE BIBLE IN A YEAR - FR. MIKE SCHMITZ)
  * Zero-latency in-memory mapping for all 365 daily episodes with seamless continuous playback,
- * background audio streaming, scrubber progress sync, and auto-play day transitions.
+ * in-viewport active audio streaming, timeline scrubber synchronization, and instant day transitions.
  */
 
 import { YOUTUBE_365_MAP } from '../domain/youtubeBibleMap.js';
@@ -14,6 +14,7 @@ export class YouTubeAudioAdapter {
     this.isPlaying = false;
     this.currentDay = 1;
     this.currentVideoId = '';
+    this.loadedVideoId = '';
     this.currentTitle = '';
     this.currentYoutubeUrl = '';
     this.currentTimeSec = 0;
@@ -22,7 +23,7 @@ export class YouTubeAudioAdapter {
     this.pendingAutoPlay = false;
 
     // Zero-latency synchronous 365-day map
-    this.daysMap = YOUTUBE_365_MAP;
+    this.daysMap = YOUTUBE_365_MAP || {};
 
     this.listeners = new Set();
     this.endedListeners = new Set();
@@ -61,33 +62,30 @@ export class YouTubeAudioAdapter {
   initYouTubeApi() {
     if (typeof window === 'undefined') return;
 
-    // Ensure host container exists with valid embed dimensions so YouTube does not throttle
+    // Ensure host container exists with in-viewport dimensions so Chrome/Safari never suspend audio
     let host = document.getElementById('ephphatha-yt-audio-host');
     if (!host) {
       host = document.createElement('div');
       host.id = 'ephphatha-yt-audio-host';
+      host.setAttribute('aria-hidden', 'true');
       host.style.position = 'fixed';
-      host.style.width = '320px';
-      host.style.height = '180px';
-      host.style.left = '-9999px';
-      host.style.bottom = '0';
+      host.style.bottom = '80px';
+      host.style.right = '10px';
+      host.style.width = '240px';
+      host.style.height = '135px';
       host.style.opacity = '0.001';
       host.style.pointerEvents = 'none';
       host.style.overflow = 'hidden';
-      host.style.zIndex = '-999';
+      host.style.zIndex = '1';
       document.body.appendChild(host);
     }
 
     const onApiReady = () => {
       this.isApiLoaded = true;
       try {
-        const originParam = (typeof window !== 'undefined' && window.location && window.location.origin)
-          ? window.location.origin
-          : '';
-
         this.player = new window.YT.Player('ephphatha-yt-audio-host', {
-          height: '180',
-          width: '320',
+          height: '135',
+          width: '240',
           videoId: this.currentVideoId || 'BW0gXbEVYgA',
           playerVars: {
             autoplay: 0,
@@ -96,12 +94,12 @@ export class YouTubeAudioAdapter {
             fs: 0,
             playsinline: 1,
             rel: 0,
-            modestbranding: 1,
-            origin: originParam
+            modestbranding: 1
           },
           events: {
             onReady: () => {
               this.isPlayerReady = true;
+              this.loadedVideoId = this.currentVideoId;
               if (this.playbackRate !== 1.0) {
                 try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
               }
@@ -152,6 +150,12 @@ export class YouTubeAudioAdapter {
     switch (state) {
       case window.YT.PlayerState.PLAYING:
         this.isPlaying = true;
+        if (this.player && typeof this.player.getDuration === 'function') {
+          const d = this.player.getDuration();
+          if (typeof d === 'number' && !isNaN(d) && d > 0) {
+            this.durationSec = Math.floor(d);
+          }
+        }
         this.startTicker();
         break;
       case window.YT.PlayerState.PAUSED:
@@ -182,7 +186,7 @@ export class YouTubeAudioAdapter {
             this.currentTimeSec = cur;
           }
           if (typeof dur === 'number' && !isNaN(dur) && dur > 0) {
-            this.durationSec = dur;
+            this.durationSec = Math.floor(dur);
           }
           this.emit();
         } catch (_) {}
@@ -241,12 +245,18 @@ export class YouTubeAudioAdapter {
   cueDay(dayNum = 1) {
     this.syncDayMetadata(dayNum);
     this.currentTimeSec = 0;
+    this.isPlaying = false;
+    this.stopTicker();
 
     if (this.isPlayerReady && this.player && typeof this.player.cueVideoById === 'function') {
       try {
-        this.player.cueVideoById(this.currentVideoId, 0);
-        this.isPlaying = false;
-        this.stopTicker();
+        if (this.loadedVideoId !== this.currentVideoId) {
+          this.player.cueVideoById({
+            videoId: this.currentVideoId,
+            startSeconds: 0
+          });
+          this.loadedVideoId = this.currentVideoId;
+        }
       } catch (e) {
         console.warn('[Ephphatha YouTube] cueDay error', e);
       }
@@ -255,23 +265,26 @@ export class YouTubeAudioAdapter {
   }
 
   /**
-   * Instantly switches to the requested day and plays immediately.
-   * This is used when the user changes day while audio is already playing.
+   * Instantly switches to the requested day and starts playing immediately.
+   * Used when switching days while audio is playing.
    */
   loadAndPlayDay(dayNum = 1, startSec = 0) {
     this.syncDayMetadata(dayNum);
     this.currentTimeSec = startSec;
+    this.isPlaying = true;
+    this.loadedVideoId = this.currentVideoId;
 
     if (!this.isPlayerReady || !this.player || typeof this.player.loadVideoById !== 'function') {
       this.pendingAutoPlay = true;
-      this.isPlaying = true;
       this.emit();
       return;
     }
 
     try {
-      this.player.loadVideoById(this.currentVideoId, startSec);
-      this.isPlaying = true;
+      this.player.loadVideoById({
+        videoId: this.currentVideoId,
+        startSeconds: startSec || 0
+      });
       if (this.playbackRate !== 1.0) {
         try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
       }
@@ -283,19 +296,29 @@ export class YouTubeAudioAdapter {
   }
 
   async play() {
-    if (!this.currentVideoId) {
-      this.loadAndPlayDay(this.currentDay, 0);
-      return;
-    }
-    if (!this.isPlayerReady || !this.player || typeof this.player.playVideo !== 'function') {
+    this.syncDayMetadata(this.currentDay);
+
+    if (!this.isPlayerReady || !this.player) {
       this.pendingAutoPlay = true;
       this.isPlaying = true;
       this.emit();
       return;
     }
+
     try {
-      this.player.playVideo();
+      if (this.loadedVideoId !== this.currentVideoId || typeof this.player.playVideo !== 'function') {
+        this.loadedVideoId = this.currentVideoId;
+        this.player.loadVideoById({
+          videoId: this.currentVideoId,
+          startSeconds: this.currentTimeSec || 0
+        });
+      } else {
+        this.player.playVideo();
+      }
       this.isPlaying = true;
+      if (this.playbackRate !== 1.0) {
+        try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
+      }
       this.startTicker();
       this.emit();
     } catch (e) {
