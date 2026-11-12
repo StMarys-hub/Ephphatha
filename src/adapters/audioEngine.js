@@ -1,8 +1,11 @@
 /**
- * EPHPHATHA ADAPTER LAYER: HTTP 206 BYTE-RANGE EDGE AUDIO ENGINE
+ * EPHPHATHA ADAPTER LAYER: HTTP 206 BYTE-RANGE EDGE AUDIO ENGINE & YOUTUBE BIBLE AUDIO
  * Streams real MP3/M4A audio from Cloudflare Edge Proxy (`https://ephphatha-edge-proxy.jimmymj.workers.dev/audio/<FILE_ID>`)
- * with automatic local `/audio/<FILE_ID>` proxy failover and ID normalization.
+ * for Malayalam (Google Drive) and integrates Ascension's official 'The Bible in a Year'
+ * YouTube audio for English with unified playback, scrubber progress bar, and speed controls.
  */
+
+import { YouTubeAudioAdapter } from './youtubeAudioAdapter.js';
 
 export function normalizeGoogleDriveAudioId(raw = '') {
   const str = String(raw || '').trim();
@@ -41,9 +44,33 @@ export class EphphathaAudioEngine {
     this.usingEdgeStream = false;
     this.triedLocalProxyFallback = false;
     this.pendingSavedSeekSec = 0;
-    this.edgeProxyBaseUrl = localStorage.getItem('ephphatha_edge_proxy_url') || 'https://ephphatha-edge-proxy.jimmymj.workers.dev';
+    this.edgeProxyBaseUrl = (typeof localStorage !== 'undefined' && localStorage.getItem('ephphatha_edge_proxy_url')) || 'https://ephphatha-edge-proxy.jimmymj.workers.dev';
+    this.lastLoadedSchedule = null;
 
-    // Real HTML5 Audio element for HTTP 206 byte-range streaming
+    // Active Audio Language: 'ml' (Google Drive) | 'en' (YouTube Fr. Mike Schmitz)
+    this.activeAudioSource = (typeof localStorage !== 'undefined' && localStorage.getItem('ephphatha_audio_lang')) || 'ml';
+
+    // YouTube Audio Adapter for English
+    this.youtubeAdapter = new YouTubeAudioAdapter();
+
+    this.youtubeAdapter.onStateChange((ytState) => {
+      if (this.activeAudioSource === 'en') {
+        this.isPlaying = ytState.isPlaying;
+        this.currentTimeSec = ytState.currentTimeSec;
+        if (ytState.durationSec && ytState.durationSec > 0) {
+          this.durationSec = Math.floor(ytState.durationSec);
+        }
+        this.emit();
+      }
+    });
+
+    this.youtubeAdapter.onEnded(() => {
+      if (this.activeAudioSource === 'en') {
+        this.triggerTrackEnded();
+      }
+    });
+
+    // Real HTML5 Audio element for HTTP 206 byte-range streaming (Malayalam)
     this.htmlAudio = new Audio();
     this.htmlAudio.preload = 'metadata';
 
@@ -62,17 +89,20 @@ export class EphphathaAudioEngine {
     });
 
     this.htmlAudio.addEventListener('timeupdate', () => {
-      if (this.usingEdgeStream) {
+      if (this.usingEdgeStream && this.activeAudioSource === 'ml') {
         this.currentTimeSec = this.htmlAudio.currentTime;
         this.emit();
       }
     });
 
     this.htmlAudio.addEventListener('ended', () => {
-      this.triggerTrackEnded();
+      if (this.activeAudioSource === 'ml') {
+        this.triggerTrackEnded();
+      }
     });
 
     this.htmlAudio.addEventListener('error', () => {
+      if (this.activeAudioSource !== 'ml') return;
       // If direct Edge Worker URL encountered an issue, try local `/audio/<ID>` proxy before falling back
       if (this.usingEdgeStream && !this.triedLocalProxyFallback && this.currentFileId) {
         this.triedLocalProxyFallback = true;
@@ -94,6 +124,33 @@ export class EphphathaAudioEngine {
     this.tickInterval = null;
     this.listeners = new Set();
     this.endedListeners = new Set();
+  }
+
+  setAudioSource(lang = 'ml') {
+    const nextLang = lang === 'en' ? 'en' : 'ml';
+    if (this.activeAudioSource === nextLang) return;
+
+    const wasPlaying = this.isPlaying;
+    this.pause();
+    this.activeAudioSource = nextLang;
+    try {
+      localStorage.setItem('ephphatha_audio_lang', nextLang);
+    } catch (_) { /* ignore */ }
+
+    if (nextLang === 'en') {
+      this.youtubeAdapter.cueDay(this.currentDay, wasPlaying);
+      if (this.lastLoadedSchedule) {
+        this.setupMediaSession(this.lastLoadedSchedule);
+      }
+    } else {
+      if (this.lastLoadedSchedule) {
+        this.loadDayAudio(this.lastLoadedSchedule, 0);
+      }
+      if (wasPlaying) {
+        this.play();
+      }
+    }
+    this.emit();
   }
 
   onEnded(fn) {
@@ -123,25 +180,36 @@ export class EphphathaAudioEngine {
 
   setEdgeProxyUrl(url) {
     this.edgeProxyBaseUrl = String(url || '').replace(/\/+$/, '');
-    localStorage.setItem('ephphatha_edge_proxy_url', this.edgeProxyBaseUrl);
+    try {
+      localStorage.setItem('ephphatha_edge_proxy_url', this.edgeProxyBaseUrl);
+    } catch (_) { /* ignore */ }
     this.emit();
   }
 
   getState() {
+    const isEn = this.activeAudioSource === 'en';
+    const ytState = this.youtubeAdapter ? this.youtubeAdapter.getState() : {};
+
     return {
       isPlaying: this.isPlaying,
       currentDay: this.currentDay,
-      currentTimeSec: this.currentTimeSec,
-      durationSec: this.durationSec,
+      currentTimeSec: isEn ? (ytState.currentTimeSec || this.currentTimeSec) : this.currentTimeSec,
+      durationSec: isEn ? (ytState.durationSec || this.durationSec) : this.durationSec,
       playbackRate: this.playbackRate,
       ambientPadEnabled: this.ambientPadEnabled,
       prefetchedNextDay: this.prefetchedNextDay,
-      usingEdgeStream: this.usingEdgeStream,
+      usingEdgeStream: !isEn && this.usingEdgeStream,
       edgeProxyBaseUrl: this.edgeProxyBaseUrl,
       currentFileId: this.currentFileId,
-      http206HeaderStatus: this.usingEdgeStream
-        ? `🟢 Google Drive HTTP 206 Stream (${this.currentFileId.slice(0, 8)}...)`
-        : `HTTP 206 • Day ${this.prefetchedNextDay || 2} Pre-Cached`
+      activeAudioSource: this.activeAudioSource,
+      youtubeVideoId: ytState.currentVideoId || '',
+      youtubeTitle: ytState.currentTitle || '',
+      youtubeUrl: ytState.currentYoutubeUrl || '',
+      http206HeaderStatus: isEn
+        ? `🔴 YouTube (Fr. Mike Schmitz • Day ${this.currentDay})`
+        : (this.usingEdgeStream
+          ? `🟢 Google Drive HTTP 206 Stream (${this.currentFileId.slice(0, 8)}...)`
+          : `HTTP 206 • Day ${this.prefetchedNextDay || 2} Pre-Cached`)
     };
   }
 
@@ -149,11 +217,30 @@ export class EphphathaAudioEngine {
     const wasPlaying = this.isPlaying;
     if (wasPlaying) this.pause();
 
+    this.lastLoadedSchedule = daySchedule;
     this.currentDay = daySchedule.day_number;
+    this.prefetchedNextDay = Math.min(365, this.currentDay + 1);
+
+    // Prepare English YouTube data
+    if (this.youtubeAdapter) {
+      this.youtubeAdapter.cueDay(this.currentDay, false);
+    }
+
+    if (this.activeAudioSource === 'en') {
+      const ytData = this.youtubeAdapter.getDayVideoData(this.currentDay);
+      this.durationSec = 1345;
+      this.currentTimeSec = 0;
+      this.pendingSavedSeekSec = 0;
+      this.usingEdgeStream = false;
+      this.setupMediaSession(daySchedule);
+      this.emit();
+      return;
+    }
+
+    // Malayalam Google Drive Loading
     this.durationSec = daySchedule.audio_duration_sec || 1345;
     this.currentTimeSec = Math.min(savedTimestampSec || 0, this.durationSec - 5);
     this.pendingSavedSeekSec = this.currentTimeSec;
-    this.prefetchedNextDay = Math.min(365, this.currentDay + 1);
     this.currentFileId = normalizeGoogleDriveAudioId(daySchedule.gdrive_audio_file_id || '');
     this.triedLocalProxyFallback = false;
 
@@ -177,9 +264,16 @@ export class EphphathaAudioEngine {
   setupMediaSession(daySchedule) {
     if ('mediaSession' in navigator && window.MediaMetadata) {
       try {
+        const isEn = this.activeAudioSource === 'en';
+        const ytData = isEn && this.youtubeAdapter ? this.youtubeAdapter.getDayVideoData(this.currentDay) : null;
+
         navigator.mediaSession.metadata = new MediaMetadata({
-          title: `Day ${daySchedule.day_number}: ${daySchedule.episode_title}`,
-          artist: `Ephphatha • Period ${daySchedule.period?.code || ''} (${daySchedule.period?.name || ''})`,
+          title: isEn
+            ? (ytData?.title || `Day ${daySchedule.day_number}: The Bible in a Year`)
+            : `Day ${daySchedule.day_number}: ${daySchedule.episode_title}`,
+          artist: isEn
+            ? 'Fr. Mike Schmitz & Jeff Cavins • Ascension'
+            : `Ephphatha • Period ${daySchedule.period?.code || ''} (${daySchedule.period?.name || ''})`,
           album: 'Ephphatha: Bible in a Year (Salvation History)'
         });
         navigator.mediaSession.setActionHandler('play', () => this.play());
@@ -237,6 +331,15 @@ export class EphphathaAudioEngine {
 
   async play() {
     if (this.isPlaying) return;
+
+    if (this.activeAudioSource === 'en') {
+      this.stopAmbientSanctuaryPad();
+      this.isPlaying = true;
+      await this.youtubeAdapter.play();
+      this.emit();
+      return;
+    }
+
     this.isPlaying = true;
     this.stopAmbientSanctuaryPad();
 
@@ -275,6 +378,9 @@ export class EphphathaAudioEngine {
 
   pause() {
     this.isPlaying = false;
+    if (this.activeAudioSource === 'en') {
+      this.youtubeAdapter.pause();
+    }
     try { this.htmlAudio.pause(); } catch (_) { /* ignore */ }
     if (this.tickInterval) {
       clearInterval(this.tickInterval);
@@ -301,7 +407,9 @@ export class EphphathaAudioEngine {
 
   seekTo(targetSec) {
     this.currentTimeSec = Math.max(0, Math.min(this.durationSec, Number(targetSec) || 0));
-    if (this.usingEdgeStream) {
+    if (this.activeAudioSource === 'en') {
+      this.youtubeAdapter.seekTo(this.currentTimeSec);
+    } else if (this.usingEdgeStream) {
       try { this.htmlAudio.currentTime = this.currentTimeSec; } catch (_) { /* ignore */ }
     }
     this.emit();
@@ -312,8 +420,20 @@ export class EphphathaAudioEngine {
     const idx = rates.indexOf(this.playbackRate);
     this.playbackRate = rates[(idx + 1) % rates.length];
     this.htmlAudio.playbackRate = this.playbackRate;
+    if (this.youtubeAdapter) {
+      this.youtubeAdapter.setPlaybackRate(this.playbackRate);
+    }
     this.emit();
     return this.playbackRate;
+  }
+
+  setPlaybackRate(rate) {
+    this.playbackRate = Number(rate) || 1.0;
+    this.htmlAudio.playbackRate = this.playbackRate;
+    if (this.youtubeAdapter) {
+      this.youtubeAdapter.setPlaybackRate(this.playbackRate);
+    }
+    this.emit();
   }
 
   speakVerseAloud(text, lang = 'en-US') {

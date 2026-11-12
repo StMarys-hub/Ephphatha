@@ -498,7 +498,12 @@ function renderDayHeroCard(daySchedule) {
     daySchedule.gdrive_audio_file_id = normalizeGoogleDriveAudioId(daySchedule.gdrive_audio_file_id);
   }
   if (folderEl) {
-    folderEl.textContent = `🎧 Audio Reading & Reflection • ${daySchedule.period.name}`;
+    if (audioEngine.activeAudioSource === 'en') {
+      const ytData = audioEngine.youtubeAdapter?.getDayVideoData(daySchedule.day_number);
+      folderEl.innerHTML = `🎧 English Audio • Fr. Mike Schmitz <a href="${ytData?.youtube_url || '#'}" target="_blank" rel="noopener" style="color: #cc0000; text-decoration: underline; margin-left: 6px; font-weight: 700;">YouTube ↗</a>`;
+    } else {
+      folderEl.textContent = `🎧 Audio Reading & Reflection • ${daySchedule.period.name}`;
+    }
   }
   const idInput = document.getElementById('input-day-gdrive-id');
   if (idInput) {
@@ -1375,14 +1380,19 @@ function renderHomeDashboardView() {
   setText('home-anchor-reading-ref', refs || daySchedule.episode_title || '');
 
   // Anchor 2: Audio Reading & Reflection
-  const durStr = formatSecondsAsTime(daySchedule.audio_duration_sec || audioEngine.durationSec || 1345);
+  const isEn = audioEngine.activeAudioSource === 'en';
+  const durStr = formatSecondsAsTime(audioEngine.durationSec || daySchedule.audio_duration_sec || 1345);
   setText(
     'home-anchor-audio-status',
-    isPlaying ? `🟢 Playing Now (${durStr})` : `🎧 Audio Reading & Reflection (${durStr})`
+    isPlaying
+      ? (isEn ? `🔴 Playing YouTube (${durStr})` : `🟢 Playing Drive (${durStr})`)
+      : (isEn ? `EN • YouTube Audio (${durStr})` : `ML • Drive Audio (${durStr})`)
   );
   setText(
     'home-anchor-audio-desc',
-    `Day ${dayNum}: ${daySchedule.episode_title} — Full Scripture Audio Reading & Theological Reflection`
+    isEn
+      ? (audioEngine.youtubeAdapter?.getDayVideoData(dayNum)?.title || `Day ${dayNum}: The Bible in a Year — Fr. Mike Schmitz`)
+      : `Day ${dayNum}: ${daySchedule.episode_title} — Malayalam Scripture Audio Reading & Theological Reflection`
   );
 
   // Anchor 4: Progress Dashboard
@@ -1452,23 +1462,45 @@ function wireTelemetryStreams() {
         : `<svg class="audio-headset-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/><polygon points="10 9 15 12 10 15 10 9" fill="currentColor" stroke="none"/></svg>`;
     }
 
+    const isEn = audioState.activeAudioSource === 'en';
+
+    // Synchronize Language Pill Buttons (Bottom Bar + Settings Drawer)
+    ['btn-audio-lang-ml', 'btn-drawer-lang-ml'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('active', !isEn);
+    });
+    ['btn-audio-lang-en', 'btn-drawer-lang-en'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('active', isEn);
+    });
+
+    if (playBtn) {
+      playBtn.classList.toggle('en-playing', isEn && audioState.isPlaying);
+    }
+
     setText('audio-time-current', formatSecondsAsTime(audioState.currentTimeSec));
     setText('audio-time-total', formatSecondsAsTime(audioState.durationSec));
     const badgeEl = document.getElementById('audio-prefetch-badge');
     if (badgeEl) {
-      badgeEl.textContent = audioState.isPlaying
-        ? '🟢 Playing Reading & Reflection'
-        : '🎧 Audio Reading & Reflection';
-      badgeEl.title = audioState.isPlaying
-        ? 'Daily Audio Reading & Theological Reflection Playing'
-        : 'Daily Audio Reading & Theological Reflection Ready';
+      if (isEn) {
+        badgeEl.textContent = audioState.isPlaying
+          ? '🔴 YouTube • Fr. Mike Schmitz'
+          : 'EN • YouTube (Fr. Mike Schmitz)';
+        badgeEl.title = audioState.youtubeTitle || 'The Bible in a Year (with Fr. Mike Schmitz)';
+      } else {
+        badgeEl.textContent = audioState.isPlaying
+          ? '🟢 Playing Malayalam Audio'
+          : 'ML • Google Drive Audio';
+        badgeEl.title = audioState.http206HeaderStatus || 'Malayalam Daily Audio Stream';
+      }
     }
     renderHomeDashboardView();
 
     const scrubber = document.getElementById('audio-scrubber');
     if (scrubber) {
-      scrubber.max = String(audioState.durationSec);
-      scrubber.value = String(Math.floor(audioState.currentTimeSec));
+      scrubber.max = String(audioState.durationSec || 1345);
+      scrubber.value = String(Math.floor(audioState.currentTimeSec || 0));
+      scrubber.classList.toggle('en-track', isEn);
     }
 
     // Highlight active verse during audio playback
@@ -1844,6 +1876,20 @@ function bindGlobalControls() {
   });
   document.getElementById('audio-scrubber')?.addEventListener('input', (e) => {
     audioEngine.seekTo(Number(e.target.value));
+  });
+
+  // Audio Language Selector Buttons (ML / EN)
+  document.getElementById('btn-audio-lang-ml')?.addEventListener('click', () => {
+    audioEngine.setAudioSource('ml');
+  });
+  document.getElementById('btn-audio-lang-en')?.addEventListener('click', () => {
+    audioEngine.setAudioSource('en');
+  });
+  document.getElementById('btn-drawer-lang-ml')?.addEventListener('click', () => {
+    audioEngine.setAudioSource('ml');
+  });
+  document.getElementById('btn-drawer-lang-en')?.addEventListener('click', () => {
+    audioEngine.setAudioSource('en');
   });
 
   // Bottom Navigation Tabs

@@ -911,8 +911,15 @@
       <div class="drawer-section">
         <div class="context-item-label">🎧 Audio Reading &amp; Reflection Preferences</div>
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
-          <span style="font-size: 0.85rem;">Daily Audio Reading &amp; Reflection</span>
+          <span style="font-size: 0.85rem;">Daily Audio Track</span>
           <span class="crypto-badge" id="audio-setting-badge">HD Stream Ready</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
+          <span style="font-size: 0.85rem;">Audio Source</span>
+          <div class="audio-lang-toggle" id="drawer-audio-lang-toggle" role="group" aria-label="Audio Language Selection">
+            <button type="button" class="lang-pill-btn active" id="btn-drawer-lang-ml" data-lang="ml">ML (Drive)</button>
+            <button type="button" class="lang-pill-btn" id="btn-drawer-lang-en" data-lang="en">EN (YouTube)</button>
+          </div>
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px;">
           <span style="font-size: 0.85rem;">Playback Speed</span>
@@ -1070,6 +1077,13 @@
       </div>
 
       <button type="button" class="audio-mini-btn" id="btn-audio-fwd-15" title="Forward 15s">+15s</button>
+
+      <!-- Compact Audio Language Toggle: ML (Google Drive) | EN (YouTube) -->
+      <div class="audio-lang-toggle" id="audio-lang-toggle" role="group" aria-label="Audio Language">
+        <button type="button" class="lang-pill-btn active" id="btn-audio-lang-ml" data-lang="ml" title="Malayalam Audio (Google Drive)">ML</button>
+        <button type="button" class="lang-pill-btn" id="btn-audio-lang-en" data-lang="en" title="English Audio (YouTube - Fr. Mike Schmitz)">EN</button>
+      </div>
+
       <button type="button" class="audio-mini-btn" id="btn-audio-speed" title="Playback Speed">1x</button>
     </div>
 
