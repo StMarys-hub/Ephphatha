@@ -135,6 +135,9 @@ export function initCanonicalBibleView(dependencies = {}) {
 
   // Render initial catalog
   renderBibleCatalogGrid();
+
+  // Initialize auto-hiding sticky toolbar on scroll down
+  initToolbarAutoHideOnScroll();
 }
 
 export function renderBibleView() {
@@ -164,6 +167,7 @@ export function returnToCatalog() {
   canonicalState.activeViewMode = 'catalog';
   document.getElementById('bible-reader-pane')?.classList.add('hidden');
   document.getElementById('bible-catalog-pane')?.classList.remove('hidden');
+  document.querySelector('.bible-reader-toolbar')?.classList.remove('toolbar-hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   renderBibleView();
 }
@@ -359,6 +363,9 @@ export async function openCanonicalChapter(pocId, chapterNum) {
   document.getElementById('bible-catalog-pane')?.classList.add('hidden');
   const readerPane = document.getElementById('bible-reader-pane');
   if (readerPane) readerPane.classList.remove('hidden');
+
+  // Always ensure toolbar is visible when opening a chapter
+  document.querySelector('.bible-reader-toolbar')?.classList.remove('toolbar-hidden');
 
   // Update Toolbar Title Badge & Quick Selectors
   const titleBadge = document.getElementById('bible-reader-title-badge');
@@ -709,5 +716,58 @@ function populateQuickBookDropdowns() {
         openCanonicalChapter(pocId, 1);
       }
     });
+  }
+}
+
+/**
+ * Auto-hiding sticky navigation bar when scrolling down to read,
+ * smoothly returning when scrolling up to navigate.
+ */
+function initToolbarAutoHideOnScroll() {
+  let lastScrollY = window.scrollY || 0;
+  let ticking = false;
+  const SCROLL_THRESHOLD = 8; // Small delta to prevent micro-jitter
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        handleToolbarScroll();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+
+  function handleToolbarScroll() {
+    const readerPane = document.getElementById('bible-reader-pane');
+    if (!readerPane || readerPane.classList.contains('hidden')) return;
+
+    const toolbar = document.querySelector('.bible-reader-toolbar');
+    if (!toolbar) return;
+
+    const currentScrollY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+    const delta = currentScrollY - lastScrollY;
+
+    // Always show toolbar when near the top of the passage
+    if (currentScrollY <= 40) {
+      toolbar.classList.remove('toolbar-hidden');
+      lastScrollY = currentScrollY;
+      return;
+    }
+
+    // Ignore tiny scroll changes
+    if (Math.abs(delta) < SCROLL_THRESHOLD) {
+      return;
+    }
+
+    if (delta > 0) {
+      // User is scrolling DOWN to read verses -> hide toolbar to maximize vertical reading area
+      toolbar.classList.add('toolbar-hidden');
+    } else {
+      // User is scrolling UP -> reveal navigation toolbar
+      toolbar.classList.remove('toolbar-hidden');
+    }
+
+    lastScrollY = currentScrollY;
   }
 }

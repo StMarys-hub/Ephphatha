@@ -2885,6 +2885,15 @@ body[data-lang-pref="en"] .canonical-verse-ml {
   flex-direction: column;
   gap: 8px;
   backdrop-filter: blur(8px);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, box-shadow 0.25s ease;
+  will-change: transform, opacity;
+}
+
+.bible-reader-toolbar.toolbar-hidden {
+  transform: translateY(calc(-100% - 65px));
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: none;
 }
 
 /* Row 1: Back to All Books + Segmented Language Switcher */
