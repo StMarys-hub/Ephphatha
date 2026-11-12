@@ -1,8 +1,8 @@
 /**
  * EPHPHATHA ADAPTER LAYER: HTTP 206 BYTE-RANGE EDGE AUDIO ENGINE & YOUTUBE BIBLE AUDIO
  * Streams real MP3/M4A audio from Cloudflare Edge Proxy (`https://ephphatha-edge-proxy.jimmymj.workers.dev/audio/<FILE_ID>`)
- * for Malayalam (Google Drive) and integrates Ascension's official 'The Bible in a Year'
- * YouTube audio for English with unified playback, scrubber progress bar, and speed controls.
+ * for Malayalam (Google Drive) and official Ascension 'The Bible in a Year' audio for English (YouTube series with Fr. Mike Schmitz)
+ * with unified native playback, scrubber progress bar, lockscreen media controls, and speed controls across all 365 days.
  */
 
 import { YouTubeAudioAdapter } from './youtubeAudioAdapter.js';
@@ -31,6 +31,13 @@ export function normalizeGoogleDriveAudioId(raw = '') {
   return str.replace(/[^a-zA-Z0-9_-]/g, '');
 }
 
+export function formatSecondsAsTime(sec = 0) {
+  const s = Math.max(0, Math.floor(sec || 0));
+  const m = Math.floor(s / 60);
+  const remS = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(remS).padStart(2, '0')}`;
+}
+
 export class EphphathaAudioEngine {
   constructor() {
     this.isPlaying = false;
@@ -50,31 +57,15 @@ export class EphphathaAudioEngine {
     // Active Audio Language: 'ml' (Google Drive) | 'en' (YouTube Fr. Mike Schmitz)
     this.activeAudioSource = (typeof localStorage !== 'undefined' && localStorage.getItem('ephphatha_audio_lang')) || 'ml';
 
-    // YouTube Audio Adapter for English
+    // YouTube Audio Adapter for English dataset and metadata
     this.youtubeAdapter = new YouTubeAudioAdapter();
 
-    this.youtubeAdapter.onStateChange((ytState) => {
-      if (this.activeAudioSource === 'en') {
-        this.isPlaying = ytState.isPlaying;
-        this.currentTimeSec = ytState.currentTimeSec;
-        if (ytState.durationSec && ytState.durationSec > 0) {
-          this.durationSec = Math.floor(ytState.durationSec);
-        }
-        this.emit();
-      }
-    });
+    // Unified HTML5 Audio element for seamless HTTP 206 byte-range streaming for BOTH ML and EN
+    this.htmlAudio = typeof Audio !== 'undefined' ? new Audio() : { addEventListener: () => {} };
+    if (this.htmlAudio.preload) this.htmlAudio.preload = 'metadata';
 
-    this.youtubeAdapter.onEnded(() => {
-      if (this.activeAudioSource === 'en') {
-        this.triggerTrackEnded();
-      }
-    });
-
-    // Real HTML5 Audio element for HTTP 206 byte-range streaming (Malayalam)
-    this.htmlAudio = new Audio();
-    this.htmlAudio.preload = 'metadata';
-
-    this.htmlAudio.addEventListener('loadedmetadata', () => {
+    if (typeof this.htmlAudio.addEventListener === 'function') {
+      this.htmlAudio.addEventListener('loadedmetadata', () => {
       if (this.htmlAudio.duration && isFinite(this.htmlAudio.duration)) {
         this.durationSec = Math.floor(this.htmlAudio.duration);
       }
@@ -89,22 +80,20 @@ export class EphphathaAudioEngine {
     });
 
     this.htmlAudio.addEventListener('timeupdate', () => {
-      if (this.usingEdgeStream && this.activeAudioSource === 'ml') {
+      if (this.usingEdgeStream) {
         this.currentTimeSec = this.htmlAudio.currentTime;
         this.emit();
       }
     });
 
     this.htmlAudio.addEventListener('ended', () => {
-      if (this.activeAudioSource === 'ml') {
-        this.triggerTrackEnded();
-      }
+      this.triggerTrackEnded();
     });
 
-    this.htmlAudio.addEventListener('error', () => {
-      if (this.activeAudioSource !== 'ml') return;
-      // If direct Edge Worker URL encountered an issue, try local `/audio/<ID>` proxy before falling back
-      if (this.usingEdgeStream && !this.triedLocalProxyFallback && this.currentFileId) {
+    this.htmlAudio.addEventListener('error', (e) => {
+      console.warn('[Ephphatha Audio Stream Error]', e);
+      // If direct Edge Worker URL encountered an issue for ML, try local `/audio/<ID>` proxy before falling back
+      if (this.activeAudioSource === 'ml' && this.usingEdgeStream && !this.triedLocalProxyFallback && this.currentFileId) {
         this.triedLocalProxyFallback = true;
         this.htmlAudio.src = `/audio/${encodeURIComponent(this.currentFileId)}`;
         if (this.isPlaying) {
@@ -117,6 +106,7 @@ export class EphphathaAudioEngine {
       this.usingEdgeStream = false;
       this.emit();
     });
+    }
 
     this.audioCtx = null;
     this.gainNode = null;
@@ -136,26 +126,12 @@ export class EphphathaAudioEngine {
     try {
       localStorage.setItem('ephphatha_audio_lang', nextLang);
     } catch (_) { /* ignore */ }
-    this.youtubeAdapter.updateHostVisibility(nextLang);
 
-    if (nextLang === 'en') {
-      if (wasPlaying) {
-        this.youtubeAdapter.loadAndPlayDay(this.currentDay, 0);
-        this.isPlaying = true;
-      } else {
-        this.youtubeAdapter.cueDay(this.currentDay);
-      }
-      if (this.lastLoadedSchedule) {
-        this.setupMediaSession(this.lastLoadedSchedule);
-      }
+    if (this.lastLoadedSchedule) {
+      this.loadDayAudio(this.lastLoadedSchedule, this.currentTimeSec, wasPlaying);
     } else {
-      if (this.lastLoadedSchedule) {
-        this.loadDayAudio(this.lastLoadedSchedule, 0, wasPlaying);
-      } else if (wasPlaying) {
-        this.play();
-      }
+      this.emit();
     }
-    this.emit();
   }
 
   onEnded(fn) {
@@ -193,25 +169,25 @@ export class EphphathaAudioEngine {
 
   getState() {
     const isEn = this.activeAudioSource === 'en';
-    const ytState = this.youtubeAdapter ? this.youtubeAdapter.getState() : {};
+    const ytData = this.youtubeAdapter ? this.youtubeAdapter.getDayVideoData(this.currentDay) : null;
 
     return {
       isPlaying: this.isPlaying,
       currentDay: this.currentDay,
-      currentTimeSec: isEn ? (ytState.currentTimeSec || this.currentTimeSec) : this.currentTimeSec,
-      durationSec: isEn ? (ytState.durationSec || this.durationSec) : this.durationSec,
+      currentTimeSec: this.currentTimeSec,
+      durationSec: this.durationSec,
       playbackRate: this.playbackRate,
       ambientPadEnabled: this.ambientPadEnabled,
       prefetchedNextDay: this.prefetchedNextDay,
-      usingEdgeStream: !isEn && this.usingEdgeStream,
+      usingEdgeStream: this.usingEdgeStream,
       edgeProxyBaseUrl: this.edgeProxyBaseUrl,
       currentFileId: this.currentFileId,
       activeAudioSource: this.activeAudioSource,
-      youtubeVideoId: ytState.currentVideoId || '',
-      youtubeTitle: ytState.currentTitle || '',
-      youtubeUrl: ytState.currentYoutubeUrl || '',
+      youtubeVideoId: ytData?.video_id || '',
+      youtubeTitle: ytData?.title || '',
+      youtubeUrl: ytData?.youtube_url || '',
       http206HeaderStatus: isEn
-        ? `🔴 YouTube (Fr. Mike Schmitz • Day ${this.currentDay})`
+        ? `🔴 EN • Fr. Mike Schmitz (The Bible in a Year)`
         : (this.usingEdgeStream
           ? `🟢 Google Drive HTTP 206 Stream (${this.currentFileId.slice(0, 8)}...)`
           : `HTTP 206 • Day ${this.prefetchedNextDay || 2} Pre-Cached`)
@@ -227,19 +203,22 @@ export class EphphathaAudioEngine {
     this.prefetchedNextDay = Math.min(365, this.currentDay + 1);
 
     if (this.activeAudioSource === 'en') {
-      const ytData = this.youtubeAdapter.getDayVideoData(this.currentDay);
-      this.durationSec = 1345;
-      this.currentTimeSec = 0;
-      this.pendingSavedSeekSec = 0;
-      this.usingEdgeStream = false;
-      this.setupMediaSession(daySchedule);
+      const enData = this.youtubeAdapter.getDayVideoData(this.currentDay);
+      this.durationSec = daySchedule.audio_duration_sec || 1345;
+      this.currentTimeSec = Math.min(savedTimestampSec || 0, this.durationSec - 5);
+      this.pendingSavedSeekSec = this.currentTimeSec;
+      this.usingEdgeStream = true;
 
+      const audioUrl = enData.audio_url;
+      if (this.htmlAudio.src !== audioUrl) {
+        this.htmlAudio.src = audioUrl;
+        this.htmlAudio.load();
+      }
+      this.htmlAudio.playbackRate = this.playbackRate;
+
+      this.setupMediaSession(daySchedule);
       if (wasPlaying) {
-        this.isPlaying = true;
-        this.youtubeAdapter.loadAndPlayDay(this.currentDay, 0);
-      } else {
-        this.isPlaying = false;
-        this.youtubeAdapter.cueDay(this.currentDay);
+        this.play();
       }
       this.emit();
       return;
@@ -285,7 +264,9 @@ export class EphphathaAudioEngine {
           artist: isEn
             ? 'Fr. Mike Schmitz & Jeff Cavins • Ascension'
             : `Ephphatha • Period ${daySchedule.period?.code || ''} (${daySchedule.period?.name || ''})`,
-          album: 'Ephphatha: Bible in a Year (Salvation History)'
+          album: isEn
+            ? 'The Bible in a Year (Ascension)'
+            : 'Ephphatha: Bible in a Year (Salvation History)'
         });
         navigator.mediaSession.setActionHandler('play', () => this.play());
         navigator.mediaSession.setActionHandler('pause', () => this.pause());
@@ -342,26 +323,18 @@ export class EphphathaAudioEngine {
 
   async play() {
     if (this.isPlaying) return;
-
-    if (this.activeAudioSource === 'en') {
-      this.stopAmbientSanctuaryPad();
-      this.isPlaying = true;
-      await this.youtubeAdapter.play();
-      this.emit();
-      return;
-    }
-
     this.isPlaying = true;
     this.stopAmbientSanctuaryPad();
 
-    if (this.usingEdgeStream) {
+    if (this.usingEdgeStream && this.htmlAudio.src) {
       try {
         await this.htmlAudio.play();
         this.emit();
         return;
       } catch (err) {
-        // Try local `/audio/<ID>` proxy fallback before ever falling back to synth
-        if (!this.triedLocalProxyFallback && this.currentFileId) {
+        console.warn('[Ephphatha Audio] Play error:', err);
+        // Try local `/audio/<ID>` proxy fallback for ML before falling back to synth
+        if (this.activeAudioSource === 'ml' && !this.triedLocalProxyFallback && this.currentFileId) {
           this.triedLocalProxyFallback = true;
           try {
             this.htmlAudio.src = `/audio/${encodeURIComponent(this.currentFileId)}`;
@@ -389,9 +362,6 @@ export class EphphathaAudioEngine {
 
   pause() {
     this.isPlaying = false;
-    if (this.activeAudioSource === 'en') {
-      this.youtubeAdapter.pause();
-    }
     try { this.htmlAudio.pause(); } catch (_) { /* ignore */ }
     if (this.tickInterval) {
       clearInterval(this.tickInterval);
@@ -418,11 +388,9 @@ export class EphphathaAudioEngine {
 
   seekTo(targetSec) {
     this.currentTimeSec = Math.max(0, Math.min(this.durationSec, Number(targetSec) || 0));
-    if (this.activeAudioSource === 'en') {
-      this.youtubeAdapter.seekTo(this.currentTimeSec);
-    } else if (this.usingEdgeStream) {
-      try { this.htmlAudio.currentTime = this.currentTimeSec; } catch (_) { /* ignore */ }
-    }
+    try {
+      this.htmlAudio.currentTime = this.currentTimeSec;
+    } catch (_) { /* ignore */ }
     this.emit();
   }
 
@@ -430,38 +398,27 @@ export class EphphathaAudioEngine {
     const rates = [0.85, 1.0, 1.15, 1.25, 1.5];
     const idx = rates.indexOf(this.playbackRate);
     this.playbackRate = rates[(idx + 1) % rates.length];
-    this.htmlAudio.playbackRate = this.playbackRate;
-    if (this.youtubeAdapter) {
-      this.youtubeAdapter.setPlaybackRate(this.playbackRate);
-    }
+    try {
+      this.htmlAudio.playbackRate = this.playbackRate;
+    } catch (_) { /* ignore */ }
     this.emit();
     return this.playbackRate;
   }
 
   setPlaybackRate(rate) {
     this.playbackRate = Number(rate) || 1.0;
-    this.htmlAudio.playbackRate = this.playbackRate;
-    if (this.youtubeAdapter) {
-      this.youtubeAdapter.setPlaybackRate(this.playbackRate);
-    }
+    try {
+      this.htmlAudio.playbackRate = this.playbackRate;
+    } catch (_) { /* ignore */ }
     this.emit();
   }
 
   speakVerseAloud(text, lang = 'en-US') {
-    if (!('speechSynthesis' in window)) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang;
-      utterance.rate = this.playbackRate;
-      window.speechSynthesis.speak(utterance);
-    } catch (_) { /* ignore */ }
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.rate = this.playbackRate || 1.0;
+    window.speechSynthesis.speak(utterance);
   }
-}
-
-export function formatSecondsAsTime(sec = 0) {
-  const s = Math.max(0, Math.floor(sec));
-  const mins = Math.floor(s / 60);
-  const rem = s % 60;
-  return `${String(mins).padStart(2, '0')}:${String(rem).padStart(2, '0')}`;
 }
