@@ -138,15 +138,19 @@ export class EphphathaAudioEngine {
     } catch (_) { /* ignore */ }
 
     if (nextLang === 'en') {
-      this.youtubeAdapter.cueDay(this.currentDay, wasPlaying);
+      if (wasPlaying) {
+        this.youtubeAdapter.loadAndPlayDay(this.currentDay, 0);
+        this.isPlaying = true;
+      } else {
+        this.youtubeAdapter.cueDay(this.currentDay);
+      }
       if (this.lastLoadedSchedule) {
         this.setupMediaSession(this.lastLoadedSchedule);
       }
     } else {
       if (this.lastLoadedSchedule) {
-        this.loadDayAudio(this.lastLoadedSchedule, 0);
-      }
-      if (wasPlaying) {
+        this.loadDayAudio(this.lastLoadedSchedule, 0, wasPlaying);
+      } else if (wasPlaying) {
         this.play();
       }
     }
@@ -213,18 +217,13 @@ export class EphphathaAudioEngine {
     };
   }
 
-  loadDayAudio(daySchedule, savedTimestampSec = 0) {
-    const wasPlaying = this.isPlaying;
-    if (wasPlaying) this.pause();
+  loadDayAudio(daySchedule, savedTimestampSec = 0, autoPlay = false) {
+    const wasPlaying = this.isPlaying || autoPlay;
+    if (this.isPlaying) this.pause();
 
     this.lastLoadedSchedule = daySchedule;
     this.currentDay = daySchedule.day_number;
     this.prefetchedNextDay = Math.min(365, this.currentDay + 1);
-
-    // Prepare English YouTube data
-    if (this.youtubeAdapter) {
-      this.youtubeAdapter.cueDay(this.currentDay, false);
-    }
 
     if (this.activeAudioSource === 'en') {
       const ytData = this.youtubeAdapter.getDayVideoData(this.currentDay);
@@ -233,6 +232,13 @@ export class EphphathaAudioEngine {
       this.pendingSavedSeekSec = 0;
       this.usingEdgeStream = false;
       this.setupMediaSession(daySchedule);
+
+      if (wasPlaying) {
+        this.youtubeAdapter.loadAndPlayDay(this.currentDay, 0);
+        this.isPlaying = true;
+      } else {
+        this.youtubeAdapter.cueDay(this.currentDay);
+      }
       this.emit();
       return;
     }
@@ -258,6 +264,9 @@ export class EphphathaAudioEngine {
     }
 
     this.setupMediaSession(daySchedule);
+    if (wasPlaying) {
+      this.play();
+    }
     this.emit();
   }
 

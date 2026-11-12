@@ -1314,8 +1314,11 @@
     </div>
   </div>
 
+  <!-- Standard 16:9 Host Container for YouTube IFrame Audio Streaming -->
+  <div id="ephphatha-yt-audio-host" aria-hidden="true" style="position: fixed; bottom: -9999px; left: -9999px; width: 320px; height: 180px; opacity: 0.001; pointer-events: none; z-index: -999; overflow: hidden;"></div>
+
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.4.4';
+    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.5.1';
 
     window.selectJumpDay = (d) => selectDay(d);
 

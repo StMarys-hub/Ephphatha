@@ -1,9 +1,10 @@
 /**
  * EPHPHATHA ADAPTER LAYER: YOUTUBE AUDIO ADAPTER (THE BIBLE IN A YEAR - FR. MIKE SCHMITZ)
- * Bridges YouTube IFrame Player API for all 365 daily episodes from Ascension's
- * 'The Bible in a Year & More: Fr. Mike & Jeff Cavins' official series into Ephphatha's
- * unified compact audio player.
+ * Zero-latency in-memory mapping for all 365 daily episodes with seamless continuous playback,
+ * background audio streaming, scrubber progress sync, and auto-play day transitions.
  */
+
+import { YOUTUBE_365_MAP } from '../domain/youtubeBibleMap.js';
 
 export class YouTubeAudioAdapter {
   constructor() {
@@ -18,71 +19,76 @@ export class YouTubeAudioAdapter {
     this.currentTimeSec = 0;
     this.durationSec = 1345;
     this.playbackRate = 1.0;
-    this.daysMap = {};
-    this.isDataLoaded = false;
+    this.pendingAutoPlay = false;
+
+    // Zero-latency synchronous 365-day map
+    this.daysMap = YOUTUBE_365_MAP;
 
     this.listeners = new Set();
     this.endedListeners = new Set();
     this.ticker = null;
 
-    this.initDataset();
+    // Pre-cue Day 1 metadata
+    this.syncDayMetadata(1);
+
     this.initYouTubeApi();
   }
 
-  async initDataset() {
-    try {
-      const res = await fetch('./data/youtube_bible_in_a_year_365.json');
-      if (res.ok) {
-        const data = await res.json();
-        this.daysMap = data.days || {};
-        this.isDataLoaded = true;
-      }
-    } catch (e) {
-      console.warn('[Ephphatha YouTube] Could not load offline JSON manifest, falling back to algorithm', e);
-    }
+  syncDayMetadata(dayNum = 1) {
+    const day = Number(dayNum) || 1;
+    const vData = this.getDayVideoData(day);
+    this.currentDay = day;
+    this.currentVideoId = vData.video_id;
+    this.currentTitle = vData.title;
+    this.currentYoutubeUrl = vData.youtube_url;
   }
 
   getDayVideoData(dayNum = 1) {
     const day = Number(dayNum) || 1;
-    if (this.daysMap && this.daysMap[day]) {
-      return this.daysMap[day];
+    const key = String(day);
+    if (this.daysMap && this.daysMap[key]) {
+      return this.daysMap[key];
     }
-    // Fallback if data is still loading
     return {
       day,
       title: `Day ${day}: The Bible in a Year (with Fr. Mike Schmitz)`,
       episode_title: `Day ${day}`,
-      video_id: 'BW0gXbEVYgA', // Day 1 fallback
-      youtube_url: `https://www.youtube.com/results?search_query=Day+${day}+The+Bible+in+a+Year+Fr+Mike+Schmitz`
+      video_id: 'BW0gXbEVYgA',
+      youtube_url: `https://www.youtube.com/watch?v=BW0gXbEVYgA`
     };
   }
 
   initYouTubeApi() {
     if (typeof window === 'undefined') return;
 
-    // Ensure host container exists
+    // Ensure host container exists with valid embed dimensions so YouTube does not throttle
     let host = document.getElementById('ephphatha-yt-audio-host');
     if (!host) {
       host = document.createElement('div');
       host.id = 'ephphatha-yt-audio-host';
       host.style.position = 'fixed';
-      host.style.width = '1px';
-      host.style.height = '1px';
+      host.style.width = '320px';
+      host.style.height = '180px';
       host.style.left = '-9999px';
       host.style.bottom = '0';
       host.style.opacity = '0.001';
       host.style.pointerEvents = 'none';
       host.style.overflow = 'hidden';
-      host.style.zIndex = '-1';
+      host.style.zIndex = '-999';
       document.body.appendChild(host);
     }
 
     const onApiReady = () => {
       this.isApiLoaded = true;
       try {
+        const originParam = (typeof window !== 'undefined' && window.location && window.location.origin)
+          ? window.location.origin
+          : '';
+
         this.player = new window.YT.Player('ephphatha-yt-audio-host', {
-          height: '1',
-          width: '1',
+          height: '180',
+          width: '320',
+          videoId: this.currentVideoId || 'BW0gXbEVYgA',
           playerVars: {
             autoplay: 0,
             controls: 0,
@@ -90,13 +96,18 @@ export class YouTubeAudioAdapter {
             fs: 0,
             playsinline: 1,
             rel: 0,
-            modestbranding: 1
+            modestbranding: 1,
+            origin: originParam
           },
           events: {
             onReady: () => {
               this.isPlayerReady = true;
-              if (this.currentVideoId) {
-                this.cueDay(this.currentDay, false);
+              if (this.playbackRate !== 1.0) {
+                try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
+              }
+              if (this.pendingAutoPlay && this.currentVideoId) {
+                this.pendingAutoPlay = false;
+                this.loadAndPlayDay(this.currentDay, 0);
               }
               this.emit();
             },
@@ -164,15 +175,17 @@ export class YouTubeAudioAdapter {
     this.stopTicker();
     this.ticker = setInterval(() => {
       if (this.player && typeof this.player.getCurrentTime === 'function') {
-        const cur = this.player.getCurrentTime();
-        const dur = this.player.getDuration();
-        if (typeof cur === 'number' && !isNaN(cur)) {
-          this.currentTimeSec = cur;
-        }
-        if (typeof dur === 'number' && !isNaN(dur) && dur > 0) {
-          this.durationSec = dur;
-        }
-        this.emit();
+        try {
+          const cur = this.player.getCurrentTime();
+          const dur = this.player.getDuration();
+          if (typeof cur === 'number' && !isNaN(cur)) {
+            this.currentTimeSec = cur;
+          }
+          if (typeof dur === 'number' && !isNaN(dur) && dur > 0) {
+            this.durationSec = dur;
+          }
+          this.emit();
+        } catch (_) {}
       }
     }, 350);
   }
@@ -222,25 +235,18 @@ export class YouTubeAudioAdapter {
     };
   }
 
-  cueDay(dayNum = 1, autoPlay = false) {
-    this.currentDay = Number(dayNum) || 1;
-    const vData = this.getDayVideoData(this.currentDay);
-    this.currentVideoId = vData.video_id;
-    this.currentTitle = vData.title;
-    this.currentYoutubeUrl = vData.youtube_url;
+  /**
+   * Cues day metadata without auto-starting playback.
+   */
+  cueDay(dayNum = 1) {
+    this.syncDayMetadata(dayNum);
     this.currentTimeSec = 0;
 
-    if (this.isPlayerReady && this.player) {
+    if (this.isPlayerReady && this.player && typeof this.player.cueVideoById === 'function') {
       try {
-        if (autoPlay) {
-          this.player.loadVideoById(this.currentVideoId, 0);
-          this.isPlaying = true;
-          this.startTicker();
-        } else {
-          this.player.cueVideoById(this.currentVideoId, 0);
-          this.isPlaying = false;
-          this.stopTicker();
-        }
+        this.player.cueVideoById(this.currentVideoId, 0);
+        this.isPlaying = false;
+        this.stopTicker();
       } catch (e) {
         console.warn('[Ephphatha YouTube] cueDay error', e);
       }
@@ -248,25 +254,58 @@ export class YouTubeAudioAdapter {
     this.emit();
   }
 
-  async play() {
-    if (!this.currentVideoId) {
-      this.cueDay(this.currentDay, true);
+  /**
+   * Instantly switches to the requested day and plays immediately.
+   * This is used when the user changes day while audio is already playing.
+   */
+  loadAndPlayDay(dayNum = 1, startSec = 0) {
+    this.syncDayMetadata(dayNum);
+    this.currentTimeSec = startSec;
+
+    if (!this.isPlayerReady || !this.player || typeof this.player.loadVideoById !== 'function') {
+      this.pendingAutoPlay = true;
+      this.isPlaying = true;
+      this.emit();
       return;
     }
-    if (this.isPlayerReady && this.player && typeof this.player.playVideo === 'function') {
-      try {
-        this.player.playVideo();
-        this.isPlaying = true;
-        this.startTicker();
-        this.emit();
-      } catch (e) {
-        console.warn('[Ephphatha YouTube] play error', e);
+
+    try {
+      this.player.loadVideoById(this.currentVideoId, startSec);
+      this.isPlaying = true;
+      if (this.playbackRate !== 1.0) {
+        try { this.player.setPlaybackRate(this.playbackRate); } catch (_) {}
       }
+      this.startTicker();
+      this.emit();
+    } catch (e) {
+      console.warn('[Ephphatha YouTube] loadAndPlayDay error', e);
+    }
+  }
+
+  async play() {
+    if (!this.currentVideoId) {
+      this.loadAndPlayDay(this.currentDay, 0);
+      return;
+    }
+    if (!this.isPlayerReady || !this.player || typeof this.player.playVideo !== 'function') {
+      this.pendingAutoPlay = true;
+      this.isPlaying = true;
+      this.emit();
+      return;
+    }
+    try {
+      this.player.playVideo();
+      this.isPlaying = true;
+      this.startTicker();
+      this.emit();
+    } catch (e) {
+      console.warn('[Ephphatha YouTube] play error', e);
     }
   }
 
   pause() {
     this.isPlaying = false;
+    this.pendingAutoPlay = false;
     this.stopTicker();
     if (this.isPlayerReady && this.player && typeof this.player.pauseVideo === 'function') {
       try {

@@ -406,7 +406,8 @@ export async function selectDay(dayNum, options = {}) {
 
   // 4. Load Audio Metadata & Saved Timestamp from IndexedDB (<5ms)
   const savedProgress = getRecordSync('progress', String(clamped));
-  audioEngine.loadDayAudio(daySchedule, savedProgress?.audioTimestampSec || 0);
+  const shouldAutoPlay = options.autoPlay !== undefined ? options.autoPlay : audioEngine.isPlaying;
+  audioEngine.loadDayAudio(daySchedule, savedProgress?.audioTimestampSec || 0, shouldAutoPlay);
 
   // 5. Load Active Reading Slot Passage via 4-Tier Failover Pipeline
   await loadActiveReadingSlot(daySchedule);
@@ -1780,25 +1781,16 @@ function bindGlobalControls() {
   document.getElementById('btn-prev-day')?.addEventListener('click', async () => {
     if (appState.selectedDay <= 1) return;
     const wasPlaying = audioEngine.isPlaying;
-    await selectDay(appState.selectedDay - 1);
-    if (wasPlaying) {
-      audioEngine.play();
-    }
+    await selectDay(appState.selectedDay - 1, { autoPlay: wasPlaying });
   });
   document.getElementById('btn-next-day')?.addEventListener('click', async () => {
     if (appState.selectedDay >= 365) return;
     const wasPlaying = audioEngine.isPlaying;
-    await selectDay(appState.selectedDay + 1);
-    if (wasPlaying) {
-      audioEngine.play();
-    }
+    await selectDay(appState.selectedDay + 1, { autoPlay: wasPlaying });
   });
   document.getElementById('day-select-dropdown')?.addEventListener('change', async (e) => {
     const wasPlaying = audioEngine.isPlaying;
-    await selectDay(Number(e.target.value));
-    if (wasPlaying) {
-      audioEngine.play();
-    }
+    await selectDay(Number(e.target.value), { autoPlay: wasPlaying });
   });
 
   // Mark Day Complete (<5ms Optimistic IndexedDB write)
