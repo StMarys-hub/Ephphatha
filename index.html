@@ -466,19 +466,45 @@
         <div id="bible-reader-pane" class="hidden">
           <!-- Sticky Chapter Toolbar -->
           <div class="bible-reader-toolbar">
-            <button type="button" class="verse-icon-btn" id="btn-bible-back-to-catalog" title="Return to Books Catalog">
-              ◀ Books
-            </button>
-            <div class="bible-reader-center-cluster">
-              <button type="button" class="verse-icon-btn" id="btn-bible-prev-ch-mini" title="Previous Chapter">◀</button>
-              <select id="bible-reader-book-select" class="bible-reader-book-picker" aria-label="Switch Book"></select>
-              <select id="bible-reader-ch-select" class="bible-reader-ch-picker" aria-label="Switch Chapter"></select>
-              <button type="button" class="verse-icon-btn" id="btn-bible-next-ch-mini" title="Next Chapter">▶</button>
+            <div class="bible-toolbar-top-row">
+              <button type="button" class="bible-back-btn" id="btn-bible-back-to-catalog" title="Return to All 73 Books">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+                <span>73 Books</span>
+              </button>
+
+              <div class="bible-toolbar-lang-toggle" role="group" aria-label="Reading Languages">
+                <button type="button" class="lang-pill active" id="btn-canonical-lang-en-ml" title="Bilingual English + Malayalam">EN+മല</button>
+                <button type="button" class="lang-pill" id="btn-canonical-lang-ml" title="Malayalam Bible Only">മല</button>
+                <button type="button" class="lang-pill" id="btn-canonical-lang-en" title="English Bible Only">EN</button>
+              </div>
             </div>
-            <div class="language-pill-group" style="margin: 0;">
-              <button type="button" class="lang-pill active" id="btn-canonical-lang-en-ml">EN+മല</button>
-              <button type="button" class="lang-pill" id="btn-canonical-lang-ml">മല</button>
-              <button type="button" class="lang-pill" id="btn-canonical-lang-en">EN</button>
+
+            <div class="bible-toolbar-nav-row">
+              <button type="button" class="chapter-nav-arrow-btn" id="btn-bible-prev-ch-mini" title="Previous Chapter" aria-label="Previous Chapter">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M15 18l-6-6 6-6"/>
+                </svg>
+              </button>
+
+              <div class="bible-picker-capsule">
+                <div class="picker-select-wrap book-wrap">
+                  <select id="bible-reader-book-select" class="bible-picker-select" aria-label="Switch Book"></select>
+                  <span class="picker-chevron-icon" aria-hidden="true">▾</span>
+                </div>
+                <div class="picker-divider" aria-hidden="true"></div>
+                <div class="picker-select-wrap ch-wrap">
+                  <select id="bible-reader-ch-select" class="bible-picker-select" aria-label="Switch Chapter"></select>
+                  <span class="picker-chevron-icon" aria-hidden="true">▾</span>
+                </div>
+              </div>
+
+              <button type="button" class="chapter-nav-arrow-btn" id="btn-bible-next-ch-mini" title="Next Chapter" aria-label="Next Chapter">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
             </div>
           </div>
 
