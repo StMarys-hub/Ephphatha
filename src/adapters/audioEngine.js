@@ -57,6 +57,16 @@ export class EphphathaAudioEngine {
     // Active Audio Language: 'ml' (Google Drive) | 'en' (YouTube Fr. Mike Schmitz)
     this.activeAudioSource = (typeof localStorage !== 'undefined' && localStorage.getItem('ephphatha_audio_lang')) || 'ml';
 
+    // Continuous Auto-Advance & Sleep Timer State
+    this.autoAdvanceEnabled = typeof localStorage !== 'undefined'
+      ? localStorage.getItem('ephphatha_audio_auto_advance') !== 'false'
+      : true;
+    this.sleepTimerMode = 'off'; // 'off' | '15m' | '30m' | 'eod'
+    this.sleepTimerEndsAt = null;
+    this.sleepTimerTimeoutId = null;
+    this.sleepTimerTickId = null;
+    this.bufferedSec = 0;
+
     // YouTube Audio Adapter for English dataset and metadata
     this.youtubeAdapter = new YouTubeAudioAdapter();
 
@@ -82,6 +92,14 @@ export class EphphathaAudioEngine {
     this.htmlAudio.addEventListener('timeupdate', () => {
       if (this.usingEdgeStream) {
         this.currentTimeSec = this.htmlAudio.currentTime;
+        this.updateBufferedSec();
+        this.emit();
+      }
+    });
+
+    this.htmlAudio.addEventListener('progress', () => {
+      if (this.usingEdgeStream) {
+        this.updateBufferedSec();
         this.emit();
       }
     });
@@ -114,6 +132,83 @@ export class EphphathaAudioEngine {
     this.tickInterval = null;
     this.listeners = new Set();
     this.endedListeners = new Set();
+    this.sleepExpiredListeners = new Set();
+  }
+
+  updateBufferedSec() {
+    try {
+      const b = this.htmlAudio?.buffered;
+      if (!b || b.length === 0) {
+        this.bufferedSec = 0;
+        return;
+      }
+      let maxEnd = 0;
+      for (let i = 0; i < b.length; i++) {
+        const end = b.end(i);
+        if (end > maxEnd) maxEnd = end;
+      }
+      this.bufferedSec = Math.min(this.durationSec, Math.max(this.currentTimeSec, maxEnd));
+    } catch (_) {
+      this.bufferedSec = 0;
+    }
+  }
+
+  setAutoAdvance(enabled) {
+    this.autoAdvanceEnabled = Boolean(enabled);
+    try {
+      localStorage.setItem('ephphatha_audio_auto_advance', this.autoAdvanceEnabled ? 'true' : 'false');
+    } catch (_) { /* ignore */ }
+    this.emit();
+  }
+
+  onSleepExpired(fn) {
+    this.sleepExpiredListeners.add(fn);
+    return () => this.sleepExpiredListeners.delete(fn);
+  }
+
+  setSleepTimer(mode = 'off') {
+    if (this.sleepTimerTimeoutId) {
+      clearTimeout(this.sleepTimerTimeoutId);
+      this.sleepTimerTimeoutId = null;
+    }
+    if (this.sleepTimerTickId) {
+      clearInterval(this.sleepTimerTickId);
+      this.sleepTimerTickId = null;
+    }
+
+    const validMode = ['off', '15m', '30m', 'eod'].includes(mode) ? mode : 'off';
+    this.sleepTimerMode = validMode;
+    this.sleepTimerEndsAt = null;
+
+    if (validMode === '15m' || validMode === '30m') {
+      const mins = validMode === '15m' ? 15 : 30;
+      const ms = mins * 60 * 1000;
+      this.sleepTimerEndsAt = Date.now() + ms;
+
+      this.sleepTimerTimeoutId = setTimeout(() => {
+        this.pause();
+        this.setSleepTimer('off');
+        this.sleepExpiredListeners.forEach(fn => {
+          try { fn(validMode); } catch (_) { /* ignore */ }
+        });
+      }, ms);
+
+      this.sleepTimerTickId = setInterval(() => {
+        if (!this.sleepTimerEndsAt) {
+          clearInterval(this.sleepTimerTickId);
+          this.sleepTimerTickId = null;
+          return;
+        }
+        this.emit();
+      }, 1000);
+    }
+
+    this.emit();
+  }
+
+  getSleepTimerRemainingSec() {
+    if (!this.sleepTimerEndsAt) return 0;
+    return Math.max(0, Math.ceil((this.sleepTimerEndsAt - Date.now()) / 1000));
   }
 
   setAudioSource(lang = 'ml') {
@@ -141,9 +236,17 @@ export class EphphathaAudioEngine {
 
   triggerTrackEnded() {
     const finishedDay = this.currentDay;
+    const stopForSleepEod = this.sleepTimerMode === 'eod';
+    if (stopForSleepEod) {
+      this.setSleepTimer('off');
+    }
     this.pause();
+    const meta = {
+      autoAdvance: this.autoAdvanceEnabled && !stopForSleepEod,
+      sleepStopped: stopForSleepEod
+    };
     this.endedListeners.forEach(fn => {
-      try { fn(finishedDay); } catch (_) { /* ignore */ }
+      try { fn(finishedDay, meta); } catch (_) { /* ignore */ }
     });
   }
 
@@ -176,7 +279,11 @@ export class EphphathaAudioEngine {
       currentDay: this.currentDay,
       currentTimeSec: this.currentTimeSec,
       durationSec: this.durationSec,
+      bufferedSec: this.usingEdgeStream ? this.bufferedSec : this.durationSec,
       playbackRate: this.playbackRate,
+      autoAdvanceEnabled: this.autoAdvanceEnabled,
+      sleepTimerMode: this.sleepTimerMode,
+      sleepTimerRemainingSec: this.getSleepTimerRemainingSec(),
       ambientPadEnabled: this.ambientPadEnabled,
       prefetchedNextDay: this.prefetchedNextDay,
       usingEdgeStream: this.usingEdgeStream,
@@ -202,6 +309,7 @@ export class EphphathaAudioEngine {
     this.lastLoadedSchedule = daySchedule;
     this.currentDay = daySchedule.day_number;
     this.prefetchedNextDay = Math.min(365, this.currentDay + 1);
+    this.bufferedSec = 0;
 
     if (this.activeAudioSource === 'en') {
       const enData = this.youtubeAdapter.getDayVideoData(this.currentDay);
@@ -371,7 +479,7 @@ export class EphphathaAudioEngine {
       this.tickInterval = null;
     }
     this.stopAmbientSanctuaryPad();
-    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+    if (typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
     }
     this.emit();

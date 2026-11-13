@@ -13,17 +13,20 @@ import {
   getPrevCanonicalChapter
 } from '../domain/canonicalBible.js';
 import { fetchPassageWithFailover } from '../adapters/bibleFailoverGateway.js';
-import { getAllRecordsMapSync, putRecord, deleteRecord } from '../adapters/indexedDbRepo.js';
+import { getAllRecordsMapSync, getAllRecordsSync, putRecord, deleteRecord } from '../adapters/indexedDbRepo.js';
 import { generateAndDownloadVerseCard } from '../domain/crdtEngine.js';
 
 export const canonicalState = {
   activeFilter: 'ALL',
   searchQuery: '',
+  searchMode: 'books', // 'books' | 'verses'
   selectedPocId: 1,
   selectedChapter: 1,
   activeViewMode: 'catalog', // 'catalog' | 'reader'
   langMode: 'bilingual' // 'bilingual' | 'en' | 'ml'
 };
+
+let verseSearchDebounceId = null;
 
 let deps = {
   audioEngine: null
@@ -32,21 +35,60 @@ let deps = {
 export function initCanonicalBibleView(dependencies = {}) {
   deps = { ...deps, ...dependencies };
 
-  // 1. Search Input Filter & Enter Key Quick Jump
+  // 1. Search Input Filter & Enter Key Quick Jump + Full-Text Verse Search Mode
   const searchInput = document.getElementById('bible-search-input');
   const clearSearchBtn = document.getElementById('btn-clear-bible-search');
+  const modeBooksBtn = document.getElementById('btn-search-mode-books');
+  const modeVersesBtn = document.getElementById('btn-search-mode-verses');
+
+  const setSearchMode = (mode) => {
+    canonicalState.searchMode = mode === 'verses' ? 'verses' : 'books';
+    const isVerses = canonicalState.searchMode === 'verses';
+    modeBooksBtn?.classList.toggle('active', !isVerses);
+    modeVersesBtn?.classList.toggle('active', isVerses);
+
+    if (searchInput) {
+      searchInput.placeholder = isVerses
+        ? 'Search verses in EN or മലയാളം (e.g. light, shepherd, സ്നേഹം)...'
+        : 'Search book by starting letter (e.g. M → Matthew, Mark, Malachi...)';
+    }
+
+    document.getElementById('bible-search-autocomplete')?.classList.add('hidden');
+    document.getElementById('bible-filter-pills')?.classList.toggle('hidden', isVerses);
+    document.getElementById('bible-books-grid')?.classList.toggle('hidden', isVerses);
+    document.getElementById('bible-verse-search-results')?.classList.toggle('hidden', !isVerses);
+
+    if (isVerses) {
+      renderBibleVerseSearchResults(canonicalState.searchQuery);
+    } else {
+      renderBibleCatalogGrid();
+    }
+  };
+
+  modeBooksBtn?.addEventListener('click', () => setSearchMode('books'));
+  modeVersesBtn?.addEventListener('click', () => {
+    setSearchMode('verses');
+    searchInput?.focus();
+  });
 
   searchInput?.addEventListener('input', (e) => {
     canonicalState.searchQuery = e.target.value.trim();
     if (clearSearchBtn) {
       clearSearchBtn.classList.toggle('hidden', !canonicalState.searchQuery);
     }
-    renderBibleAutocompleteDropdown();
-    renderBibleCatalogGrid();
+    if (canonicalState.searchMode === 'verses') {
+      if (verseSearchDebounceId) clearTimeout(verseSearchDebounceId);
+      verseSearchDebounceId = setTimeout(() => {
+        renderBibleVerseSearchResults(canonicalState.searchQuery);
+      }, 150);
+    } else {
+      renderBibleAutocompleteDropdown();
+      renderBibleCatalogGrid();
+    }
   });
 
   searchInput?.addEventListener('focus', () => {
-    if (canonicalState.searchQuery) {
+    if (canonicalState.searchMode === 'books' && canonicalState.searchQuery) {
       renderBibleAutocompleteDropdown();
     }
   });
@@ -61,10 +103,17 @@ export function initCanonicalBibleView(dependencies = {}) {
 
   searchInput?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
+      if (canonicalState.searchMode === 'verses') {
+        if (verseSearchDebounceId) clearTimeout(verseSearchDebounceId);
+        renderBibleVerseSearchResults(canonicalState.searchQuery);
+        return;
+      }
       const matched = filterCanonicalBooks(canonicalState.searchQuery, canonicalState.activeFilter);
       if (matched.length >= 1) {
         document.getElementById('bible-search-autocomplete')?.classList.add('hidden');
         openBibleChapterModal(matched[0]);
+      } else if (canonicalState.searchQuery.length >= 2) {
+        setSearchMode('verses');
       }
     } else if (e.key === 'Escape') {
       document.getElementById('bible-search-autocomplete')?.classList.add('hidden');
@@ -76,7 +125,11 @@ export function initCanonicalBibleView(dependencies = {}) {
     canonicalState.searchQuery = '';
     clearSearchBtn.classList.add('hidden');
     document.getElementById('bible-search-autocomplete')?.classList.add('hidden');
-    renderBibleCatalogGrid();
+    if (canonicalState.searchMode === 'verses') {
+      renderBibleVerseSearchResults('');
+    } else {
+      renderBibleCatalogGrid();
+    }
     searchInput?.focus();
   });
 
@@ -250,12 +303,33 @@ export function renderBibleCatalogGrid() {
   if (books.length === 0) {
     const emptyNotice = document.createElement('div');
     emptyNotice.style.cssText = 'grid-column: 1 / -1; text-align: center; padding: 2rem 1rem; color: var(--text-secondary);';
-    emptyNotice.innerHTML = `
-      <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔍</div>
-      <p style="font-weight: 600;">No books match "${canonicalState.searchQuery}"</p>
-      <button type="button" class="ergonomic-btn" style="margin: 0.75rem auto 0; display: inline-flex;">Reset Filter</button>
-    `;
-    emptyNotice.querySelector('button')?.addEventListener('click', () => {
+    const icon = document.createElement('div');
+    icon.style.cssText = 'font-size: 1.5rem; margin-bottom: 0.5rem;';
+    icon.textContent = '🔍';
+
+    const msg = document.createElement('p');
+    msg.style.fontWeight = '600';
+    msg.textContent = `No books match "${canonicalState.searchQuery}"`;
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem;';
+
+    if (canonicalState.searchQuery.length >= 2) {
+      const searchVersesBtn = document.createElement('button');
+      searchVersesBtn.type = 'button';
+      searchVersesBtn.className = 'ergonomic-btn primary-period';
+      searchVersesBtn.textContent = `🔍 Search "${canonicalState.searchQuery}" in Verses`;
+      searchVersesBtn.addEventListener('click', () => {
+        document.getElementById('btn-search-mode-verses')?.click();
+      });
+      btnRow.appendChild(searchVersesBtn);
+    }
+
+    const resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'ergonomic-btn';
+    resetBtn.textContent = 'Reset Filter';
+    resetBtn.addEventListener('click', () => {
       const searchInput = document.getElementById('bible-search-input');
       if (searchInput) searchInput.value = '';
       canonicalState.searchQuery = '';
@@ -266,6 +340,11 @@ export function renderBibleCatalogGrid() {
       document.getElementById('btn-clear-bible-search')?.classList.add('hidden');
       renderBibleCatalogGrid();
     });
+    btnRow.appendChild(resetBtn);
+
+    emptyNotice.appendChild(icon);
+    emptyNotice.appendChild(msg);
+    emptyNotice.appendChild(btnRow);
     container.appendChild(emptyNotice);
     return;
   }
@@ -303,6 +382,180 @@ export function renderBibleCatalogGrid() {
       }
     });
 
+    container.appendChild(card);
+  });
+}
+
+function appendHighlightedText(parentEl, text, query) {
+  const str = String(text || '');
+  const q = String(query || '').trim();
+  if (!q) {
+    parentEl.textContent = str;
+    return;
+  }
+  const lower = str.toLowerCase();
+  const qLower = q.toLowerCase();
+  let lastIdx = 0;
+  let idx = lower.indexOf(qLower, lastIdx);
+  while (idx !== -1) {
+    if (idx > lastIdx) {
+      parentEl.appendChild(document.createTextNode(str.slice(lastIdx, idx)));
+    }
+    const mark = document.createElement('mark');
+    mark.className = 'bible-search-mark';
+    mark.textContent = str.slice(idx, idx + q.length);
+    parentEl.appendChild(mark);
+    lastIdx = idx + q.length;
+    idx = lower.indexOf(qLower, lastIdx);
+  }
+  if (lastIdx < str.length) {
+    parentEl.appendChild(document.createTextNode(str.slice(lastIdx)));
+  }
+}
+
+export function renderBibleVerseSearchResults(rawQuery = '') {
+  const container = document.getElementById('bible-verse-search-results');
+  if (!container) return;
+  container.textContent = '';
+
+  const q = String(rawQuery || '').trim();
+  if (q.length < 2) {
+    const hint = document.createElement('div');
+    hint.className = 'bible-verse-search-hint';
+    hint.textContent = 'Type at least 2 characters to search English & Malayalam verses in your local Scripture vault.';
+    container.appendChild(hint);
+    return;
+  }
+
+  const qLower = q.toLowerCase();
+  const cachedPassages = getAllRecordsSync('scripture_cache') || [];
+  const seenRefs = new Set();
+  const matches = [];
+
+  for (const passage of cachedPassages) {
+    const verses = Array.isArray(passage?.verses) ? passage.verses : [];
+    for (const v of verses) {
+      const enText = String(v.en || '');
+      const mlText = String(v.ml || '');
+      const refEn = String(v.ref_en || passage.reference_en || '');
+      const refMl = String(v.ref_ml || passage.reference_ml || '');
+      if (
+        enText.toLowerCase().includes(qLower) ||
+        mlText.toLowerCase().includes(qLower) ||
+        refEn.toLowerCase().includes(qLower)
+      ) {
+        const dedupeKey = `${refEn}|${v.verse}`;
+        if (seenRefs.has(dedupeKey)) continue;
+        seenRefs.add(dedupeKey);
+        matches.push({ passage, v, refEn, refMl });
+      }
+    }
+  }
+
+  const summary = document.createElement('div');
+  summary.className = 'bible-verse-search-summary';
+  const maxShow = 50;
+  summary.textContent = matches.length === 0
+    ? `No cached verses match "${q}". Open chapters in the Bible Reader to cache more books offline.`
+    : (matches.length > maxShow
+      ? `Showing top ${maxShow} of ${matches.length} matches for "${q}"`
+      : `${matches.length} ${matches.length === 1 ? 'match' : 'matches'} for "${q}"`);
+  container.appendChild(summary);
+
+  if (matches.length === 0) return;
+
+  const bookmarksMap = getAllRecordsMapSync('bookmarks');
+
+  matches.slice(0, maxShow).forEach(({ passage, v, refEn, refMl }) => {
+    // Parse book & chapter from refEn (e.g. "Genesis 1:3" or "1 Samuel 3:10")
+    const refMatch = refEn.match(/^(.+?)\s+(\d+)(?::(\d+))?$/);
+    const parsedBook = refMatch ? getCanonicalBookByName(refMatch[1]) : null;
+    const parsedChapter = refMatch ? Number(refMatch[2]) : (v.chapter || 1);
+
+    const card = document.createElement('article');
+    card.className = 'verse-card bible-search-result-card';
+
+    const header = document.createElement('div');
+    header.className = 'verse-card-header';
+
+    const refBadge = document.createElement('span');
+    refBadge.className = 'verse-num-badge';
+    refBadge.textContent = refMl ? `${refEn} • ${refMl}` : refEn;
+
+    const actions = document.createElement('div');
+    actions.className = 'verse-actions';
+
+    const bmId = parsedBook
+      ? `bm_canonical_${parsedBook.pocId}_${parsedChapter}_v${v.verse}`
+      : `bm_search_${refEn.replace(/\s+/g, '_')}_v${v.verse}`;
+    const isSaved = Boolean(bookmarksMap[bmId]);
+    if (isSaved) card.classList.add('verse-highlighted');
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = `verse-icon-btn ${isSaved ? 'active-bookmark' : ''}`;
+    saveBtn.textContent = isSaved ? '🔖 Saved' : '🔖 Save';
+    saveBtn.addEventListener('click', async () => {
+      const active = getAllRecordsMapSync('bookmarks');
+      if (active[bmId]) {
+        await deleteRecord('bookmarks', bmId);
+        saveBtn.classList.remove('active-bookmark');
+        saveBtn.textContent = '🔖 Save';
+        card.classList.remove('verse-highlighted');
+      } else {
+        await putRecord('bookmarks', {
+          id: bmId,
+          dayNumber: null,
+          periodName: parsedBook?.category || 'Scripture',
+          referenceEn: refEn || `${passage.reference_en}:${v.verse}`,
+          referenceMl: refMl || `${passage.reference_ml}:${v.verse}`,
+          verseNumber: v.verse,
+          en: v.en,
+          ml: v.ml || ''
+        });
+        saveBtn.classList.add('active-bookmark');
+        saveBtn.textContent = '🔖 Saved';
+        card.classList.add('verse-highlighted');
+      }
+    });
+    actions.appendChild(saveBtn);
+
+    if (parsedBook) {
+      const openBtn = document.createElement('button');
+      openBtn.type = 'button';
+      openBtn.className = 'verse-icon-btn';
+      openBtn.textContent = 'Open Ch ➔';
+      openBtn.addEventListener('click', async () => {
+        await openCanonicalChapter(parsedBook.pocId, parsedChapter);
+        const target = document.getElementById(`canonical-verse-${parsedChapter}-${v.verse}`);
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          target.classList.add('audio-active-verse');
+          setTimeout(() => target.classList.remove('audio-active-verse'), 2200);
+        }
+      });
+      actions.appendChild(openBtn);
+    }
+
+    header.appendChild(refBadge);
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'verse-body';
+    if (v.en) {
+      const pEn = document.createElement('p');
+      pEn.className = 'verse-text-en';
+      appendHighlightedText(pEn, v.en, q);
+      body.appendChild(pEn);
+    }
+    if (v.ml) {
+      const pMl = document.createElement('p');
+      pMl.className = 'verse-text-ml lang-ml';
+      appendHighlightedText(pMl, v.ml, q);
+      body.appendChild(pMl);
+    }
+    card.appendChild(body);
     container.appendChild(card);
   });
 }
@@ -496,7 +749,8 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
   verses.forEach((v, idx) => {
     const vDomId = `canonical-verse-${chapterNum}-${v.verse}`;
     const bookmarkId = `bm_canonical_${book.pocId}_${chapterNum}_v${v.verse}`;
-    const isBookmarked = Boolean(bookmarksMap[bookmarkId]);
+    const existingBookmark = bookmarksMap[bookmarkId] || null;
+    const isBookmarked = Boolean(existingBookmark);
 
     // 1. Quick-Jump Pill
     const pill = document.createElement('button');
@@ -515,7 +769,7 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
 
     // 2. Verse Card
     const card = document.createElement('article');
-    card.className = 'verse-card';
+    card.className = `verse-card ${isBookmarked ? 'verse-highlighted' : ''}`;
     card.id = vDomId;
 
     const header = document.createElement('div');
@@ -540,18 +794,29 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
       }
     });
 
-    // Bookmark Button
+    // Bookmark / Highlight Button
     const bmBtn = document.createElement('button');
     bmBtn.type = 'button';
     bmBtn.className = `verse-icon-btn ${isBookmarked ? 'active-bookmark' : ''}`;
     bmBtn.textContent = isBookmarked ? '🔖 Saved' : '🔖';
-    bmBtn.title = isBookmarked ? 'Remove bookmark' : 'Bookmark verse';
-    bmBtn.addEventListener('click', async () => {
+    bmBtn.title = isBookmarked ? 'Remove highlight & bookmark' : 'Highlight & bookmark verse';
+
+    const notePreview = document.createElement('div');
+    notePreview.className = `verse-note-chip ${existingBookmark?.note ? '' : 'hidden'}`;
+    if (existingBookmark?.note) {
+      notePreview.textContent = `📝 ${existingBookmark.note}`;
+    }
+
+    const toggleHighlightAndBookmark = async (forceSaveNote = null) => {
       const activeBookmarks = getAllRecordsMapSync('bookmarks');
-      if (activeBookmarks[bookmarkId]) {
+      const existing = activeBookmarks[bookmarkId];
+      if (existing && forceSaveNote === null) {
         await deleteRecord('bookmarks', bookmarkId);
         bmBtn.classList.remove('active-bookmark');
         bmBtn.textContent = '🔖';
+        card.classList.remove('verse-highlighted');
+        notePreview.classList.add('hidden');
+        notePreview.textContent = '';
       } else {
         const bookmarkRecord = {
           id: bookmarkId,
@@ -561,11 +826,62 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
           referenceMl: `${book.ml} ${chapterNum}:${v.verse}`,
           verseNumber: v.verse,
           en: v.en,
-          ml: v.ml
+          ml: v.ml,
+          note: forceSaveNote !== null ? forceSaveNote : (existing?.note || '')
         };
         await putRecord('bookmarks', bookmarkRecord);
         bmBtn.classList.add('active-bookmark');
         bmBtn.textContent = '🔖 Saved';
+        card.classList.add('verse-highlighted');
+        if (bookmarkRecord.note) {
+          notePreview.textContent = `📝 ${bookmarkRecord.note}`;
+          notePreview.classList.remove('hidden');
+        } else {
+          notePreview.classList.add('hidden');
+        }
+      }
+    };
+
+    bmBtn.addEventListener('click', () => toggleHighlightAndBookmark(null));
+
+    // Inline Note Button
+    const noteBtn = document.createElement('button');
+    noteBtn.type = 'button';
+    noteBtn.className = `verse-icon-btn ${existingBookmark?.note ? 'active-bookmark' : ''}`;
+    noteBtn.textContent = '📝';
+    noteBtn.title = 'Add or edit personal note';
+
+    const noteEditor = document.createElement('div');
+    noteEditor.className = 'verse-note-editor hidden';
+    const noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.className = 'verse-note-input';
+    noteInput.placeholder = 'Write a short reflection or note...';
+    noteInput.maxLength = 240;
+    noteInput.value = existingBookmark?.note || '';
+
+    const noteSaveBtn = document.createElement('button');
+    noteSaveBtn.type = 'button';
+    noteSaveBtn.className = 'verse-icon-btn active-bookmark';
+    noteSaveBtn.textContent = 'Save';
+    noteSaveBtn.addEventListener('click', async () => {
+      const cleanNote = noteInput.value.trim();
+      await toggleHighlightAndBookmark(cleanNote);
+      noteBtn.classList.toggle('active-bookmark', Boolean(cleanNote));
+      noteEditor.classList.add('hidden');
+    });
+    noteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') noteSaveBtn.click();
+    });
+    noteEditor.appendChild(noteInput);
+    noteEditor.appendChild(noteSaveBtn);
+
+    noteBtn.addEventListener('click', () => {
+      const activeBookmarks = getAllRecordsMapSync('bookmarks');
+      noteInput.value = activeBookmarks[bookmarkId]?.note || '';
+      noteEditor.classList.toggle('hidden');
+      if (!noteEditor.classList.contains('hidden')) {
+        noteInput.focus();
       }
     });
 
@@ -603,15 +919,22 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
 
     actions.appendChild(speakBtn);
     actions.appendChild(bmBtn);
+    actions.appendChild(noteBtn);
     actions.appendChild(shareBtn);
 
     header.appendChild(numBadge);
     header.appendChild(actions);
     card.appendChild(header);
 
-    // Verse Text Container
+    // Verse Text Container (Tap-to-Highlight / Bookmark)
     const body = document.createElement('div');
-    body.className = 'verse-body';
+    body.className = 'verse-body verse-body-tappable';
+    body.title = 'Tap verse to highlight & save to Saved tab';
+    body.addEventListener('click', () => {
+      const sel = window.getSelection ? String(window.getSelection()) : '';
+      if (sel.length > 0) return; // Don't toggle if user is selecting text
+      toggleHighlightAndBookmark(null);
+    });
 
     // English Text
     const enP = document.createElement('p');
@@ -638,6 +961,8 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     }
 
     card.appendChild(body);
+    card.appendChild(notePreview);
+    card.appendChild(noteEditor);
     versesStream.appendChild(card);
   });
 

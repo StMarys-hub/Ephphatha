@@ -567,6 +567,18 @@ body {
   color: var(--text-secondary);
 }
 
+.eras-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--bg-subtle-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .periods-strip {
   display: flex;
   gap: 8px;
@@ -691,6 +703,7 @@ body {
   height: 38px;
   flex: 1;
   min-width: 0;
+  max-width: 100%;
   padding: 0 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
@@ -699,6 +712,45 @@ body {
   font-weight: 700;
   font-size: 0.85rem;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .periods-summary-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  #hero-period-badge {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .eras-chip {
+    margin-left: auto;
+    font-size: 0.7rem;
+    padding: 3px 9px;
+  }
+  .day-nav-row {
+    gap: 5px;
+  }
+  .nav-step-btn {
+    width: 34px;
+    height: 36px;
+  }
+  .day-number-select {
+    height: 36px;
+    font-size: 0.78rem;
+    padding: 0 6px;
+  }
+  .complete-action-btn {
+    height: 36px;
+    padding: 0 9px;
+    font-size: 0.74rem;
+  }
 }
 
 .complete-action-btn {
@@ -3393,5 +3445,341 @@ body[data-lang-pref="en"] .canonical-verse-ml {
   background: var(--period-color);
   border-radius: var(--radius-pill);
   transition: width 0.3s ease;
+}
+
+/* ============================================================================
+ * 12. AUDIO SLEEP TIMER, BUFFERED/PLAYED SCRUBBER, JUMP PILL & 365 ACTIVE DAY
+ * ============================================================================ */
+.audio-scrubber-track-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 16px;
+}
+
+.audio-track-bg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border-subtle);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.audio-track-buffered {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(128, 128, 128, 0.38);
+  border-radius: 999px;
+  transition: width 0.2s linear;
+}
+
+.audio-track-played {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--period-color);
+  border-radius: 999px;
+  transition: width 0.1s linear;
+}
+
+.audio-track-played.en-track {
+  background: #cc0000;
+}
+
+.audio-scrubber-track-wrap .audio-range-input {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 16px;
+}
+
+.audio-scrubber-track-wrap .audio-range-input::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 5px;
+}
+
+.audio-scrubber-track-wrap .audio-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--period-color);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  margin-top: -4px;
+  cursor: pointer;
+}
+
+.audio-scrubber-track-wrap .audio-range-input.en-track::-webkit-slider-thumb {
+  background: #cc0000;
+}
+
+.audio-scrubber-track-wrap .audio-range-input::-moz-range-track {
+  background: transparent;
+  height: 5px;
+}
+
+.audio-scrubber-track-wrap .audio-range-input::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--period-color);
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.audio-sleep-btn.active-sleep {
+  background: var(--period-color);
+  color: #ffffff;
+  border-color: var(--period-color);
+}
+
+.audio-sleep-btn.auto-adv-off {
+  border-color: #d97706;
+  color: #d97706;
+}
+
+.audio-sleep-popover {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 6px);
+  width: min(290px, calc(100vw - 16px));
+  background: var(--bg-elevated-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-floating);
+  padding: 10px 12px;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audio-sleep-popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.audio-sleep-popover-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.audio-sleep-popover-sub {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.audio-sleep-countdown {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--period-text, var(--period-color));
+}
+
+.audio-sleep-pills {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.sleep-pill-btn {
+  padding: 6px 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-subtle-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sleep-pill-btn.active {
+  background: var(--period-color);
+  color: #ffffff;
+  border-color: var(--period-color);
+}
+
+.audio-auto-advance-row {
+  padding-top: 6px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.ios-switch-sm {
+  transform: scale(0.84);
+  transform-origin: right center;
+}
+
+.jump-playing-day-bar {
+  display: flex;
+  justify-content: center;
+  padding: 4px 8px 0 8px;
+}
+
+.jump-playing-day-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--period-color);
+  background: var(--period-bg-soft);
+  color: var(--period-text, var(--period-color));
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.jump-playing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--period-color);
+  animation: ephPulseDot 1.3s ease-in-out infinite;
+}
+
+@keyframes ephPulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.75); }
+}
+
+.verse-pill.curriculum-day-playing {
+  outline: 2px solid var(--period-color);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 3px var(--period-bg-soft);
+  font-weight: 800;
+}
+
+.verse-pill.curriculum-day-playing::before {
+  content: '🔊 ';
+  font-size: 0.7em;
+}
+
+@media (max-width: 420px) {
+  .audio-player-bar {
+    padding: 5px 5px;
+    gap: 4px;
+  }
+  .play-fab {
+    width: 34px;
+    height: 34px;
+  }
+  .audio-mini-btn {
+    height: 28px;
+    padding: 0 5px;
+    font-size: 0.66rem;
+  }
+  .lang-pill-btn {
+    padding: 2px 5px;
+    font-size: 0.66rem;
+  }
+  .audio-lang-toggle {
+    height: 26px;
+  }
+}
+
+/* ============================================================================
+ * 13. FULL-TEXT SCRIPTURE SEARCH & VERSE HIGHLIGHTING / NOTES
+ * ============================================================================ */
+.bible-search-mode-bar {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg-subtle-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 3px;
+  margin-bottom: 8px;
+}
+
+.bible-search-mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.bible-search-mode-btn.active {
+  background: var(--period-color);
+  color: #ffffff;
+}
+
+.bible-verse-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.bible-verse-search-summary,
+.bible-verse-search-hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 6px 4px;
+}
+
+.bible-search-mark {
+  background: rgba(250, 204, 21, 0.35);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 3px;
+}
+
+.verse-card.verse-highlighted {
+  border-left: 4px solid #eab308;
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.verse-body-tappable {
+  cursor: pointer;
+}
+
+.verse-note-chip {
+  margin-top: 6px;
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-subtle-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  color: var(--text-primary);
+}
+
+.verse-note-editor {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.verse-note-input {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-subtle-surface);
+  color: var(--text-primary);
+  font-size: 0.8rem;
 }
 

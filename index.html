@@ -273,7 +273,7 @@
         <details class="periods-drawer-card" id="periods-accordion">
           <summary class="periods-summary-bar">
             <span class="day-badge" id="hero-period-badge">Period 01 • Early World</span>
-            <span class="summary-hint">12 Salvation History Eras ▾</span>
+            <span class="summary-hint eras-chip" title="Browse all 12 Salvation History Eras">12 Eras ▾</span>
           </summary>
           <div class="periods-strip" id="periods-strip"></div>
         </details>
@@ -424,10 +424,14 @@
             </div>
           </div>
 
-          <!-- Quick Search (Prefix-Anchored `A*`) & 1-Tap Book Jump Controls -->
+          <!-- Quick Search (Books `A*` or Full-Text Verses EN/ML) & 1-Tap Book Jump Controls -->
+          <div class="bible-search-mode-bar" role="group" aria-label="Bible Search Mode">
+            <button type="button" class="bible-search-mode-btn active" id="btn-search-mode-books" data-bible-search-mode="books">📚 Books</button>
+            <button type="button" class="bible-search-mode-btn" id="btn-search-mode-verses" data-bible-search-mode="verses">🔍 Search Verses (EN / മലയാളം)</button>
+          </div>
           <div class="bible-search-row">
             <div class="bible-search-input-wrap">
-              <span class="bible-search-vector-icon" aria-hidden="true" title="Prefix-Anchored Bible Book Search">
+              <span class="bible-search-vector-icon" aria-hidden="true" title="Bible Search">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H13"/>
                   <path d="M6.5 2H19v9"/>
@@ -450,6 +454,9 @@
               <option value="">⚡ Jump to Book (All 73 Books)...</option>
             </select>
           </div>
+
+          <!-- Full-Text Scripture Vault Search Results (Visible in Verses Search Mode) -->
+          <div id="bible-verse-search-results" class="bible-verse-search-results hidden"></div>
 
           <!-- Category Filter Pills -->
           <div class="bible-filter-pills" id="bible-filter-pills">
@@ -1030,6 +1037,30 @@
             <button type="button" class="lang-mode-btn" data-set-speed="1.25">1.25x</button>
           </div>
         </div>
+
+        <div class="settings-row-item">
+          <div>
+            <div class="settings-item-title">Auto-Advance Next Day</div>
+            <div class="settings-item-sub">Continue to next day when audio finishes</div>
+          </div>
+          <label class="ios-switch">
+            <input type="checkbox" id="chk-drawer-auto-advance" checked />
+            <span class="ios-slider"></span>
+          </label>
+        </div>
+
+        <div class="settings-row-item">
+          <div>
+            <div class="settings-item-title">Sleep Timer</div>
+            <div class="settings-item-sub" id="drawer-sleep-status">Off • Continuous</div>
+          </div>
+          <div class="lang-mode-group" id="drawer-sleep-timer-group" role="group" aria-label="Sleep Timer">
+            <button type="button" class="lang-mode-btn active" data-sleep-timer="off">Off</button>
+            <button type="button" class="lang-mode-btn" data-sleep-timer="15m">15m</button>
+            <button type="button" class="lang-mode-btn" data-sleep-timer="30m">30m</button>
+            <button type="button" class="lang-mode-btn" data-sleep-timer="eod">Day End</button>
+          </div>
+        </div>
       </div>
 
       <!-- 5. Progressive Web App (PWA) Installation -->
@@ -1120,6 +1151,38 @@
        COMPACT THUMB-ZONE DOCK: SINGLE-ROW AUDIO BAR + 6-TAB NAVIGATION
        ======================================================================== -->
   <div class="thumb-zone-dock">
+    <!-- Quick "Jump to Playing Day" Pill when browsing another day while audio is running -->
+    <div id="jump-playing-day-bar" class="jump-playing-day-bar hidden">
+      <button type="button" class="jump-playing-day-pill" id="btn-jump-playing-day">
+        <span class="jump-playing-dot" aria-hidden="true"></span>
+        <span id="jump-playing-day-label">Playing Day 1 • Jump ➔</span>
+      </button>
+    </div>
+
+    <!-- Compact Sleep Timer & Auto-Advance Popover (Anchored above Audio Bar) -->
+    <div id="audio-sleep-popover" class="audio-sleep-popover hidden" role="dialog" aria-label="Sleep Timer and Auto-Advance">
+      <div class="audio-sleep-popover-row">
+        <span class="audio-sleep-popover-title">🌙 Sleep Timer</span>
+        <span class="audio-sleep-countdown" id="audio-sleep-countdown">Off</span>
+      </div>
+      <div class="audio-sleep-pills" role="group" aria-label="Sleep Timer Duration">
+        <button type="button" class="sleep-pill-btn active" data-sleep-timer="off">Off</button>
+        <button type="button" class="sleep-pill-btn" data-sleep-timer="15m">15m</button>
+        <button type="button" class="sleep-pill-btn" data-sleep-timer="30m">30m</button>
+        <button type="button" class="sleep-pill-btn" data-sleep-timer="eod">End of Day</button>
+      </div>
+      <div class="audio-sleep-popover-row audio-auto-advance-row">
+        <div>
+          <div class="audio-sleep-popover-title">Auto-Advance Next Day</div>
+          <div class="audio-sleep-popover-sub">Play next day automatically</div>
+        </div>
+        <label class="ios-switch ios-switch-sm">
+          <input type="checkbox" id="chk-bar-auto-advance" checked />
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+    </div>
+
     <!-- Single-Row Consolidated Audio Reading & Reflection Player -->
     <div class="audio-player-bar" role="region" aria-label="Daily Audio Reading & Reflection Player">
       <button type="button" class="play-fab" id="btn-audio-play-pause" aria-label="Play or Pause Audio Reading & Reflection" title="Play Audio Reading & Reflection">
@@ -1132,7 +1195,13 @@
       <button type="button" class="audio-mini-btn" id="btn-audio-back-15" title="Rewind 15s">-15s</button>
 
       <div class="audio-scrubber-wrap">
-        <input type="range" id="audio-scrubber" class="audio-range-input" min="0" max="1345" value="0" aria-label="Audio Timeline" />
+        <div class="audio-scrubber-track-wrap">
+          <div class="audio-track-bg" aria-hidden="true">
+            <div class="audio-track-buffered" id="audio-track-buffered" style="width: 0%;"></div>
+            <div class="audio-track-played" id="audio-track-played" style="width: 0%;"></div>
+          </div>
+          <input type="range" id="audio-scrubber" class="audio-range-input" min="0" max="1345" value="0" aria-label="Audio Timeline" />
+        </div>
         <div class="scrubber-meta">
           <span id="audio-time-current">00:00</span>
           <span id="audio-prefetch-badge" class="audio-status-dot" title="Daily Audio Reading & Theological Reflection">🎧 Audio Reading &amp; Reflection</span>
@@ -1149,6 +1218,7 @@
       </div>
 
       <button type="button" class="audio-mini-btn" id="btn-audio-speed" title="Playback Speed">1x</button>
+      <button type="button" class="audio-mini-btn audio-sleep-btn" id="btn-audio-sleep" title="Sleep Timer & Auto-Advance" aria-expanded="false" aria-controls="audio-sleep-popover">🌙</button>
     </div>
 
     <!-- Bottom Tab Navigation (With Permanent Home Button & Context-Specific Icons) -->

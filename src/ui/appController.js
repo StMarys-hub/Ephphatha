@@ -122,25 +122,37 @@ export async function bootstrapEphphathaApp() {
   await initScriptureVault();
   initBackgroundSyncLifecycle();
 
-  // 3. Audio Continuous Autoplay & Auto-Complete: When daily audio finishes, mark day complete and advance to next day
-  audioEngine.onEnded(async (finishedDay) => {
+  // 3. Audio Continuous Autoplay & Auto-Complete: When daily audio finishes, mark day complete and advance if auto-advance is enabled
+  audioEngine.onEnded(async (finishedDay, meta = {}) => {
     const completedDay = Number(finishedDay) || appState.selectedDay;
     const existing = getRecordSync('progress', String(completedDay));
+    const shouldAdvance = Boolean(meta.autoAdvance) && completedDay < 365;
+
     if (!existing?.completed) {
       await setDayCompletionStatus(completedDay, true, {
         audioTimestampSec: 0,
-        toastMessage: completedDay < 365
+        toastMessage: shouldAdvance
           ? `✅ Day ${completedDay} Complete • Playing Day ${completedDay + 1}`
-          : '🎉 Day 365 Complete! Journey Finished!'
+          : (completedDay >= 365
+            ? '🎉 Day 365 Complete! Journey Finished!'
+            : `🌙 Day ${completedDay} Complete • Playback Paused`)
       });
-    } else if (completedDay < 365) {
+    } else if (shouldAdvance) {
       showCloudSyncToast(`▶ Playing Day ${completedDay + 1}`);
+    } else {
+      showCloudSyncToast(meta.sleepStopped
+        ? `🌙 Sleep Timer: Stopped after Day ${completedDay}`
+        : `⏸ Day ${completedDay} Finished (Auto-Advance Off)`);
     }
 
-    if (completedDay < 365) {
+    if (shouldAdvance) {
       const nextDay = completedDay + 1;
-      await selectDay(nextDay, { autoPlay: true, scrollToTop: true });
+      await selectDay(nextDay, { autoPlay: true, forceAudioLoad: true, scrollToTop: true });
     }
+  });
+
+  audioEngine.onSleepExpired(() => {
+    showCloudSyncToast('🌙 Sleep timer ended — audio paused');
   });
 
   // 3. Load saved biometric profile if present
@@ -474,9 +486,14 @@ export async function selectDay(dayNum, options = {}) {
   renderDayHeroCard(daySchedule);
 
   // 4. Load Audio Metadata & Saved Timestamp from IndexedDB (<5ms)
+  // If audio is currently playing on a DIFFERENT day and caller is just browsing, keep audio uninterrupted
   const savedProgress = getRecordSync('progress', String(clamped));
-  const shouldAutoPlay = options.autoPlay !== undefined ? options.autoPlay : audioEngine.isPlaying;
-  audioEngine.loadDayAudio(daySchedule, savedProgress?.audioTimestampSec || 0, shouldAutoPlay);
+  const shouldLoadAudio = Boolean(options.forceAudioLoad) || !audioEngine.isPlaying || audioEngine.currentDay === clamped;
+  if (shouldLoadAudio) {
+    const shouldAutoPlay = options.autoPlay !== undefined ? options.autoPlay : audioEngine.isPlaying;
+    audioEngine.loadDayAudio(daySchedule, savedProgress?.audioTimestampSec || 0, shouldAutoPlay);
+  }
+  updateJumpToPlayingDayPill();
 
   // 5. Load Active Reading Slot Passage via 4-Tier Failover Pipeline
   await loadActiveReadingSlot(daySchedule);
@@ -755,7 +772,8 @@ function renderScriptureVerses(passageData) {
       const chKey = v.chapter ? `${v.chapter}_` : '';
       const verseDomId = `verse-card-${chKey}${v.verse}`;
       const bookmarkId = `bm_d${appState.selectedDay}_${passageData.reference_en}_${chKey}v${v.verse}`;
-      const isBookmarked = Boolean(bookmarksMap[bookmarkId]);
+      const existingBookmark = bookmarksMap[bookmarkId] || null;
+      const isBookmarked = Boolean(existingBookmark);
       const displayRefEn = v.ref_en || (v.chapter ? `${(passageData.reference_en || '').replace(/\s+\d+.*$/, '')} ${v.chapter}:${v.verse}` : `${passageData.reference_en || ''} : ${v.verse}`);
       const displayRefMl = v.ref_ml || passageData.reference_ml || '';
 
@@ -789,7 +807,7 @@ function renderScriptureVerses(passageData) {
 
     // 2. Verse Card
     const card = document.createElement('article');
-    card.className = 'verse-card';
+    card.className = `verse-card ${isBookmarked ? 'verse-highlighted' : ''}`;
     card.id = verseDomId;
     card.dataset.verseIndex = String(idx);
 
@@ -813,16 +831,60 @@ function renderScriptureVerses(passageData) {
       audioEngine.speakVerseAloud(v.en, 'en-US');
     });
 
-    // Bookmark 1-tap button
+    // Bookmark / Highlight 1-tap button
     const bmBtn = document.createElement('button');
     bmBtn.type = 'button';
     bmBtn.className = `verse-icon-btn ${isBookmarked ? 'bookmarked' : ''}`;
     bmBtn.textContent = isBookmarked ? '🔖 Saved' : '🔖';
-    bmBtn.title = 'Bookmark Verse';
+    bmBtn.title = 'Highlight & Bookmark Verse';
     bmBtn.addEventListener('click', async () => {
       await toggleVerseBookmark(bookmarkId, displayRefEn, displayRefMl, v);
       renderScriptureVerses(appState.currentPassageData);
       renderVaultView();
+    });
+
+    // Inline Note button & editor
+    const noteBtn = document.createElement('button');
+    noteBtn.type = 'button';
+    noteBtn.className = `verse-icon-btn ${existingBookmark?.note ? 'bookmarked' : ''}`;
+    noteBtn.textContent = '📝';
+    noteBtn.title = 'Add or edit personal note';
+
+    const notePreview = document.createElement('div');
+    notePreview.className = `verse-note-chip ${existingBookmark?.note ? '' : 'hidden'}`;
+    if (existingBookmark?.note) {
+      notePreview.textContent = `📝 ${existingBookmark.note}`;
+    }
+
+    const noteEditor = document.createElement('div');
+    noteEditor.className = 'verse-note-editor hidden';
+    const noteInput = document.createElement('input');
+    noteInput.type = 'text';
+    noteInput.className = 'verse-note-input';
+    noteInput.placeholder = 'Write a short reflection or note...';
+    noteInput.maxLength = 240;
+    noteInput.value = existingBookmark?.note || '';
+
+    const noteSaveBtn = document.createElement('button');
+    noteSaveBtn.type = 'button';
+    noteSaveBtn.className = 'verse-icon-btn bookmarked';
+    noteSaveBtn.textContent = 'Save';
+    noteSaveBtn.addEventListener('click', async () => {
+      await toggleVerseBookmark(bookmarkId, displayRefEn, displayRefMl, v, noteInput.value.trim());
+      renderScriptureVerses(appState.currentPassageData);
+      renderVaultView();
+    });
+    noteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') noteSaveBtn.click();
+    });
+    noteEditor.appendChild(noteInput);
+    noteEditor.appendChild(noteSaveBtn);
+
+    noteBtn.addEventListener('click', () => {
+      noteEditor.classList.toggle('hidden');
+      if (!noteEditor.classList.contains('hidden')) {
+        noteInput.focus();
+      }
     });
 
     // 1-Tap Bilingual Devotional Verse Image Card Generator
@@ -848,12 +910,21 @@ function renderScriptureVerses(passageData) {
 
     actions.appendChild(speakBtn);
     actions.appendChild(bmBtn);
+    actions.appendChild(noteBtn);
     actions.appendChild(shareCardBtn);
     header.appendChild(numBadge);
     header.appendChild(actions);
 
     const grid = document.createElement('div');
-    grid.className = `verse-bilingual-grid ${appState.langMode === 'bilingual' ? 'parallel-mode' : ''}`;
+    grid.className = `verse-bilingual-grid verse-body-tappable ${appState.langMode === 'bilingual' ? 'parallel-mode' : ''}`;
+    grid.title = 'Tap verse to highlight & save to Saved tab';
+    grid.addEventListener('click', async () => {
+      const sel = window.getSelection ? String(window.getSelection()) : '';
+      if (sel.length > 0) return;
+      await toggleVerseBookmark(bookmarkId, displayRefEn, displayRefMl, v);
+      renderScriptureVerses(appState.currentPassageData);
+      renderVaultView();
+    });
 
     if (appState.langMode === 'bilingual' || appState.langMode === 'en') {
       const enPara = document.createElement('p');
@@ -882,6 +953,8 @@ function renderScriptureVerses(passageData) {
       card.appendChild(laPara);
     }
 
+    card.appendChild(notePreview);
+    card.appendChild(noteEditor);
     versesList.appendChild(card);
   });
 } catch (renderErr) {
@@ -889,9 +962,9 @@ function renderScriptureVerses(passageData) {
 }
 }
 
-async function toggleVerseBookmark(bookmarkId, refEn, refMl, verseObj) {
+async function toggleVerseBookmark(bookmarkId, refEn, refMl, verseObj, noteText = null) {
   const existing = getRecordSync('bookmarks', bookmarkId);
-  if (existing) {
+  if (existing && noteText === null) {
     const res = await deleteRecord('bookmarks', bookmarkId);
     updateIdbLatencyDisplay(res.latencyMs);
     await enqueueCloudSyncMutation('REMOVE_BOOKMARK', 'appDataFolder/bookmarks.json', { id: bookmarkId });
@@ -904,7 +977,8 @@ async function toggleVerseBookmark(bookmarkId, refEn, refMl, verseObj) {
       referenceMl: refMl,
       verseNumber: verseObj.verse,
       en: verseObj.en,
-      ml: verseObj.ml
+      ml: verseObj.ml,
+      note: noteText !== null ? noteText : (existing?.note || '')
     };
     const res = await putRecord('bookmarks', record);
     updateIdbLatencyDisplay(res.latencyMs);
@@ -1356,9 +1430,11 @@ function renderCurriculumMapView() {
 
     for (let d = period.day_start; d <= period.day_end; d++) {
       const isDone = Boolean(progressMap[String(d)]?.completed);
+      const isPlayingDay = audioEngine.isPlaying && audioEngine.currentDay === d;
       const dayBtn = document.createElement('button');
       dayBtn.type = 'button';
-      dayBtn.className = 'verse-pill';
+      dayBtn.className = `verse-pill ${isPlayingDay ? 'curriculum-day-playing' : ''}`;
+      dayBtn.setAttribute('data-curriculum-day', String(d));
       if (isDone) {
         dayBtn.style.backgroundColor = period.accent_hex;
         dayBtn.style.color = '#FFFFFF';
@@ -1387,15 +1463,35 @@ function renderVaultView() {
   if (bookmarks.length === 0) {
     const empty = document.createElement('p');
     empty.style.color = 'var(--text-secondary)';
-    empty.textContent = 'No bookmarked verses yet. Tap "🔖 Bookmark" on any verse in the Sanctuary Reader to save it here.';
+    empty.textContent = 'No highlighted or bookmarked verses yet. Tap any verse or "🔖" in Reading / Bible view to save it here.';
     bmContainer.appendChild(empty);
   } else {
     bookmarks.forEach(bm => {
       const item = document.createElement('div');
-      item.className = 'verse-card';
+      item.className = 'verse-card verse-highlighted';
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'verse-card-header';
 
       const head = document.createElement('strong');
-      head.textContent = `Day ${bm.dayNumber} (${bm.periodName}) — ${bm.referenceEn}:${bm.verseNumber}`;
+      const sourceLabel = bm.dayNumber ? `Day ${bm.dayNumber} (${bm.periodName || ''})` : (bm.periodName || 'Bible Reader');
+      const refLabel = bm.referenceEn?.includes(`:${bm.verseNumber}`) ? bm.referenceEn : `${bm.referenceEn}:${bm.verseNumber}`;
+      head.textContent = `${sourceLabel} — ${refLabel}`;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'verse-icon-btn';
+      removeBtn.textContent = '🗑️';
+      removeBtn.title = 'Remove saved verse';
+      removeBtn.addEventListener('click', async () => {
+        await deleteRecord('bookmarks', bm.id);
+        await enqueueCloudSyncMutation('REMOVE_BOOKMARK', 'appDataFolder/bookmarks.json', { id: bm.id });
+        renderVaultView();
+        if (appState.currentPassageData) renderScriptureVerses(appState.currentPassageData);
+      });
+
+      headerRow.appendChild(head);
+      headerRow.appendChild(removeBtn);
 
       const pEn = document.createElement('p');
       pEn.className = 'verse-text-en';
@@ -1406,9 +1502,17 @@ function renderVaultView() {
       pMl.className = 'verse-text-ml lang-ml';
       pMl.textContent = bm.ml || '';
 
-      item.appendChild(head);
+      item.appendChild(headerRow);
       item.appendChild(pEn);
       item.appendChild(pMl);
+
+      if (bm.note) {
+        const noteChip = document.createElement('div');
+        noteChip.className = 'verse-note-chip';
+        noteChip.textContent = `📝 ${bm.note}`;
+        item.appendChild(noteChip);
+      }
+
       bmContainer.appendChild(item);
     });
   }
@@ -1568,14 +1672,66 @@ function wireTelemetryStreams() {
     renderHomeDashboardView();
 
     const scrubber = document.getElementById('audio-scrubber');
+    const duration = Math.max(1, audioState.durationSec || 1345);
+    const playedPct = Math.min(100, Math.max(0, ((audioState.currentTimeSec || 0) / duration) * 100));
+    const bufferedPct = Math.min(100, Math.max(playedPct, ((audioState.bufferedSec || 0) / duration) * 100));
+
     if (scrubber) {
-      scrubber.max = String(audioState.durationSec || 1345);
+      scrubber.max = String(duration);
       scrubber.value = String(Math.floor(audioState.currentTimeSec || 0));
       scrubber.classList.toggle('en-track', isEn);
     }
 
-    // Highlight active verse during audio playback
-    if (audioState.isPlaying && appState.currentPassageData?.verses?.length) {
+    const playedBar = document.getElementById('audio-track-played');
+    const bufferedBar = document.getElementById('audio-track-buffered');
+    if (playedBar) {
+      playedBar.style.width = `${playedPct.toFixed(2)}%`;
+      playedBar.classList.toggle('en-track', isEn);
+    }
+    if (bufferedBar) {
+      bufferedBar.style.width = `${bufferedPct.toFixed(2)}%`;
+    }
+
+    // Sync Sleep Timer & Auto-Advance Controls
+    const sleepMode = audioState.sleepTimerMode || 'off';
+    const remSec = audioState.sleepTimerRemainingSec || 0;
+    const sleepLabel = sleepMode === 'eod'
+      ? 'Day End'
+      : (sleepMode !== 'off' && remSec > 0 ? formatSecondsAsTime(remSec) : 'Off');
+
+    const sleepBtn = document.getElementById('btn-audio-sleep');
+    if (sleepBtn) {
+      const isSleepActive = sleepMode !== 'off';
+      sleepBtn.classList.toggle('active-sleep', isSleepActive);
+      sleepBtn.classList.toggle('auto-adv-off', !audioState.autoAdvanceEnabled && !isSleepActive);
+      sleepBtn.textContent = isSleepActive
+        ? (sleepMode === 'eod' ? '🌙End' : `🌙${Math.ceil(remSec / 60)}m`)
+        : '🌙';
+    }
+    setText('audio-sleep-countdown', sleepLabel);
+    setText('drawer-sleep-status', sleepMode === 'off'
+      ? (audioState.autoAdvanceEnabled ? 'Off • Continuous' : 'Off • Stops after day')
+      : `Active (${sleepLabel})`);
+
+    document.querySelectorAll('[data-sleep-timer]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-sleep-timer') === sleepMode);
+    });
+    ['chk-bar-auto-advance', 'chk-drawer-auto-advance'].forEach(id => {
+      const chk = document.getElementById(id);
+      if (chk && chk.checked !== Boolean(audioState.autoAdvanceEnabled)) {
+        chk.checked = Boolean(audioState.autoAdvanceEnabled);
+      }
+    });
+
+    // Update Jump to Playing Day Pill & 365 Plan Grid Playing Indicator
+    updateJumpToPlayingDayPill(audioState);
+    document.querySelectorAll('#curriculum-periods-container [data-curriculum-day]').forEach(btn => {
+      const dNum = Number(btn.getAttribute('data-curriculum-day'));
+      btn.classList.toggle('curriculum-day-playing', Boolean(audioState.isPlaying && dNum === audioState.currentDay));
+    });
+
+    // Highlight active verse during audio playback (only when viewing the playing day)
+    if (audioState.isPlaying && audioState.currentDay === appState.selectedDay && appState.currentPassageData?.verses?.length) {
       const verseCount = appState.currentPassageData.verses.length;
       const activeIdx = Math.floor((audioState.currentTimeSec / 15)) % verseCount;
       document.querySelectorAll('.verse-card').forEach((el, idx) => {
@@ -1583,6 +1739,18 @@ function wireTelemetryStreams() {
       });
     }
   });
+}
+
+function updateJumpToPlayingDayPill(audioState = audioEngine.getState()) {
+  const bar = document.getElementById('jump-playing-day-bar');
+  const label = document.getElementById('jump-playing-day-label');
+  if (!bar) return;
+
+  const shouldShow = Boolean(audioState?.isPlaying && audioState.currentDay && audioState.currentDay !== appState.selectedDay);
+  bar.classList.toggle('hidden', !shouldShow);
+  if (shouldShow && label) {
+    label.textContent = `Playing Day ${audioState.currentDay} • Jump ➔`;
+  }
 }
 
 /* ============================================================================
@@ -1847,20 +2015,26 @@ function bindGlobalControls() {
       pushTelemetryLog('GDRIVE_AUDIO_ID_BOUND', `Bound Day ${appState.selectedDay} to Audio ID: ${cleanId}`);
     }
   });
-  // Day Navigation with Auto-Play Continuity (If playing, immediately plays new day)
+  // Day Navigation (Browsing another day while audio is playing keeps audio uninterrupted & shows Jump pill)
   document.getElementById('btn-prev-day')?.addEventListener('click', async () => {
     if (appState.selectedDay <= 1) return;
-    const wasPlaying = audioEngine.isPlaying;
-    await selectDay(appState.selectedDay - 1, { autoPlay: wasPlaying, scrollToTop: true });
+    await selectDay(appState.selectedDay - 1, { scrollToTop: true });
   });
   document.getElementById('btn-next-day')?.addEventListener('click', async () => {
     if (appState.selectedDay >= 365) return;
-    const wasPlaying = audioEngine.isPlaying;
-    await selectDay(appState.selectedDay + 1, { autoPlay: wasPlaying, scrollToTop: true });
+    await selectDay(appState.selectedDay + 1, { scrollToTop: true });
   });
   document.getElementById('day-select-dropdown')?.addEventListener('change', async (e) => {
-    const wasPlaying = audioEngine.isPlaying;
-    await selectDay(Number(e.target.value), { autoPlay: wasPlaying, scrollToTop: true });
+    await selectDay(Number(e.target.value), { scrollToTop: true });
+  });
+
+  // Jump to Playing Day Pill
+  document.getElementById('btn-jump-playing-day')?.addEventListener('click', async () => {
+    const playingDay = audioEngine.currentDay;
+    if (playingDay) {
+      switchMainTab('sanctuary');
+      await selectDay(playingDay, { scrollToTop: true });
+    }
   });
 
   // Mark Day Complete (<5ms Optimistic IndexedDB write)
@@ -1908,6 +2082,41 @@ function bindGlobalControls() {
   });
   document.getElementById('audio-scrubber')?.addEventListener('input', (e) => {
     audioEngine.seekTo(Number(e.target.value));
+  });
+
+  // Sleep Timer Popover & Auto-Advance Controls
+  const sleepBtn = document.getElementById('btn-audio-sleep');
+  const sleepPopover = document.getElementById('audio-sleep-popover');
+  sleepBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!sleepPopover) return;
+    const isHidden = sleepPopover.classList.toggle('hidden');
+    sleepBtn.setAttribute('aria-expanded', String(!isHidden));
+  });
+
+  document.addEventListener('click', (e) => {
+    if (sleepPopover && !sleepPopover.classList.contains('hidden')) {
+      if (!sleepPopover.contains(e.target) && e.target !== sleepBtn) {
+        sleepPopover.classList.add('hidden');
+        sleepBtn?.setAttribute('aria-expanded', 'false');
+      }
+    }
+  });
+
+  document.querySelectorAll('[data-sleep-timer]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.getAttribute('data-sleep-timer') || 'off';
+      audioEngine.setSleepTimer(mode);
+      const labelMap = { off: 'Off', '15m': '15 minutes', '30m': '30 minutes', eod: 'End of Day' };
+      showCloudSyncToast(`🌙 Sleep Timer: ${labelMap[mode] || mode}`);
+    });
+  });
+
+  ['chk-bar-auto-advance', 'chk-drawer-auto-advance'].forEach(id => {
+    document.getElementById(id)?.addEventListener('change', (e) => {
+      audioEngine.setAutoAdvance(e.target.checked);
+      showCloudSyncToast(e.target.checked ? '▶ Auto-Advance Next Day: On' : '⏸ Auto-Advance Next Day: Off');
+    });
   });
 
   // Audio Language Selector Buttons (ML / EN)
