@@ -3,6 +3,8 @@
  * Architecture: Pure Domain Logic (Zero UI / DOM coupling)
  */
 
+import { DAILY_TITLES } from './dailyTitles.js';
+
 export const DEFAULT_PERIODS = [
   {
     id: 1, code: '01', name: 'Early World', name_ml: 'ആദിമ ലോകം',
@@ -348,12 +350,13 @@ export function buildFull365Curriculum(manifestData = {}) {
         period
       };
     } else {
+      const dailyTitle = DAILY_TITLES[day];
       scheduleByDay[day] = {
         day_number: day,
         period_id: period.id,
         period,
-        episode_title: `${period.name} — Day ${dayOffsetInPeriod + 1}: ${period.theme}`,
-        episode_title_ml: `${period.name_ml} — ദിവസം ${dayOffsetInPeriod + 1}: ${period.theme_ml}`,
+        episode_title: dailyTitle?.en || `${period.name} — Day ${dayOffsetInPeriod + 1}: ${period.theme}`,
+        episode_title_ml: dailyTitle?.ml || `${period.name_ml} — ദിവസം ${dayOffsetInPeriod + 1}: ${period.theme_ml}`,
         readings: {
           narrative: narrPair.en,
           narrative_ml: narrPair.ml,

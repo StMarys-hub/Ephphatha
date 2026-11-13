@@ -122,12 +122,24 @@ export async function bootstrapEphphathaApp() {
   await initScriptureVault();
   initBackgroundSyncLifecycle();
 
-  // 3. Audio Continuous Autoplay: When daily audio finishes, advance to next day and auto-play
+  // 3. Audio Continuous Autoplay & Auto-Complete: When daily audio finishes, mark day complete and advance to next day
   audioEngine.onEnded(async (finishedDay) => {
-    if (appState.selectedDay < 365) {
-      const nextDay = appState.selectedDay + 1;
-      await selectDay(nextDay);
-      audioEngine.play();
+    const completedDay = Number(finishedDay) || appState.selectedDay;
+    const existing = getRecordSync('progress', String(completedDay));
+    if (!existing?.completed) {
+      await setDayCompletionStatus(completedDay, true, {
+        audioTimestampSec: 0,
+        toastMessage: completedDay < 365
+          ? `✅ Day ${completedDay} Complete • Playing Day ${completedDay + 1}`
+          : '🎉 Day 365 Complete! Journey Finished!'
+      });
+    } else if (completedDay < 365) {
+      showCloudSyncToast(`▶ Playing Day ${completedDay + 1}`);
+    }
+
+    if (completedDay < 365) {
+      const nextDay = completedDay + 1;
+      await selectDay(nextDay, { autoPlay: true, scrollToTop: true });
     }
   });
 
@@ -393,6 +405,49 @@ function applyFontScale(scaleStr) {
 /* ============================================================================
  * DAY & PERIOD SELECTION + 4-TIER SCRIPTURE LOADING
  * ============================================================================ */
+async function setDayCompletionStatus(dayNumber, completed, options = {}) {
+  const targetDay = Math.max(1, Math.min(365, Number(dayNumber) || 1));
+  const dayStr = String(targetDay);
+  const audioTimestampSec = options.audioTimestampSec !== undefined
+    ? options.audioTimestampSec
+    : Math.floor(audioEngine.currentTimeSec);
+
+  const res = await putRecord('progress', {
+    id: dayStr,
+    dayNumber: targetDay,
+    completed: Boolean(completed),
+    audioTimestampSec
+  });
+  updateIdbLatencyDisplay(res.latencyMs);
+
+  if (targetDay === appState.selectedDay) {
+    renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
+  }
+  refreshGraceStreakHeader();
+  renderCurriculumMapView();
+  await syncMemberProgressToActiveCohort(getCurrentProgressMetrics());
+
+  const identity = getLocalMemberIdentity();
+  const userId = appState.userProfile?.credentialIdHex || identity.memberId;
+  const inviteCode = getActiveCohortCode();
+  syncDayProgressToGoogleSheet({
+    userId,
+    dayNumber: targetDay,
+    completed: Boolean(completed),
+    audioTimestampSec,
+    inviteCode,
+    memberMetrics: getCurrentProgressMetrics()
+  }).catch(() => {});
+
+  const toast = options.toastMessage || (completed ? '☁️ Completed & Synced' : '☁️ Updated');
+  showCloudSyncToast(toast);
+
+  await enqueueCloudSyncMutation('MARK_DAY_COMPLETE', 'appDataFolder/progress_log.json', {
+    dayNumber: targetDay,
+    completed: Boolean(completed)
+  });
+}
+
 export async function selectDay(dayNum, options = {}) {
   const clamped = Math.max(1, Math.min(365, Number(dayNum) || 1));
   appState.selectedDay = clamped;
@@ -1813,38 +1868,8 @@ function bindGlobalControls() {
     const dayStr = String(appState.selectedDay);
     const existing = getRecordSync('progress', dayStr);
     const nextCompleted = !existing?.completed;
-
-    const res = await putRecord('progress', {
-      id: dayStr,
-      dayNumber: appState.selectedDay,
-      completed: nextCompleted,
+    await setDayCompletionStatus(appState.selectedDay, nextCompleted, {
       audioTimestampSec: Math.floor(audioEngine.currentTimeSec)
-    });
-    updateIdbLatencyDisplay(res.latencyMs);
-
-    renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
-    refreshGraceStreakHeader();
-    renderCurriculumMapView();
-    await syncMemberProgressToActiveCohort(getCurrentProgressMetrics());
-
-    // Sync Day Progress to Google Sheets Backend asynchronously
-    const identity = getLocalMemberIdentity();
-    const userId = appState.userProfile?.credentialIdHex || identity.memberId;
-    const inviteCode = getActiveCohortCode();
-    syncDayProgressToGoogleSheet({
-      userId,
-      dayNumber: appState.selectedDay,
-      completed: nextCompleted,
-      audioTimestampSec: Math.floor(audioEngine.currentTimeSec),
-      inviteCode,
-      memberMetrics: getCurrentProgressMetrics()
-    }).catch(() => {});
-
-    showCloudSyncToast(nextCompleted ? '☁️ Completed & Synced' : '☁️ Updated');
-
-    await enqueueCloudSyncMutation('MARK_DAY_COMPLETE', 'appDataFolder/progress_log.json', {
-      dayNumber: appState.selectedDay,
-      completed: nextCompleted
     });
   });
 
