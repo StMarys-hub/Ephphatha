@@ -2015,14 +2015,16 @@ function bindGlobalControls() {
       pushTelemetryLog('GDRIVE_AUDIO_ID_BOUND', `Bound Day ${appState.selectedDay} to Audio ID: ${cleanId}`);
     }
   });
-  // Day Navigation (Browsing another day while audio is playing keeps audio uninterrupted & shows Jump pill)
+  // Day Navigation: Previous/Next buttons switch audio to the newly selected day if currently playing
   document.getElementById('btn-prev-day')?.addEventListener('click', async () => {
     if (appState.selectedDay <= 1) return;
-    await selectDay(appState.selectedDay - 1, { scrollToTop: true });
+    const wasPlaying = audioEngine.isPlaying;
+    await selectDay(appState.selectedDay - 1, { autoPlay: wasPlaying, forceAudioLoad: true, scrollToTop: true });
   });
   document.getElementById('btn-next-day')?.addEventListener('click', async () => {
     if (appState.selectedDay >= 365) return;
-    await selectDay(appState.selectedDay + 1, { scrollToTop: true });
+    const wasPlaying = audioEngine.isPlaying;
+    await selectDay(appState.selectedDay + 1, { autoPlay: wasPlaying, forceAudioLoad: true, scrollToTop: true });
   });
   document.getElementById('day-select-dropdown')?.addEventListener('change', async (e) => {
     await selectDay(Number(e.target.value), { scrollToTop: true });
