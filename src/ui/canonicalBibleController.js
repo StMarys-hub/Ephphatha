@@ -14,7 +14,7 @@ import {
 } from '../domain/canonicalBible.js';
 import { fetchPassageWithFailover } from '../adapters/bibleFailoverGateway.js';
 import { getAllRecordsMapSync, getAllRecordsSync, putRecord, deleteRecord } from '../adapters/indexedDbRepo.js';
-import { generateAndDownloadVerseCard } from '../domain/crdtEngine.js';
+import { shareOrSaveVerseCard } from '../domain/crdtEngine.js';
 
 export const canonicalState = {
   activeFilter: 'ALL',
@@ -896,32 +896,19 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     const shareBtn = document.createElement('button');
     shareBtn.type = 'button';
     shareBtn.className = 'verse-icon-btn';
-    shareBtn.textContent = '🎨 Share';
-    shareBtn.title = 'Share verse or generate image card';
+    shareBtn.textContent = '📤 Share';
+    shareBtn.title = 'Share verse to WhatsApp / apps or save image card';
     shareBtn.addEventListener('click', async () => {
-      const shareText = `"${v.en}"\n\n"${v.ml}"\n\n— ${book.en} ${chapterNum}:${v.verse} (${book.ml})\nEphphatha Sanctuary`;
-      if (navigator.share) {
-        try {
-          await navigator.share({
-            title: `${book.en} ${chapterNum}:${v.verse}`,
-            text: shareText,
-            url: window.location.href
-          });
-          return;
-        } catch (_) {}
-      }
-      try {
-        await navigator.clipboard.writeText(shareText);
-        alert(`Copied ${book.en} ${chapterNum}:${v.verse} to clipboard!`);
-      } catch (_) {
-        generateAndDownloadVerseCard({
-          referenceEn: `${book.en} ${chapterNum}:${v.verse}`,
-          referenceMl: `${book.ml} ${chapterNum}:${v.verse}`,
-          en: v.en,
-          ml: v.ml,
-          periodHex: '#2B8CBE'
-        });
-      }
+      await shareOrSaveVerseCard({
+        periodName: 'Holy Scripture',
+        periodAccentHex: '#2B8CBE',
+        referenceEn: `${book.en} ${chapterNum}:${v.verse}`,
+        referenceMl: `${book.ml} ${chapterNum}:${v.verse}`,
+        verseNumber: v.verse,
+        textEn: v.en,
+        textMl: v.ml,
+        langMode: canonicalState.langMode || 'bilingual'
+      });
     });
 
     actions.appendChild(speakBtn);

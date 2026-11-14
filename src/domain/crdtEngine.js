@@ -52,16 +52,20 @@ export function mergeCrdtShardMaps(localMap = {}, remoteMap = {}) {
  * Renders a 1080x1080 High-DPI Bilingual (English + Malayalam POC) Devotional Verse Card
  * and triggers a PNG download or Web Share API share.
  */
-export async function generateAndDownloadVerseCard({
-  dayNumber,
-  periodName,
+export async function generateVerseCardBlob({
+  dayNumber = null,
+  periodName = 'Holy Scripture',
   periodAccentHex = '#2B8CBE',
   referenceEn,
-  referenceMl,
+  referenceMl = '',
   verseNumber,
   textEn,
-  textMl
+  textMl = '',
+  langMode = 'bilingual'
 }) {
+  const includeEn = langMode === 'bilingual' || langMode === 'en' || !textMl;
+  const includeMl = (langMode === 'bilingual' || langMode === 'ml') && Boolean(textMl);
+
   const canvas = document.createElement('canvas');
   canvas.width = 1080;
   canvas.height = 1080;
@@ -85,17 +89,30 @@ export async function generateAndDownloadVerseCard({
   // 3. Header Pill (Day & Period)
   ctx.fillStyle = periodAccentHex;
   ctx.font = '700 26px Inter, sans-serif';
-  ctx.fillText(`EPHPHATHA (“BE OPENED”) • DAY ${dayNumber} • ${periodName.toUpperCase()}`, 100, 140);
+  const dayLabel = dayNumber ? `DAY ${dayNumber} • ` : '';
+  ctx.fillText(`EPHPHATHA (“BE OPENED”) • ${dayLabel}${String(periodName).toUpperCase()}`, 100, 140);
 
   // 4. Scripture Reference Title
-  ctx.fillStyle = '#EAE6DF';
-  ctx.font = '800 44px Inter, sans-serif';
-  ctx.fillText(`${referenceEn} : ${verseNumber}`, 100, 210);
+  const refTitleEn = String(referenceEn || '').includes(`:${verseNumber}`)
+    ? referenceEn
+    : `${referenceEn} : ${verseNumber}`;
+  const refTitleMl = referenceMl
+    ? (String(referenceMl).includes(`:${verseNumber}`) ? referenceMl : `${referenceMl}:${verseNumber}`)
+    : '';
 
-  if (referenceMl) {
-    ctx.fillStyle = '#B8B2A6';
-    ctx.font = '700 32px "SMC Manjari", "Manjari", "SMC Meera", Inter, sans-serif';
-    ctx.fillText(referenceMl, 100, 260);
+  if (includeEn) {
+    ctx.fillStyle = '#EAE6DF';
+    ctx.font = '800 44px Inter, sans-serif';
+    ctx.fillText(refTitleEn, 100, 210);
+    if (includeMl && refTitleMl) {
+      ctx.fillStyle = '#B8B2A6';
+      ctx.font = '700 32px "SMC Manjari", "Manjari", "SMC Meera", Inter, sans-serif';
+      ctx.fillText(refTitleMl, 100, 260);
+    }
+  } else if (includeMl) {
+    ctx.fillStyle = '#EAE6DF';
+    ctx.font = '800 42px "SMC Manjari", "Manjari", "SMC Meera", Inter, sans-serif';
+    ctx.fillText(refTitleMl || refTitleEn, 100, 215);
   }
 
   // 5. Divider Line
@@ -107,36 +124,153 @@ export async function generateAndDownloadVerseCard({
   ctx.stroke();
 
   // 6. English Verse Text (Word-wrapped)
-  ctx.fillStyle = '#EAE6DF';
-  ctx.font = '400 38px Georgia, serif';
-  const yAfterEn = drawWrappedText(ctx, `“${textEn}”`, 100, 375, 880, 54);
+  let yAfterEn = 375;
+  if (includeEn) {
+    ctx.fillStyle = '#EAE6DF';
+    ctx.font = '400 38px Georgia, serif';
+    yAfterEn = drawWrappedText(ctx, `“${textEn}”`, 100, 375, 880, 54);
+  }
 
   // 7. Malayalam POC Verse Text (Word-wrapped)
-  if (textMl) {
-    ctx.fillStyle = '#E6DEC8';
-    ctx.font = '400 34px "SMC Manjari", "Manjari", "SMC Meera", sans-serif';
-    drawWrappedText(ctx, textMl, 100, Math.min(760, yAfterEn + 45), 880, 56);
+  if (includeMl) {
+    ctx.fillStyle = includeEn ? '#E6DEC8' : '#EAE6DF';
+    ctx.font = includeEn
+      ? '400 34px "SMC Manjari", "Manjari", "SMC Meera", sans-serif'
+      : '400 38px "SMC Manjari", "Manjari", "SMC Meera", sans-serif';
+    const mlStartY = includeEn ? Math.min(760, yAfterEn + 45) : 385;
+    drawWrappedText(ctx, `“${textMl}”`, 100, mlStartY, 880, 56);
   }
 
   // 8. Footer Branding
   ctx.fillStyle = '#B8B2A6';
   ctx.font = '600 24px Inter, sans-serif';
-  ctx.fillText('Ephphatha Bible in a Year Sanctuary • Mark 7:34 • English & POC Malayalam', 100, 975);
+  const footerLang = includeEn && includeMl
+    ? 'English & POC Malayalam'
+    : (includeMl ? 'POC Malayalam' : 'English');
+  ctx.fillText(`Ephphatha Bible in a Year Sanctuary • Mark 7:34 • ${footerLang}`, 100, 975);
 
   return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        resolve(false);
-        return;
+    canvas.toBlob((blob) => resolve(blob || null), 'image/png');
+  });
+}
+
+export async function generateAndDownloadVerseCard(opts) {
+  const blob = await generateVerseCardBlob(opts);
+  if (!blob) return false;
+  const dayTag = opts.dayNumber ? `Day${opts.dayNumber}_` : '';
+  const safeRef = String(opts.referenceEn || 'Verse').replace(/[^a-z0-9]/gi, '_');
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Ephphatha_${dayTag}${safeRef}_v${opts.verseNumber}.png`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2500);
+  return true;
+}
+
+export async function shareOrSaveVerseCard(opts) {
+  const mode = opts.langMode || 'bilingual';
+  const includeEn = mode === 'bilingual' || mode === 'en' || !opts.textMl;
+  const includeMl = (mode === 'bilingual' || mode === 'ml') && Boolean(opts.textMl);
+
+  const refTitleEn = String(opts.referenceEn || '').includes(`:${opts.verseNumber}`)
+    ? opts.referenceEn
+    : `${opts.referenceEn}:${opts.verseNumber}`;
+  const refTitleMl = opts.referenceMl
+    ? (String(opts.referenceMl).includes(`:${opts.verseNumber}`) ? opts.referenceMl : `${opts.referenceMl}:${opts.verseNumber}`)
+    : '';
+
+  const refDisplay = includeEn && includeMl && refTitleMl
+    ? `${refTitleEn} (${refTitleMl})`
+    : (includeMl && !includeEn ? (refTitleMl || refTitleEn) : refTitleEn);
+
+  const parts = [];
+  if (includeEn && opts.textEn) parts.push(`"${opts.textEn}"`);
+  if (includeMl && opts.textMl) parts.push(`"${opts.textMl}"`);
+  const shareText = `${parts.join('\n\n')}\n\n— ${refDisplay}\nEphphatha Sanctuary`;
+
+  const modal = document.getElementById('verse-share-modal');
+  if (!modal) {
+    await generateAndDownloadVerseCard(opts);
+    return { action: 'saved' };
+  }
+
+  const refEl = document.getElementById('verse-share-modal-ref');
+  const previewEl = document.getElementById('verse-share-modal-preview');
+  const closeBtn = document.getElementById('btn-close-verse-share-modal');
+  const waBtn = document.getElementById('btn-share-whatsapp');
+  const nativeBtn = document.getElementById('btn-share-native-apps');
+  const saveImgBtn = document.getElementById('btn-share-save-image');
+  const copyBtn = document.getElementById('btn-share-copy-text');
+
+  if (refEl) refEl.textContent = refDisplay;
+  if (previewEl) {
+    previewEl.classList.toggle('lang-ml', includeMl && !includeEn);
+    previewEl.textContent = parts.join(' ');
+  }
+
+  if (nativeBtn) {
+    nativeBtn.style.display = typeof navigator.share === 'function' ? '' : 'none';
+  }
+
+  modal.classList.remove('hidden');
+
+  return new Promise((resolve) => {
+    const cleanupAndResolve = (result) => {
+      modal.classList.add('hidden');
+      closeBtn?.removeEventListener('click', onClose);
+      modal.removeEventListener('click', onBackdropClick);
+      waBtn?.removeEventListener('click', onWhatsApp);
+      nativeBtn?.removeEventListener('click', onNativeShare);
+      saveImgBtn?.removeEventListener('click', onSaveImage);
+      copyBtn?.removeEventListener('click', onCopyText);
+      resolve(result);
+    };
+
+    const onClose = () => cleanupAndResolve({ action: 'cancelled' });
+    const onBackdropClick = (e) => {
+      if (e.target === modal) cleanupAndResolve({ action: 'cancelled' });
+    };
+
+    const onWhatsApp = () => {
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+      window.open(waUrl, '_blank', 'noopener,noreferrer');
+      cleanupAndResolve({ action: 'shared' });
+    };
+
+    const onNativeShare = () => {
+      if (typeof navigator.share !== 'function') return;
+      // Call navigator.share synchronously inside click handler to preserve user-gesture token
+      navigator.share({ title: refDisplay, text: shareText, url: window.location.href })
+        .then(() => cleanupAndResolve({ action: 'shared' }))
+        .catch((err) => {
+          if (err?.name === 'AbortError') return;
+          cleanupAndResolve({ action: 'cancelled' });
+        });
+    };
+
+    const onSaveImage = async () => {
+      await generateAndDownloadVerseCard(opts);
+      cleanupAndResolve({ action: 'saved', copied: false, saved: true });
+    };
+
+    const onCopyText = async () => {
+      let copied = false;
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(shareText);
+          copied = true;
+        } catch (_) { /* ignore */ }
       }
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Ephphatha_Day${dayNumber}_${referenceEn.replace(/[^a-z0-9]/gi, '_')}_v${verseNumber}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2500);
-      resolve(true);
-    }, 'image/png');
+      cleanupAndResolve({ action: 'copied', copied, saved: false });
+    };
+
+    closeBtn?.addEventListener('click', onClose);
+    modal.addEventListener('click', onBackdropClick);
+    waBtn?.addEventListener('click', onWhatsApp);
+    nativeBtn?.addEventListener('click', onNativeShare);
+    saveImgBtn?.addEventListener('click', onSaveImage);
+    copyBtn?.addEventListener('click', onCopyText);
   });
 }
 

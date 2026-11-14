@@ -59,7 +59,7 @@ import {
 } from '../adapters/googleSheetsAdapter.js';
 import {
   LECTIO_DIVINA_STEPS,
-  generateAndDownloadVerseCard,
+  shareOrSaveVerseCard,
   mergeCrdtShardMaps,
   nextHlcTimestamp
 } from '../domain/crdtEngine.js';
@@ -893,25 +893,31 @@ function renderScriptureVerses(passageData) {
       }
     });
 
-    // 1-Tap Bilingual Devotional Verse Image Card Generator
+    // Share with apps (WhatsApp, etc.) or save verse image card
     const shareCardBtn = document.createElement('button');
     shareCardBtn.type = 'button';
     shareCardBtn.className = 'verse-icon-btn';
-    shareCardBtn.textContent = '🎨 Share';
-    shareCardBtn.title = 'Download High-DPI Bilingual Verse Image Card';
+    shareCardBtn.textContent = '📤 Share';
+    shareCardBtn.title = 'Share verse to WhatsApp / apps or save image card';
     shareCardBtn.addEventListener('click', async () => {
       const periodObj = appState.scheduleByDay[appState.selectedDay]?.period;
-      await generateAndDownloadVerseCard({
+      const result = await shareOrSaveVerseCard({
         dayNumber: appState.selectedDay,
         periodName: periodObj?.name || 'Salvation History',
         periodAccentHex: periodObj?.accent_hex || '#2B8CBE',
         referenceEn: displayRefEn,
-        referenceMl: displayRefMl,
+        referenceMl: fullRefMl,
         verseNumber: v.verse,
         textEn: v.en,
-        textMl: v.ml
+        textMl: v.ml,
+        langMode: appState.langMode || 'bilingual'
       });
-      pushTelemetryLog('VERSE_CARD_GENERATED', `Rendered 1080x1080 bilingual verse card for ${displayRefEn}`);
+      if (result.action === 'saved') {
+        showCloudSyncToast(result.copied ? '📋 Copied verse & saved card' : '🎨 Saved verse card');
+      } else if (result.action === 'shared') {
+        showCloudSyncToast('📤 Shared verse');
+      }
+      pushTelemetryLog('VERSE_CARD_SHARED', `Share action (${result.action}) for ${displayRefEn}`);
     });
 
     actions.appendChild(speakBtn);

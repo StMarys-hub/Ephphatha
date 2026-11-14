@@ -1426,6 +1426,34 @@
     </div>
   </div>
 
+  <!-- Verse Share Options Modal (WhatsApp, Other Apps, Copy Text, Save Image) -->
+  <div class="modal-backdrop centered-modal-wrap hidden" id="verse-share-modal" role="dialog" aria-modal="true" aria-labelledby="verse-share-modal-title">
+    <div class="verse-share-sheet-card">
+      <div class="verse-share-header">
+        <div>
+          <h3 id="verse-share-modal-title">📤 Share Verse</h3>
+          <div id="verse-share-modal-ref" class="verse-share-ref">Genesis 1:1</div>
+        </div>
+        <button type="button" class="verse-icon-btn" id="btn-close-verse-share-modal" aria-label="Close Share Dialog">✕</button>
+      </div>
+      <p id="verse-share-modal-preview" class="verse-share-preview"></p>
+      <div class="verse-share-actions-grid">
+        <button type="button" class="verse-share-option-btn whatsapp" id="btn-share-whatsapp">
+          <span>💬</span><span>WhatsApp</span>
+        </button>
+        <button type="button" class="verse-share-option-btn" id="btn-share-native-apps">
+          <span>📤</span><span>Other Apps</span>
+        </button>
+        <button type="button" class="verse-share-option-btn" id="btn-share-save-image">
+          <span>🖼️</span><span>Save Image</span>
+        </button>
+        <button type="button" class="verse-share-option-btn" id="btn-share-copy-text">
+          <span>📋</span><span>Copy Text</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ========================================================================
        QR CODE & APP INSTALL SHARE MODAL SHEET
        ======================================================================== -->
