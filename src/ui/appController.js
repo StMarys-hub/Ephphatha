@@ -11,7 +11,7 @@ import {
   initScriptureVault,
   onFailoverEvent,
   resolveVerseLocation
-} from '../adapters/bibleFailoverGateway.js?v=3.5.34';
+} from '../adapters/bibleFailoverGateway.js?v=3.5.35';
 import {
   createNewCohortInstance,
   fetchCohortByInviteCode,
@@ -80,9 +80,16 @@ import {
   returnToCatalog,
   openCanonicalChapter,
   applyLanguageModeToReader
-} from './canonicalBibleController.js?v=3.5.34';
+} from './canonicalBibleController.js?v=3.5.35';
 import { getCanonicalBookByName, getCanonicalBookByPocId } from '../domain/canonicalBible.js';
 import { initQrShareModal, openQrShareModal } from './qrShareModal.js';
+import {
+  buildPeriodRecapShareText,
+  downloadPeriodRecapCard,
+  generatePeriodRecapCardBlob,
+  getCompletedPeriodsSummary,
+  getPeriodCompletionStats
+} from '../domain/periodRecapCard.js?v=3.5.35';
 import {
   attachVerseVersionSwitcher,
   beginVerseVersionScope,
@@ -90,7 +97,7 @@ import {
   formatVerseRefBadge,
   getActiveVerseTexts,
   schedulePassageVersionPrefetch
-} from './verseVersionSwitcher.js?v=3.5.34';
+} from './verseVersionSwitcher.js?v=3.5.35';
 
 const appState = {
   theme: localStorage.getItem('ephphatha_theme') || 'dark', // Default to Soft Matte Slate-Charcoal (#181B20)
@@ -464,6 +471,12 @@ async function setDayCompletionStatus(dayNumber, completed, options = {}) {
     ? options.audioTimestampSec
     : Math.floor(audioEngine.currentTimeSec);
 
+  const daySchedule = appState.scheduleByDay[targetDay];
+  const dayPeriod = daySchedule?.period || null;
+  const wasPeriodComplete = dayPeriod
+    ? getPeriodCompletionStats(dayPeriod, getAllRecordsMapSync('progress')).isCompleted
+    : false;
+
   const res = await putRecord('progress', {
     id: dayStr,
     dayNumber: targetDay,
@@ -471,6 +484,11 @@ async function setDayCompletionStatus(dayNumber, completed, options = {}) {
     audioTimestampSec
   });
   updateIdbLatencyDisplay(res.latencyMs);
+
+  const updatedProgressMap = getAllRecordsMapSync('progress');
+  const nowPeriodStats = dayPeriod
+    ? getPeriodCompletionStats(dayPeriod, updatedProgressMap)
+    : null;
 
   if (targetDay === appState.selectedDay) {
     renderDayHeroCard(appState.scheduleByDay[appState.selectedDay]);
@@ -498,6 +516,11 @@ async function setDayCompletionStatus(dayNumber, completed, options = {}) {
     dayNumber: targetDay,
     completed: Boolean(completed)
   });
+
+  if (completed && dayPeriod && !wasPeriodComplete && nowPeriodStats?.isCompleted) {
+    markPeriodCelebrated(dayPeriod.id);
+    openPeriodRecapModal(dayPeriod, { justCompleted: true });
+  }
 }
 
 export async function selectDay(dayNum, options = {}) {
@@ -608,6 +631,14 @@ function renderDayHeroCard(daySchedule) {
   const badgeEl = document.getElementById('hero-period-badge');
   if (badgeEl) {
     badgeEl.textContent = `Period ${daySchedule.period.code} • ${daySchedule.period.name} (${daySchedule.period.span})`;
+  }
+
+  const heroRecapBtn = document.getElementById('btn-hero-era-recap');
+  if (heroRecapBtn) {
+    const periodStats = getPeriodCompletionStats(daySchedule.period, getAllRecordsMapSync('progress'));
+    heroRecapBtn.classList.toggle('hidden', !periodStats.isCompleted);
+    heroRecapBtn.dataset.periodId = String(daySchedule.period.id);
+    heroRecapBtn.textContent = `✦ Era ${daySchedule.period.code} Recap`;
   }
 
   const folderEl = document.getElementById('hero-gdrive-node');
@@ -1650,25 +1681,318 @@ function renderFellowshipView() {
 }
 
 /* ============================================================================
- * 365-DAY CURRICULUM EXPLORER & BOOKMARKS VAULT VIEW
+ * 365-DAY CURRICULUM EXPLORER, 12-ERA MILESTONES & BOOKMARKS VAULT VIEW
  * ============================================================================ */
+function markPeriodCelebrated(periodId) {
+  try {
+    const key = 'ephphatha_celebrated_periods_v1';
+    const raw = JSON.parse(localStorage.getItem(key) || '[]');
+    const set = new Set(Array.isArray(raw) ? raw.map(Number) : []);
+    set.add(Number(periodId));
+    localStorage.setItem(key, JSON.stringify([...set]));
+  } catch (_) {}
+}
+
+const periodRecapModalState = {
+  period: null,
+  langMode: 'bilingual',
+  previewObjectUrl: '',
+  cachedBlob: null,
+  renderToken: 0,
+  bound: false
+};
+
+function getPeriodRecapContext(period) {
+  const progressMap = getAllRecordsMapSync('progress');
+  const stats = getPeriodCompletionStats(period, progressMap);
+  const graceStats = calculateGraceStreak(progressMap, appState.selectedDay);
+  const userName = appState.userProfile?.displayName || getLocalMemberIdentity()?.name || '';
+  return {
+    period,
+    stats,
+    overallCompletedDays: graceStats.totalCompleted,
+    streakDays: graceStats.streakDays,
+    userName,
+    langMode: periodRecapModalState.langMode || appState.langMode || 'bilingual'
+  };
+}
+
+function revokePeriodRecapPreviewUrl() {
+  if (periodRecapModalState.previewObjectUrl) {
+    URL.revokeObjectURL(periodRecapModalState.previewObjectUrl);
+    periodRecapModalState.previewObjectUrl = '';
+  }
+}
+
+async function renderPeriodRecapModalPreview() {
+  const period = periodRecapModalState.period;
+  if (!period) return;
+
+  const token = ++periodRecapModalState.renderToken;
+  const imgEl = document.getElementById('period-recap-card-preview');
+  const loadingEl = document.getElementById('period-recap-preview-loading');
+  if (loadingEl) loadingEl.classList.remove('hidden');
+
+  const ctx = getPeriodRecapContext(period);
+  const blob = await generatePeriodRecapCardBlob(ctx);
+  if (token !== periodRecapModalState.renderToken) return;
+
+  if (loadingEl) loadingEl.classList.add('hidden');
+  periodRecapModalState.cachedBlob = blob;
+
+  if (blob && imgEl) {
+    revokePeriodRecapPreviewUrl();
+    const url = URL.createObjectURL(blob);
+    periodRecapModalState.previewObjectUrl = url;
+    imgEl.src = url;
+  }
+}
+
+function closePeriodRecapModal() {
+  const modal = document.getElementById('period-recap-modal');
+  modal?.classList.add('hidden');
+  periodRecapModalState.renderToken++;
+  periodRecapModalState.cachedBlob = null;
+  revokePeriodRecapPreviewUrl();
+}
+
+function initPeriodRecapModal() {
+  if (periodRecapModalState.bound) return;
+  periodRecapModalState.bound = true;
+
+  const modal = document.getElementById('period-recap-modal');
+  const closeBtn = document.getElementById('btn-close-period-recap-modal');
+  const waBtn = document.getElementById('btn-recap-whatsapp');
+  const nativeBtn = document.getElementById('btn-recap-native-share');
+  const saveImgBtn = document.getElementById('btn-recap-save-image');
+  const copyBtn = document.getElementById('btn-recap-copy-text');
+  const nextBtn = document.getElementById('btn-recap-next-era');
+  const viewDaysBtn = document.getElementById('btn-recap-view-days');
+
+  closeBtn?.addEventListener('click', closePeriodRecapModal);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closePeriodRecapModal();
+  });
+
+  document.querySelectorAll('[data-recap-lang]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const nextLang = btn.getAttribute('data-recap-lang') || 'bilingual';
+      periodRecapModalState.langMode = nextLang;
+      document.querySelectorAll('[data-recap-lang]').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-recap-lang') === nextLang);
+      });
+      renderPeriodRecapModalPreview();
+    });
+  });
+
+  waBtn?.addEventListener('click', () => {
+    if (!periodRecapModalState.period) return;
+    const ctx = getPeriodRecapContext(periodRecapModalState.period);
+    const shareText = buildPeriodRecapShareText(ctx);
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener,noreferrer');
+  });
+
+  nativeBtn?.addEventListener('click', async () => {
+    if (!periodRecapModalState.period || typeof navigator.share !== 'function') return;
+    const ctx = getPeriodRecapContext(periodRecapModalState.period);
+    const shareText = buildPeriodRecapShareText(ctx);
+    const title = `Ephphatha Era ${ctx.period.code}: ${ctx.period.name}`;
+    try {
+      const blob = periodRecapModalState.cachedBlob || await generatePeriodRecapCardBlob(ctx);
+      if (blob && typeof File === 'function') {
+        const safeName = String(ctx.period.name || 'Era').replace(/[^a-z0-9]+/gi, '_');
+        const file = new File([blob], `Ephphatha_Era_${ctx.period.code}_${safeName}.png`, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ title, text: shareText, files: [file] });
+          return;
+        }
+      }
+      await navigator.share({ title, text: shareText, url: window.location.href });
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        showCloudSyncToast('Share cancelled or unavailable');
+      }
+    }
+  });
+
+  saveImgBtn?.addEventListener('click', async () => {
+    if (!periodRecapModalState.period) return;
+    const ctx = getPeriodRecapContext(periodRecapModalState.period);
+    const ok = await downloadPeriodRecapCard(ctx);
+    if (ok) showCloudSyncToast('🖼️ Milestone Card Saved');
+  });
+
+  copyBtn?.addEventListener('click', async () => {
+    if (!periodRecapModalState.period) return;
+    const ctx = getPeriodRecapContext(periodRecapModalState.period);
+    const shareText = buildPeriodRecapShareText(ctx);
+    try {
+      await navigator.clipboard?.writeText(shareText);
+      showCloudSyncToast('📋 Milestone Summary Copied');
+    } catch (_) {
+      showCloudSyncToast('Unable to copy summary');
+    }
+  });
+
+  nextBtn?.addEventListener('click', () => {
+    const targetDay = Number(nextBtn.dataset.nextDay) || 1;
+    closePeriodRecapModal();
+    switchMainTab('sanctuary');
+    selectDay(targetDay, { scrollToTop: true });
+  });
+
+  viewDaysBtn?.addEventListener('click', () => {
+    const periodId = periodRecapModalState.period?.id || 1;
+    closePeriodRecapModal();
+    switchMainTab('curriculum');
+    window.requestAnimationFrame(() => {
+      document.getElementById(`curriculum-period-card-${periodId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+function openPeriodRecapModal(period, { justCompleted = false } = {}) {
+  const modal = document.getElementById('period-recap-modal');
+  if (!modal || !period) return;
+
+  initPeriodRecapModal();
+  periodRecapModalState.period = period;
+  periodRecapModalState.langMode = appState.langMode || 'bilingual';
+
+  document.querySelectorAll('[data-recap-lang]').forEach((b) => {
+    b.classList.toggle('active', b.getAttribute('data-recap-lang') === periodRecapModalState.langMode);
+  });
+
+  const ctx = getPeriodRecapContext(period);
+  modal.style.setProperty('--recap-accent', period.accent_hex || 'var(--period-color)');
+
+  setText(
+    'period-recap-eyebrow',
+    justCompleted
+      ? `✦ Era ${period.code} of 12 Completed!`
+      : (ctx.stats.isCompleted ? `✦ Era ${period.code} of 12 Milestone` : `Era ${period.code} of 12 Progress Summary`)
+  );
+  setText('period-recap-modal-title', `${period.name} • ${period.name_ml}`);
+  setText(
+    'period-recap-modal-sub',
+    `${period.span} • Days ${period.day_start}–${period.day_end} (${ctx.stats.completedDays}/${ctx.stats.totalDays} Days)`
+  );
+
+  const nativeBtn = document.getElementById('btn-recap-native-share');
+  if (nativeBtn) {
+    nativeBtn.style.display = typeof navigator.share === 'function' ? '' : 'none';
+  }
+
+  const nextBtn = document.getElementById('btn-recap-next-era');
+  if (nextBtn) {
+    const nextPeriod = appState.periods.find((p) => p.id === period.id + 1);
+    if (ctx.stats.isCompleted && nextPeriod) {
+      nextBtn.classList.remove('hidden');
+      nextBtn.dataset.nextDay = String(nextPeriod.day_start);
+      nextBtn.textContent = `Continue to Era ${nextPeriod.code}: ${nextPeriod.name} (Day ${nextPeriod.day_start}) →`;
+    } else if (ctx.stats.isCompleted && period.id === 12) {
+      nextBtn.classList.remove('hidden');
+      nextBtn.dataset.nextDay = '1';
+      nextBtn.textContent = '🎉 All 12 Eras Complete • Revisit Day 1';
+    } else {
+      nextBtn.classList.add('hidden');
+    }
+  }
+
+  const viewDaysBtn = document.getElementById('btn-recap-view-days');
+  if (viewDaysBtn) {
+    viewDaysBtn.textContent = `📅 View Era ${period.code} Days & Ticks (Days ${period.day_start}–${period.day_end})`;
+  }
+
+  modal.classList.remove('hidden');
+  renderPeriodRecapModalPreview();
+}
+
 function renderCurriculumMapView() {
+  const milestonesWrap = document.getElementById('curriculum-era-milestones-wrap');
   const container = document.getElementById('curriculum-periods-container');
   if (!container) return;
   container.textContent = '';
 
   const progressMap = getAllRecordsMapSync('progress');
+  const eraSummary = getCompletedPeriodsSummary(appState.periods, progressMap);
+
+  if (milestonesWrap) {
+    milestonesWrap.textContent = '';
+
+    const shelfHeader = document.createElement('div');
+    shelfHeader.className = 'era-milestones-header';
+
+    const shelfTitle = document.createElement('div');
+    shelfTitle.className = 'era-milestones-title';
+    shelfTitle.textContent = `🏆 Salvation History Era Milestones (${eraSummary.completedCount} / ${eraSummary.totalCount} Completed)`;
+
+    const shelfSub = document.createElement('div');
+    shelfSub.className = 'era-milestones-sub';
+    shelfSub.textContent = eraSummary.completedCount > 0
+      ? 'Tap any completed Era to view & share its commemorative card'
+      : 'Complete every day of an Era to unlock its shareable Milestone Card';
+
+    shelfHeader.appendChild(shelfTitle);
+    shelfHeader.appendChild(shelfSub);
+    milestonesWrap.appendChild(shelfHeader);
+
+    const pillGrid = document.createElement('div');
+    pillGrid.className = 'era-milestone-pills';
+
+    appState.periods.forEach((period) => {
+      const pStats = eraSummary.statsByPeriodId[period.id];
+      const isComplete = Boolean(pStats?.isCompleted);
+      const medBtn = document.createElement('button');
+      medBtn.type = 'button';
+      medBtn.className = `era-medallion-btn ${isComplete ? 'is-completed' : ''}`;
+      medBtn.style.setProperty('--era-accent', period.accent_hex);
+
+      const codeRow = document.createElement('span');
+      codeRow.className = 'era-medallion-code';
+      codeRow.textContent = `ERA ${period.code}`;
+
+      const badgeIcon = document.createElement('span');
+      badgeIcon.textContent = isComplete ? '✦ Card' : `${pStats.completedDays}/${pStats.totalDays}`;
+      codeRow.appendChild(badgeIcon);
+
+      const nameRow = document.createElement('span');
+      nameRow.className = 'era-medallion-name';
+      nameRow.textContent = period.name;
+
+      const statusRow = document.createElement('span');
+      statusRow.className = 'era-medallion-status';
+      statusRow.textContent = isComplete ? 'Milestone Unlocked' : `Days ${period.day_start}–${period.day_end}`;
+
+      medBtn.appendChild(codeRow);
+      medBtn.appendChild(nameRow);
+      medBtn.appendChild(statusRow);
+
+      medBtn.addEventListener('click', () => {
+        if (isComplete) {
+          openPeriodRecapModal(period);
+        } else {
+          document.getElementById(`curriculum-period-card-${period.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      pillGrid.appendChild(medBtn);
+    });
+
+    milestonesWrap.appendChild(pillGrid);
+  }
 
   appState.periods.forEach(period => {
+    const pStats = eraSummary.statsByPeriodId[period.id] || getPeriodCompletionStats(period, progressMap);
+    const totalDaysInPeriod = pStats.totalDays;
+    const completedInPeriod = pStats.completedDays;
+    const isPeriodComplete = pStats.isCompleted;
+
     const card = document.createElement('div');
+    card.id = `curriculum-period-card-${period.id}`;
     card.className = 'reader-card';
     card.style.borderLeft = `6px solid ${period.accent_hex}`;
-
-    const totalDaysInPeriod = period.day_end - period.day_start + 1;
-    let completedInPeriod = 0;
-    for (let d = period.day_start; d <= period.day_end; d++) {
-      if (progressMap[String(d)]?.completed) completedInPeriod++;
-    }
+    card.style.setProperty('--era-accent', period.accent_hex);
 
     const header = document.createElement('div');
     header.className = 'section-header-row';
@@ -1678,7 +2002,9 @@ function renderCurriculumMapView() {
 
     const progBadge = document.createElement('span');
     progBadge.className = 'crypto-badge';
-    progBadge.textContent = `${completedInPeriod} / ${totalDaysInPeriod} Days Complete`;
+    progBadge.textContent = isPeriodComplete
+      ? `✦ ${completedInPeriod} / ${totalDaysInPeriod} Days Complete`
+      : `${completedInPeriod} / ${totalDaysInPeriod} Days Complete`;
 
     header.appendChild(title);
     header.appendChild(progBadge);
@@ -1716,6 +2042,21 @@ function renderCurriculumMapView() {
     card.appendChild(header);
     card.appendChild(desc);
     card.appendChild(pillWrap);
+
+    if (isPeriodComplete) {
+      const actionsRow = document.createElement('div');
+      actionsRow.className = 'curriculum-card-actions';
+
+      const recapBtn = document.createElement('button');
+      recapBtn.type = 'button';
+      recapBtn.className = 'era-recap-action-btn';
+      recapBtn.textContent = `🏆 View & Share Era ${period.code} Milestone Card`;
+      recapBtn.addEventListener('click', () => openPeriodRecapModal(period));
+      actionsRow.appendChild(recapBtn);
+
+      card.appendChild(actionsRow);
+    }
+
     container.appendChild(card);
   });
 }
@@ -1971,9 +2312,11 @@ function renderHomeDashboardView() {
   // Anchor 4: Progress Dashboard
   const progressMap = getAllRecordsMapSync('progress');
   const stats = calculateGraceStreak(progressMap, dayNum);
+  const eraSummary = getCompletedPeriodsSummary(appState.periods, progressMap);
+  const eraSuffix = eraSummary.completedCount > 0 ? ` • 🏆 ${eraSummary.completedCount}/12 Eras` : '';
   setText(
     'home-anchor-progress-stats',
-    `${stats.totalCompleted} / 365 Days (${stats.percentComplete}%) • 🔥 ${stats.streakDays}d Streak`
+    `${stats.totalCompleted} / 365 Days (${stats.percentComplete}%) • 🔥 ${stats.streakDays}d Streak${eraSuffix}`
   );
   const fillEl = document.getElementById('home-progress-bar-fill');
   if (fillEl) {
@@ -2225,6 +2568,16 @@ function bindGlobalControls() {
 
   // Direct 1-Tap App Installation & QR Code Sharing
   initQrShareModal();
+  initPeriodRecapModal();
+
+  // Completed Era Milestone Quick Button inside Reading Period Header
+  document.getElementById('btn-hero-era-recap')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const pid = Number(e.currentTarget.dataset.periodId) || appState.scheduleByDay[appState.selectedDay]?.period?.id;
+    const period = appState.periods.find((p) => p.id === pid);
+    if (period) openPeriodRecapModal(period);
+  });
 
   let deferredInstallPrompt = null;
   const directBanner = document.getElementById('direct-install-banner');

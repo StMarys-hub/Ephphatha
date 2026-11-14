@@ -54,6 +54,7 @@
 [data-theme="light"] {
   --bg-primary: #FAF7F2;          /* Warm Alabaster Parchment */
   --bg-elevated-card: #FFFFFF;    /* Pure Ivory Card */
+  --bg-card: #FFFFFF;             /* Card Alias for Dialog Surfaces */
   --bg-subtle-surface: #F3EDE2;   /* Sandstone */
   --bg-glass-nav: rgba(250, 247, 242, 0.96);
   --text-primary: #1C1917;        /* Deep Espresso Ink */
@@ -88,6 +89,7 @@
 [data-theme="dark"] {
   --bg-primary: #181B20;          /* Soft Matte Slate-and-Charcoal Base — Gentle on Eyes */
   --bg-elevated-card: #21252C;    /* Subdued Charcoal Card Surface */
+  --bg-card: #21252C;             /* Card Alias for Dialog Surfaces */
   --bg-subtle-surface: #292E37;   /* Soft Dark Slate Interactive Surface */
   --bg-glass-nav: rgba(24, 27, 32, 0.96);
   --text-primary: #E4E2DD;        /* Soft Alabaster Linen — Never Harsh #FFF */
@@ -4422,4 +4424,301 @@ body[data-lang-pref="en"] .canonical-verse-ml {
     font-size: 0.78rem;
   }
 }
+
+/* ============================================================================
+ * 12 SALVATION HISTORY ERA MILESTONE RECAPS & SHAREABLE CARD MODAL
+ * ============================================================================ */
+.era-recap-chip {
+  margin-left: auto;
+  margin-right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--period-color) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--period-color) 16%, var(--bg-subtle-surface));
+  color: var(--text-primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+}
+
+.era-recap-chip:hover {
+  border-color: var(--period-color);
+  background: color-mix(in srgb, var(--period-color) 26%, var(--bg-subtle-surface));
+}
+
+.era-milestones-shelf {
+  background: var(--bg-elevated-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.era-milestones-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.era-milestones-title {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.era-milestones-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.era-milestone-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.era-medallion-btn {
+  flex: 0 0 128px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 7px 10px;
+  min-height: 48px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-subtle-surface);
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+}
+
+.era-medallion-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--era-accent, var(--period-color));
+}
+
+.era-medallion-btn.is-completed {
+  border-color: var(--era-accent, var(--period-color));
+  background: color-mix(in srgb, var(--era-accent, var(--period-color)) 15%, var(--bg-card));
+  color: var(--text-primary);
+}
+
+.era-medallion-code {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--era-accent, var(--period-color));
+}
+
+.era-medallion-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.25;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.era-medallion-status {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.curriculum-card-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+#curriculum-periods-container .reader-card {
+  scroll-margin-top: 72px;
+}
+
+.era-recap-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--era-accent, var(--period-color));
+  background: color-mix(in srgb, var(--era-accent, var(--period-color)) 18%, var(--bg-card));
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.14s ease, background-color 0.14s ease;
+}
+
+.era-recap-action-btn:hover {
+  background: color-mix(in srgb, var(--era-accent, var(--period-color)) 28%, var(--bg-card));
+}
+
+/* Period Recap Modal Sheet */
+.period-recap-sheet-card {
+  width: min(94vw, 420px);
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--bg-elevated-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.42);
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  animation: modalPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.period-recap-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--recap-accent, var(--period-color));
+  margin-bottom: 2px;
+}
+
+.period-recap-lang-bar {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--bg-subtle-surface);
+  border: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.period-recap-lang-btn {
+  min-height: 30px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.period-recap-lang-btn.active {
+  background: var(--bg-elevated-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+.period-recap-preview-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  align-self: center;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: #191F2A;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.period-recap-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.period-recap-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.84rem;
+  color: #EAE6DF;
+  background: rgba(25, 31, 42, 0.85);
+}
+
+.period-recap-loading.hidden {
+  display: none;
+}
+
+.period-recap-actions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.period-recap-actions-grid .verse-share-option-btn {
+  flex: 1 1 92px;
+  font-size: 0.76rem;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.ergonomic-btn.primary-period.period-recap-next-btn,
+.period-recap-next-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 44px;
+  font-weight: 700;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--recap-accent, var(--period-color));
+  color: #FFFFFF;
+  border: 1px solid var(--recap-accent, var(--period-color));
+}
+
+.ergonomic-btn.primary-period.period-recap-next-btn:hover,
+.period-recap-next-btn:hover {
+  filter: brightness(1.06);
+  background: var(--recap-accent, var(--period-color));
+}
+
+.period-recap-days-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 38px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--bg-subtle-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.period-recap-days-btn:hover {
+  border-color: var(--recap-accent, var(--period-color));
+}
+
 

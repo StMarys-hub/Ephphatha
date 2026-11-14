@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.5.34" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.5.35" />
 </head>
 <body>
   <!-- ========================================================================
@@ -270,6 +270,7 @@
         <details class="periods-drawer-card" id="periods-accordion">
           <summary class="periods-summary-bar" title="Browse all 12 Salvation History Periods">
             <span class="day-badge" id="hero-period-badge">Period 01 • Early World</span>
+            <button type="button" class="era-recap-chip hidden" id="btn-hero-era-recap" title="View &amp; Share Completed Era Milestone Card">✦ Era Recap</button>
             <span class="period-chevron" aria-hidden="true">▾</span>
           </summary>
           <div class="periods-strip" id="periods-strip"></div>
@@ -580,6 +581,7 @@
             </button>
           </div>
         </div>
+        <div id="curriculum-era-milestones-wrap" class="era-milestones-shelf"></div>
         <div id="curriculum-periods-container"></div>
       </section>
 
@@ -1489,6 +1491,55 @@
   </div>
 
   <!-- ========================================================================
+       BIY ERA MILESTONE RECAP & SHAREABLE SUMMARY CARD MODAL
+       ======================================================================== -->
+  <div class="modal-backdrop centered-modal-wrap hidden" id="period-recap-modal" role="dialog" aria-modal="true" aria-labelledby="period-recap-modal-title">
+    <div class="period-recap-sheet-card">
+      <div class="verse-share-header">
+        <div>
+          <div class="period-recap-eyebrow" id="period-recap-eyebrow">✦ Era Milestone Completed</div>
+          <h3 id="period-recap-modal-title">Early World</h3>
+          <div id="period-recap-modal-sub" class="verse-share-ref">Genesis 1–11 • Days 1–4</div>
+        </div>
+        <button type="button" class="verse-icon-btn" id="btn-close-period-recap-modal" aria-label="Close Era Milestone Dialog">✕</button>
+      </div>
+
+      <div class="period-recap-lang-bar" role="group" aria-label="Card Language">
+        <button type="button" class="period-recap-lang-btn active" data-recap-lang="bilingual">EN + മലയാളം</button>
+        <button type="button" class="period-recap-lang-btn" data-recap-lang="en">EN</button>
+        <button type="button" class="period-recap-lang-btn" data-recap-lang="ml">മലയാളം</button>
+      </div>
+
+      <div class="period-recap-preview-wrap">
+        <img id="period-recap-card-preview" class="period-recap-card-img" alt="Era Milestone Commemorative Summary Card" />
+        <div id="period-recap-preview-loading" class="period-recap-loading">Generating commemorative card…</div>
+      </div>
+
+      <div class="period-recap-actions-grid">
+        <button type="button" class="verse-share-option-btn whatsapp" id="btn-recap-whatsapp">
+          <span>💬</span><span>WhatsApp</span>
+        </button>
+        <button type="button" class="verse-share-option-btn" id="btn-recap-native-share">
+          <span>📤</span><span>Share Card</span>
+        </button>
+        <button type="button" class="verse-share-option-btn" id="btn-recap-save-image">
+          <span>🖼️</span><span>Save Image</span>
+        </button>
+        <button type="button" class="verse-share-option-btn" id="btn-recap-copy-text">
+          <span>📋</span><span>Copy Summary</span>
+        </button>
+      </div>
+
+      <button type="button" class="ergonomic-btn primary-period period-recap-next-btn hidden" id="btn-recap-next-era">
+        Continue to Next Era →
+      </button>
+      <button type="button" class="ergonomic-btn period-recap-days-btn" id="btn-recap-view-days">
+        📅 View Days &amp; Ticks (365 Plan)
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================
        QR CODE & APP INSTALL SHARE MODAL SHEET
        ======================================================================== -->
   <div class="modal-backdrop centered-modal-wrap hidden" id="qr-share-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
@@ -1543,7 +1594,7 @@
 
 
   <script type="module">
-    const APP_VERSION = '3.5.34';
+    const APP_VERSION = '3.5.35';
     const RECOVER_KEY = 'ephphatha_sw_recover_' + APP_VERSION;
 
     async function recoverStaleMobileCacheOnce() {
