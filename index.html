@@ -23,7 +23,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Manjari:wght@400;700&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="./src/styles/main.css?v=3.5.33" />
+  <link rel="stylesheet" href="./src/styles/main.css?v=3.5.34" />
 </head>
 <body>
   <!-- ========================================================================
@@ -1543,16 +1543,46 @@
 
 
   <script type="module">
-    import { bootstrapEphphathaApp, selectDay } from './src/ui/appController.js?v=3.5.33';
+    const APP_VERSION = '3.5.34';
+    const RECOVER_KEY = 'ephphatha_sw_recover_' + APP_VERSION;
 
-    window.selectJumpDay = (d) => selectDay(d);
+    async function recoverStaleMobileCacheOnce() {
+      try {
+        if (sessionStorage.getItem(RECOVER_KEY)) return;
+        sessionStorage.setItem(RECOVER_KEY, '1');
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.update().catch(() => r.unregister())));
+        }
+        window.location.reload();
+      } catch (_) {}
+    }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      bootstrapEphphathaApp();
-      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-        navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+    async function boot() {
+      try {
+        const mod = await import(`./src/ui/appController.js?v=${APP_VERSION}`);
+        window.selectJumpDay = (d) => mod.selectDay(d);
+        await mod.bootstrapEphphathaApp();
+      } catch (err) {
+        console.error('Ephphatha boot error:', err);
+        await recoverStaleMobileCacheOnce();
       }
-    });
+      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then((reg) => reg.update().catch(() => {}))
+          .catch(() => {});
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      window.addEventListener('DOMContentLoaded', boot, { once: true });
+    } else {
+      boot();
+    }
   </script>
 </body>
 </html>

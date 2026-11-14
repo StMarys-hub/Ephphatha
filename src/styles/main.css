@@ -1131,26 +1131,20 @@ body {
   min-width: 0;
   height: 34px;
   font-weight: 800;
-  font-size: clamp(0.68rem, 2.7vw, 0.78rem);
+  font-size: clamp(0.64rem, 2.55vw, 0.78rem);
   line-height: 1.2;
   color: var(--period-color);
   background: var(--bg-elevated-card);
-  padding: 0 9px;
+  padding: 0 8px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-subtle);
   white-space: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
+  overflow: hidden;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
   transition: background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
-}
-
-.verse-num-badge::-webkit-scrollbar {
-  display: none;
 }
 
 .verse-ref-part {

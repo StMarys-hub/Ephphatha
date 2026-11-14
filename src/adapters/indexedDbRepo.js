@@ -84,26 +84,48 @@ export async function initLocalVault() {
       return;
     }
 
-    const req = window.indexedDB.open(DB_NAME, DB_VERSION);
-
-    req.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      STORES.forEach(storeName => {
-        if (!db.objectStoreNames.contains(storeName)) {
-          db.createObjectStore(storeName, { keyPath: 'id' });
-        }
-      });
+    let settled = false;
+    const finish = (val) => {
+      if (settled) return;
+      settled = true;
+      resolve(val);
     };
 
-    req.onsuccess = async (event) => {
-      singleton.dbInstance = event.target.result;
-      await Promise.all(STORES.map(store => hydrateStoreToMemory(store)));
-      resolve(singleton.dbInstance);
-    };
+    // Never let mobile WebView IndexedDB lock block interactive app boot
+    const guardTimer = setTimeout(() => finish(null), 1200);
 
-    req.onerror = () => {
-      resolve(null);
-    };
+    try {
+      const req = window.indexedDB.open(DB_NAME, DB_VERSION);
+
+      req.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        STORES.forEach(storeName => {
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, { keyPath: 'id' });
+          }
+        });
+      };
+
+      req.onsuccess = async (event) => {
+        singleton.dbInstance = event.target.result;
+        await Promise.all(STORES.map(store => hydrateStoreToMemory(store))).catch(() => {});
+        clearTimeout(guardTimer);
+        finish(singleton.dbInstance);
+      };
+
+      req.onerror = () => {
+        clearTimeout(guardTimer);
+        finish(null);
+      };
+
+      req.onblocked = () => {
+        clearTimeout(guardTimer);
+        finish(null);
+      };
+    } catch (_) {
+      clearTimeout(guardTimer);
+      finish(null);
+    }
   });
 }
 

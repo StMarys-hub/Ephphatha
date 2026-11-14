@@ -12,7 +12,7 @@ import {
   getNextCanonicalChapter,
   getPrevCanonicalChapter
 } from '../domain/canonicalBible.js';
-import { fetchPassageWithFailover, resolveVerseLocation } from '../adapters/bibleFailoverGateway.js';
+import { fetchPassageWithFailover, resolveVerseLocation } from '../adapters/bibleFailoverGateway.js?v=3.5.34';
 import { getAllRecordsMapSync, getAllRecordsSync, putRecord, deleteRecord } from '../adapters/indexedDbRepo.js';
 import { shareOrSaveVerseCard } from '../domain/crdtEngine.js';
 import {
@@ -23,7 +23,7 @@ import {
   refreshVerseBadgeForMode,
   schedulePassageVersionPrefetch,
   updateVerseActionButton
-} from './verseVersionSwitcher.js';
+} from './verseVersionSwitcher.js?v=3.5.34';
 
 export const canonicalState = {
   activeFilter: 'ALL',
@@ -762,6 +762,8 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
   beginVerseVersionScope('bible', scopeKey);
 
   const bookmarksMap = getAllRecordsMapSync('bookmarks');
+  const jumpFrag = document.createDocumentFragment();
+  const cardsFrag = document.createDocumentFragment();
 
   verses.forEach((v, idx) => {
     const vDomId = `canonical-verse-${chapterNum}-${v.verse}`;
@@ -786,7 +788,7 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
         setTimeout(() => target.classList.remove('audio-active-verse'), 1800);
       }
     });
-    jumpBar.appendChild(pill);
+    jumpFrag.appendChild(pill);
 
     // 2. Verse Card
     const card = document.createElement('article');
@@ -1008,9 +1010,11 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
       onFeedback: (msg) => deps.showToast?.(msg)
     });
 
-    versesStream.appendChild(card);
+    cardsFrag.appendChild(card);
   });
 
+  jumpBar.appendChild(jumpFrag);
+  versesStream.appendChild(cardsFrag);
   applyLanguageModeToReader();
   schedulePassageVersionPrefetch('bible', [{ bookId: book.id, pocId: book.pocId, chapter: chapterNum }]);
 }

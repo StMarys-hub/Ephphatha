@@ -4,7 +4,7 @@
  * preserving 100% offline readiness in Tier 4.
  */
 
-const CACHE_NAME = 'ephphatha-sanctuary-v3.5.33';
+const CACHE_NAME = 'ephphatha-sanctuary-v3.5.34';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -45,7 +45,15 @@ const CORE_ASSETS = [
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        CORE_ASSETS.map((url) =>
+          fetch(new Request(url, { cache: 'reload' }))
+            .then((res) => (res && res.ok ? cache.put(url, res) : null))
+            .catch(() => null)
+        )
+      )
+    )
   );
 });
 
@@ -63,9 +71,16 @@ self.addEventListener('fetch', (event) => {
   // Never intercept cross-origin audio streams (e.g. Cloudflare Edge Worker HTTP 206 byte ranges)
   if (!event.request.url.startsWith(self.location.origin)) return;
 
-  // Network-First with Offline Cache Fallback for instant updates
+  // Bypass stale HTTP max-age caching on app code/HTML so modules stay version-locked
+  const reqUrl = new URL(event.request.url);
+  const isAppShellOrCode = event.request.mode === 'navigate' || /\.(?:html|js|css|json)$/i.test(reqUrl.pathname);
+  const networkReq = isAppShellOrCode
+    ? new Request(event.request, { cache: 'no-cache' })
+    : event.request;
+
+  // Network-First with Offline Cache Fallback (ignoreSearch lets ?v= match pre-cached CORE_ASSETS offline)
   event.respondWith(
-    fetch(event.request)
+    fetch(networkReq)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200) {
           const clone = networkResponse.clone();
@@ -73,6 +88,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => caches.match(event.request, { ignoreSearch: true }))
   );
 });

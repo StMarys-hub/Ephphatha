@@ -11,7 +11,7 @@ import {
   initScriptureVault,
   onFailoverEvent,
   resolveVerseLocation
-} from '../adapters/bibleFailoverGateway.js';
+} from '../adapters/bibleFailoverGateway.js?v=3.5.34';
 import {
   createNewCohortInstance,
   fetchCohortByInviteCode,
@@ -80,7 +80,7 @@ import {
   returnToCatalog,
   openCanonicalChapter,
   applyLanguageModeToReader
-} from './canonicalBibleController.js';
+} from './canonicalBibleController.js?v=3.5.34';
 import { getCanonicalBookByName, getCanonicalBookByPocId } from '../domain/canonicalBible.js';
 import { initQrShareModal, openQrShareModal } from './qrShareModal.js';
 import {
@@ -90,7 +90,7 @@ import {
   formatVerseRefBadge,
   getActiveVerseTexts,
   schedulePassageVersionPrefetch
-} from './verseVersionSwitcher.js';
+} from './verseVersionSwitcher.js?v=3.5.34';
 
 const appState = {
   theme: localStorage.getItem('ephphatha_theme') || 'dark', // Default to Soft Matte Slate-Charcoal (#181B20)
@@ -125,13 +125,12 @@ export async function bootstrapEphphathaApp() {
   applyFontScale(appState.fontScale);
   applyTypographyAndLanguagePreferences();
 
-  // 2. Initialize Local-First IndexedDB Vault (<5ms) & Tier-3/4 Scripture Vault
+  // 2. Initialize Local-First IndexedDB Vault (<5ms, synchronous localStorage mirror + bounded IDB open)
   await initLocalVault();
   if (localStorage.getItem('ephphatha_poc_scripture_v335') !== 'true') {
     await clearStore('scripture_cache');
     localStorage.setItem('ephphatha_poc_scripture_v335', 'true');
   }
-  await initScriptureVault();
   initBackgroundSyncLifecycle();
 
   // 3. Audio Continuous Autoplay & Auto-Complete: When daily audio finishes, mark day complete and advance if auto-advance is enabled
@@ -167,54 +166,58 @@ export async function bootstrapEphphathaApp() {
     showCloudSyncToast('🌙 Sleep timer ended — audio paused');
   });
 
-  // 3. Load saved biometric profile if present
+  // 4. Load saved biometric profile if present
   const savedProfile = localStorage.getItem('ephphatha_biometric_profile_v3');
   if (savedProfile) {
     try { appState.userProfile = JSON.parse(savedProfile); } catch (_) { /* ignore */ }
   }
 
-  // 4. Purge any legacy prototype/mock fellowship data & initialize live Cohort Gateway
-  await purgeLegacyPrototypeFellowships();
-  onCohortStateChange(() => {
-    renderFellowshipView();
-  });
+  // 5. Hydrate deterministic 365-Day Curriculum immediately (0ms) so UI & nav bind without network delay
+  const initialCurriculum = buildFull365Curriculum({});
+  appState.periods = initialCurriculum.periods;
+  appState.scheduleByDay = initialCurriculum.scheduleByDay;
+  populateDayDropdown();
+  renderPeriodsRibbon();
 
-  // 5. Hydrate 365-Day Dynamic Online Curriculum (`schedule_manifest_v3.json`)
-  await loadDynamicCurriculumManifest();
-
-  // 6. Wire Telemetry & Security Listeners
+  // 6. Wire Telemetry, Global Controls & Canonical Bible immediately (interactive <50ms)
   wireTelemetryStreams();
-
-  // 7. Bind Top Header, Navigation, Modals, and Inspector Controls
   bindGlobalControls();
-
-  // 8. Initialize Canonical Catholic Bible Navigator (73 Books)
   initCanonicalBibleView({ audioEngine, showToast: showCloudSyncToast });
   if (typeof window !== 'undefined') {
     window.openCanonicalChapter = openCanonicalChapter;
   }
 
-  // Initialize inspector state based on screen width
   const shell = document.getElementById('workspace-shell');
   const inspector = document.getElementById('telemetry-inspector');
   if (shell) shell.classList.toggle('inspector-open', appState.inspectorOpen);
   if (inspector) inspector.classList.toggle('hidden', !appState.inspectorOpen);
 
-  // 8. Select initial Day and render full UI
-  await selectDay(appState.selectedDay, { initialBoot: true });
-  await initializeFellowshipOnBoot();
+  onCohortStateChange(() => {
+    renderFellowshipView();
+  });
+
+  // 7. Paint initial tab & cached local views cleanly before async network tasks
   renderFellowshipView();
   renderCurriculumMapView();
   renderVaultView();
   renderUserProfileBadge();
   renderHomeDashboardView();
   switchMainTab(appState.activeTab);
-
-  // Initialize auto-hiding day navigation toolbar on scroll in Reading view
   initSanctuaryToolbarAutoHideOnScroll();
 
-  // 9. Initialize Google Sheets Master Database sync & multi-user live polling
+  // 8. Kick off initial Day render + background hydrations without blocking user taps
+  const initialDayPromise = selectDay(appState.selectedDay, { initialBoot: true });
+  purgeLegacyPrototypeFellowships().catch(() => {});
+  loadDynamicCurriculumManifest().catch(() => {});
+  initializeFellowshipOnBoot()
+    .then(() => renderFellowshipView())
+    .catch(() => {});
+  setTimeout(() => {
+    initScriptureVault().catch(() => {});
+  }, 80);
+
   initGoogleSheetsSyncOnBoot();
+  await initialDayPromise.catch(() => {});
 }
 
 async function initGoogleSheetsSyncOnBoot() {
@@ -301,19 +304,40 @@ function updateSheetsSyncStatusBadge(snapshot) {
 
 async function loadDynamicCurriculumManifest() {
   let manifestJson = {};
+  let loadedFromServer = false;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 2500);
   try {
-    const res = await fetch('./data/schedule_manifest_v3.json');
+    const res = await fetch('./data/schedule_manifest_v3.json', { signal: ctrl.signal });
+    clearTimeout(timer);
     if (res.ok) {
       manifestJson = await res.json();
+      loadedFromServer = true;
       pushTelemetryLog('SCHEDULE_HYDRATED', 'Loaded schedule_manifest_v3.json (Stale-While-Revalidate)');
     }
   } catch (_) {
+    clearTimeout(timer);
     pushTelemetryLog('SCHEDULE_OFFLINE_CACHE', 'Hydrated 365-day curriculum from deterministic local manifest');
   }
 
-  const built = buildFull365Curriculum(manifestJson);
-  appState.periods = built.periods;
-  appState.scheduleByDay = built.scheduleByDay;
+  if (loadedFromServer) {
+    const built = buildFull365Curriculum(manifestJson);
+    appState.periods = built.periods;
+    appState.scheduleByDay = built.scheduleByDay;
+    populateDayDropdown();
+    const selectEl = document.getElementById('day-select-dropdown');
+    if (selectEl) selectEl.value = String(appState.selectedDay);
+    renderPeriodsRibbon();
+    const activeDaySchedule = appState.scheduleByDay[appState.selectedDay];
+    if (activeDaySchedule) {
+      renderDayHeroCard(activeDaySchedule);
+      if (!audioEngine.isPlaying) {
+        audioEngine.loadDayAudio(activeDaySchedule, getRecordSync('progress', String(appState.selectedDay))?.audioTimestampSec || 0, false);
+      }
+      setText('journal-prompt-text', activeDaySchedule.historical_context?.reflection_prompt || '');
+    }
+    renderHomeDashboardView();
+  }
 
   // Auto-discover any newly uploaded audio files in Google Drive if Root Folder ID is configured
   const savedRootFolderId = localStorage.getItem('ephphatha_root_folder_id');
@@ -335,9 +359,6 @@ async function loadDynamicCurriculumManifest() {
       })
       .catch(() => {});
   }
-
-  populateDayDropdown();
-  renderPeriodsRibbon();
 }
 
 async function initializeFellowshipOnBoot() {
@@ -514,14 +535,12 @@ export async function selectDay(dayNum, options = {}) {
   }
   updateJumpToPlayingDayPill();
 
-  // 5. Load Active Reading Slot Passage via 4-Tier Failover Pipeline
-  await loadActiveReadingSlot(daySchedule);
-
-  // 6. Load Encrypted Prayer Reflection for this Day
+  // 5. Refresh Grace Streak Banner & Encrypted Prayer Reflection immediately before network fetch
+  refreshGraceStreakHeader();
   await loadDayJournalEntry(clamped, daySchedule);
 
-  // 7. Refresh Grace Streak Banner
-  refreshGraceStreakHeader();
+  // 6. Load Active Reading Slot Passage via 4-Tier Failover Pipeline
+  await loadActiveReadingSlot(daySchedule);
 
   if (!options.initialBoot) {
     pushTelemetryLog('DAY_SELECTED', `Switched to Day ${clamped} (${daySchedule.period.name})`);
@@ -961,6 +980,8 @@ function renderScriptureVerses(passageData) {
     const distinctChapters = new Set((passageData.verses || []).map(v => v.chapter).filter(Boolean));
     const hasMultipleChapters = distinctChapters.size > 1;
     let lastRenderedChapter = null;
+    const jumpFrag = document.createDocumentFragment();
+    const cardsFrag = document.createDocumentFragment();
 
     passageData.verses.forEach((v, idx) => {
       const chKey = v.chapter ? `${v.chapter}_` : '';
@@ -989,7 +1010,7 @@ function renderScriptureVerses(passageData) {
       chBanner.textContent = bookTitleMl
         ? `📖 ${bookTitleEn} — Chapter ${v.chapter} • ${bookTitleMl} ${v.chapter}`
         : `📖 ${bookTitleEn} — Chapter ${v.chapter}`;
-      versesList.appendChild(chBanner);
+      cardsFrag.appendChild(chBanner);
     }
 
     // 1. Quick-Jump Pill
@@ -1005,7 +1026,7 @@ function renderScriptureVerses(passageData) {
         setTimeout(() => target.classList.remove('audio-active-verse'), 1800);
       }
     });
-    jumpBar.appendChild(pill);
+    jumpFrag.appendChild(pill);
 
     // 2. Verse Card
     const card = document.createElement('article');
@@ -1196,8 +1217,10 @@ function renderScriptureVerses(passageData) {
       onFeedback: showCloudSyncToast
     });
 
-    versesList.appendChild(card);
+    cardsFrag.appendChild(card);
   });
+  jumpBar.appendChild(jumpFrag);
+  versesList.appendChild(cardsFrag);
   schedulePassageVersionPrefetch('reading', Array.from(prefetchChaptersMap.values()));
   renderReaderSectionFooter(passageData);
 } catch (renderErr) {

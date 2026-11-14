@@ -11,7 +11,7 @@ import {
   fetchChapterTranslationMap,
   getDefaultLanguageVersions,
   prefetchChapterAlternates
-} from '../adapters/bibleFailoverGateway.js';
+} from '../adapters/bibleFailoverGateway.js?v=3.5.34';
 
 const viewScopes = new Map(); // viewId -> { scopeKey, overrides: Map<string, VerseSwitchRecord> }
 const prefetchControllers = new Map(); // viewId -> { timerId, abortController }
