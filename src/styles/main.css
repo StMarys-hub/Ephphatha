@@ -566,8 +566,9 @@ body {
 
 .periods-summary-bar {
   list-style: none;
-  padding: 8px 12px;
+  padding: 6px 10px;
   display: flex;
+  flex-wrap: nowrap !important;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -577,6 +578,17 @@ body {
 
 .periods-summary-bar::-webkit-details-marker {
   display: none;
+}
+
+#hero-period-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 1 1 auto;
+  width: auto !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .summary-hint {
