@@ -12,9 +12,16 @@ import {
   getNextCanonicalChapter,
   getPrevCanonicalChapter
 } from '../domain/canonicalBible.js';
-import { fetchPassageWithFailover } from '../adapters/bibleFailoverGateway.js';
+import { fetchPassageWithFailover, resolveVerseLocation } from '../adapters/bibleFailoverGateway.js';
 import { getAllRecordsMapSync, getAllRecordsSync, putRecord, deleteRecord } from '../adapters/indexedDbRepo.js';
 import { shareOrSaveVerseCard } from '../domain/crdtEngine.js';
+import {
+  attachVerseVersionSwitcher,
+  beginVerseVersionScope,
+  getActiveVerseTexts,
+  refreshVerseBadgeForMode,
+  schedulePassageVersionPrefetch
+} from './verseVersionSwitcher.js';
 
 export const canonicalState = {
   activeFilter: 'ALL',
@@ -718,7 +725,8 @@ export async function openCanonicalChapter(pocId, chapterNum) {
   const refMl = `${book.ml} ${ch}`;
 
   try {
-    const passageData = await fetchPassageWithFailover(refEn, refMl);
+    const preferredVersion = localStorage.getItem('ephphatha_preferred_bible_version') || 'POC';
+    const passageData = await fetchPassageWithFailover(refEn, refMl, { preferredVersion });
     renderCanonicalChapterVerses(passageData, book, ch);
   } catch (err) {
     if (versesStream) {
@@ -747,6 +755,10 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     return;
   }
 
+  const preferredVersion = localStorage.getItem('ephphatha_preferred_bible_version') || 'POC';
+  const scopeKey = `canonical_${book.pocId}_${chapterNum}_${passageData.translation_en || preferredVersion}`;
+  beginVerseVersionScope('bible', scopeKey);
+
   const bookmarksMap = getAllRecordsMapSync('bookmarks');
 
   verses.forEach((v, idx) => {
@@ -754,6 +766,10 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     const bookmarkId = `bm_canonical_${book.pocId}_${chapterNum}_v${v.verse}`;
     const existingBookmark = bookmarksMap[bookmarkId] || null;
     const isBookmarked = Boolean(existingBookmark);
+    const verseLoc = resolveVerseLocation(
+      { ...v, bookId: book.id, pocId: book.pocId, chapter: chapterNum },
+      `${book.en} ${chapterNum}`
+    );
 
     // 1. Quick-Jump Pill
     const pill = document.createElement('button');
@@ -784,7 +800,7 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     numBadge.dataset.refEn = `${book.en} ${chapterNum}:${v.verse}`;
     numBadge.dataset.refMl = `${book.ml} ${chapterNum}:${v.verse}`;
     numBadge.dataset.bookMl = book.ml;
-    numBadge.textContent = numBadge.dataset.refEn;
+    numBadge.dataset.verseKey = vDomId;
 
     const actions = document.createElement('div');
     actions.className = 'verse-actions';
@@ -797,7 +813,9 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     speakBtn.title = 'Listen to this verse aloud';
     speakBtn.addEventListener('click', () => {
       if (deps.audioEngine) {
-        deps.audioEngine.speakVerseAloud(v.en, 'en-US');
+        const liveTexts = getActiveVerseTexts('bible', vDomId, v.en, v.ml || '');
+        const speakMl = canonicalState.langMode === 'ml' && liveTexts.ml;
+        deps.audioEngine.speakVerseAloud(speakMl ? liveTexts.ml : liveTexts.en, speakMl ? 'ml-IN' : 'en-US');
       }
     });
 
@@ -825,6 +843,7 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
         notePreview.classList.add('hidden');
         notePreview.textContent = '';
       } else {
+        const liveTexts = getActiveVerseTexts('bible', vDomId, v.en, v.ml || '');
         const bookmarkRecord = {
           id: bookmarkId,
           dayNumber: null,
@@ -832,8 +851,8 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
           referenceEn: `${book.en} ${chapterNum}:${v.verse}`,
           referenceMl: `${book.ml} ${chapterNum}:${v.verse}`,
           verseNumber: v.verse,
-          en: v.en,
-          ml: v.ml,
+          en: liveTexts.en,
+          ml: liveTexts.ml,
           note: forceSaveNote !== null ? forceSaveNote : (existing?.note || '')
         };
         await putRecord('bookmarks', bookmarkRecord);
@@ -899,14 +918,15 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     shareBtn.textContent = '📤 Share';
     shareBtn.title = 'Share verse to WhatsApp / apps or save image card';
     shareBtn.addEventListener('click', async () => {
+      const liveTexts = getActiveVerseTexts('bible', vDomId, v.en, v.ml || '');
       await shareOrSaveVerseCard({
         periodName: 'Holy Scripture',
         periodAccentHex: '#2B8CBE',
         referenceEn: `${book.en} ${chapterNum}:${v.verse}`,
         referenceMl: `${book.ml} ${chapterNum}:${v.verse}`,
         verseNumber: v.verse,
-        textEn: v.en,
-        textMl: v.ml,
+        textEn: liveTexts.en,
+        textMl: liveTexts.ml,
         langMode: canonicalState.langMode || 'bilingual'
       });
     });
@@ -925,6 +945,7 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     body.className = 'verse-body verse-body-tappable';
     body.title = 'Tap verse to highlight & save to Saved tab';
     body.addEventListener('click', () => {
+      if (Number(card.dataset.suppressBookmarkUntil || 0) > Date.now()) return;
       const sel = window.getSelection ? String(window.getSelection()) : '';
       if (sel.length > 0) return; // Don't toggle if user is selecting text
       toggleHighlightAndBookmark(null);
@@ -937,8 +958,9 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     body.appendChild(enP);
 
     // Malayalam POC Text
+    let mlP = null;
     if (v.ml) {
-      const mlP = document.createElement('p');
+      mlP = document.createElement('p');
       mlP.className = 'verse-text-ml canonical-verse-ml';
       mlP.textContent = v.ml;
       body.appendChild(mlP);
@@ -957,10 +979,32 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     card.appendChild(body);
     card.appendChild(notePreview);
     card.appendChild(noteEditor);
+
+    attachVerseVersionSwitcher({
+      viewId: 'bible',
+      scopeKey,
+      verseKey: vDomId,
+      location: verseLoc,
+      refEn: `${book.en} ${chapterNum}:${v.verse}`,
+      refMl: `${book.ml} ${chapterNum}:${v.verse}`,
+      bookMl: book.ml,
+      mode: canonicalState.langMode || 'bilingual',
+      preferredVersion,
+      actualEnVer: passageData.translation_en || '',
+      defaultEn: v.en,
+      defaultMl: v.ml || '',
+      cardEl: card,
+      badgeEl: numBadge,
+      enEl: enP,
+      mlEl: mlP,
+      onFeedback: (msg) => deps.showToast?.(msg)
+    });
+
     versesStream.appendChild(card);
   });
 
   applyLanguageModeToReader();
+  schedulePassageVersionPrefetch('bible', [{ bookId: book.id, pocId: book.pocId, chapter: chapterNum }]);
 }
 
 export function applyLanguageModeToReader() {
@@ -976,27 +1020,9 @@ export function applyLanguageModeToReader() {
     el.style.display = showLatin ? 'block' : 'none';
   });
   document.querySelectorAll('#bible-verses-stream .verse-num-badge').forEach(badge => {
-    const refEn = badge.dataset.refEn || '';
-    const refMl = badge.dataset.refMl || '';
-    const bookMl = badge.dataset.bookMl || '';
-    badge.textContent = '';
-    if (mode === 'ml' && refMl) {
-      const mlSpan = document.createElement('span');
-      mlSpan.className = 'lang-ml';
-      mlSpan.textContent = refMl;
-      badge.appendChild(mlSpan);
-    } else if (mode === 'bilingual' && bookMl) {
-      badge.appendChild(document.createTextNode(refEn));
-      const sep = document.createElement('span');
-      sep.className = 'verse-ref-sep';
-      sep.textContent = '•';
-      const mlSpan = document.createElement('span');
-      mlSpan.className = 'lang-ml';
-      mlSpan.textContent = bookMl;
-      badge.appendChild(sep);
-      badge.appendChild(mlSpan);
-    } else {
-      badge.textContent = refEn;
+    const verseKey = badge.dataset.verseKey;
+    if (verseKey) {
+      refreshVerseBadgeForMode('bible', verseKey, mode);
     }
   });
 }

@@ -9,12 +9,18 @@
  * TIER 4: Local IndexedDB & Service Worker Offline Scripture Vault (0ms "Offline Ready")
  */
 
-import { checkRateLimit, validateScripturePayload } from '../domain/securityEngine.js';
+import { checkRateLimit, decodeEntitiesForTextContent, sanitizeUserString, validateScripturePayload } from '../domain/securityEngine.js';
 import { getRecordSync, putRecord } from './indexedDbRepo.js';
 
+export const ENGLISH_BIBLE_VERSIONS = ['RSV2CE', 'BSB', 'WEB'];
+export const MALAYALAM_BIBLE_VERSIONS = ['POC', 'MOV'];
+
+const MAX_ALT_CHAPTER_CACHE = 80;
 let fallbackVaultMemory = null;
 const failoverListeners = new Set();
 const pocBookCache = new Map();
+const altChapterCache = new Map(); // LRU Map: `${ver}|${bookId}|${chapter}` -> { status, versesByNum }
+const inflightAltChapterFetches = new Map();
 
 // Canonical 73-Book Catholic Canon Mapping (Bolls Life + Official POC Malayalam Bible 1..73)
 const CANONICAL_BOOKS = [
@@ -152,9 +158,202 @@ export function normalizeMalayalamKoottaksharam(str) {
 }
 
 function cleanVerseHtml(str) {
-  return normalizeMalayalamKoottaksharam(
-    String(str || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  return decodeEntitiesForTextContent(
+    sanitizeUserString(
+      normalizeMalayalamKoottaksharam(
+        String(str || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+      ),
+      'verse_text'
+    )
   );
+}
+
+function setAltChapterCacheEntry(cacheKey, entry) {
+  if (altChapterCache.has(cacheKey)) {
+    altChapterCache.delete(cacheKey);
+  }
+  altChapterCache.set(cacheKey, entry);
+  while (altChapterCache.size > MAX_ALT_CHAPTER_CACHE) {
+    const oldestKey = altChapterCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    altChapterCache.delete(oldestKey);
+  }
+}
+
+export function getDefaultLanguageVersions(preferredVersion = '', bookId = 1) {
+  const pref = preferredVersion || (typeof localStorage !== 'undefined' ? localStorage.getItem('ephphatha_preferred_bible_version') : '') || 'POC';
+  let en = 'BSB';
+  if (Number(bookId) > 66 || pref === 'RSV2CE') {
+    en = 'RSV2CE';
+  } else if (pref === 'WEB') {
+    en = 'WEB';
+  }
+  return { en, ml: 'POC' };
+}
+
+/**
+ * Resolves exact canonical bookId, pocId, chapter, and verse number for any rendered verse object.
+ */
+export function resolveVerseLocation(verseObj, fallbackPassageRef = '') {
+  const verseNum = Number(verseObj?.verse) || 1;
+  if (verseObj?.bookId && verseObj?.pocId) {
+    return {
+      bookId: Number(verseObj.bookId),
+      pocId: Number(verseObj.pocId),
+      chapter: Number(verseObj.chapter) || 1,
+      verse: verseNum
+    };
+  }
+
+  const refStr = String(verseObj?.ref_en || '').trim();
+  const refBookMatch = refStr.match(/^([1-3]?\s*[A-Za-z][A-Za-z\s.'-]+?)\s+(\d+)/);
+  if (refBookMatch) {
+    const info = findBookInfo(refBookMatch[1]);
+    return {
+      bookId: info.id,
+      pocId: info.pocId,
+      chapter: Number(verseObj?.chapter) || Number(refBookMatch[2]) || 1,
+      verse: verseNum
+    };
+  }
+
+  const segs = parsePassageSegments(fallbackPassageRef || 'Genesis 1');
+  const ch = Number(verseObj?.chapter);
+  const seg = (ch ? segs.find(s => s.chapter === ch) : null) || segs[0];
+  return {
+    bookId: seg.bookId,
+    pocId: seg.pocId,
+    chapter: ch || seg.chapter || 1,
+    verse: verseNum
+  };
+}
+
+/**
+ * Fetches and LRU-caches a full chapter verse map (`Map<verseNum, text>`) for a given Bible translation.
+ * Deduplicates concurrent fetches and marks Deuterocanonical gaps cleanly without cache poisoning.
+ */
+export async function fetchChapterTranslationMap(version, bookId, pocId, chapter) {
+  const ver = String(version || '').toUpperCase();
+  const bId = Number(bookId) || 1;
+  const pId = Number(pocId) || 1;
+  const ch = Number(chapter) || 1;
+  const cacheKey = `${ver}|${bId}|${ch}`;
+
+  const cached = altChapterCache.get(cacheKey);
+  if (cached && (cached.status === 'ok' || cached.status === 'unavailable')) {
+    setAltChapterCacheEntry(cacheKey, cached);
+    return cached;
+  }
+
+  if (ver === 'POC') {
+    const pocVerses = await getPocChapterVerses(pId, ch).catch(() => null);
+    if (Array.isArray(pocVerses) && pocVerses.length > 0) {
+      const versesByNum = new Map();
+      pocVerses.forEach((txt, idx) => {
+        const cleaned = cleanVerseHtml(txt);
+        if (isUsableVerseText(cleaned)) {
+          versesByNum.set(idx + 1, cleaned);
+        }
+      });
+      if (versesByNum.size > 0) {
+        const entry = { status: 'ok', versesByNum };
+        setAltChapterCacheEntry(cacheKey, entry);
+        return entry;
+      }
+    }
+    const unavailable = { status: 'unavailable', versesByNum: null };
+    setAltChapterCacheEntry(cacheKey, unavailable);
+    return unavailable;
+  }
+
+  // Only RSV2CE covers the 7 Deuterocanonical books on bolls.life
+  if (bId > 66 && ver !== 'RSV2CE') {
+    const unavailable = { status: 'unavailable', versesByNum: null };
+    setAltChapterCacheEntry(cacheKey, unavailable);
+    return unavailable;
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return { status: 'offline', versesByNum: null };
+  }
+
+  if (inflightAltChapterFetches.has(cacheKey)) {
+    return inflightAltChapterFetches.get(cacheKey);
+  }
+
+  const fetchPromise = (async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4500);
+    try {
+      const res = await fetch(`https://bolls.life/get-text/${encodeURIComponent(ver)}/${bId}/${ch}/`, {
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+      if (!res.ok) {
+        return { status: 'error', versesByNum: null };
+      }
+      const arr = await res.json();
+      if (!Array.isArray(arr) || arr.length === 0) {
+        const unavailable = { status: 'unavailable', versesByNum: null };
+        setAltChapterCacheEntry(cacheKey, unavailable);
+        return unavailable;
+      }
+      const versesByNum = new Map();
+      for (const item of arr) {
+        const vNum = Number(item?.verse);
+        const cleaned = cleanVerseHtml(item?.text || '');
+        if (vNum > 0 && isUsableVerseText(cleaned)) {
+          versesByNum.set(vNum, cleaned);
+        }
+      }
+      if (versesByNum.size === 0) {
+        const unavailable = { status: 'unavailable', versesByNum: null };
+        setAltChapterCacheEntry(cacheKey, unavailable);
+        return unavailable;
+      }
+      const entry = { status: 'ok', versesByNum };
+      setAltChapterCacheEntry(cacheKey, entry);
+      return entry;
+    } catch (_) {
+      clearTimeout(timer);
+      return { status: 'offline', versesByNum: null };
+    } finally {
+      inflightAltChapterFetches.delete(cacheKey);
+    }
+  })();
+
+  inflightAltChapterFetches.set(cacheKey, fetchPromise);
+  return fetchPromise;
+}
+
+/**
+ * Quietly preloads alternate English & Malayalam chapter maps for visible passage segments
+ * so first-tap verse version switching is instantaneous.
+ */
+export async function prefetchChapterAlternates(chapterTargets = [], { signal = null } = {}) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  const seenChapters = new Set();
+  const targets = [];
+
+  for (const t of chapterTargets) {
+    const bId = Number(t?.bookId);
+    const pId = Number(t?.pocId);
+    const ch = Number(t?.chapter);
+    if (!bId || !ch) continue;
+    const key = `${bId}|${ch}`;
+    if (seenChapters.has(key)) continue;
+    seenChapters.add(key);
+    targets.push({ bookId: bId, pocId: pId || 1, chapter: ch });
+    if (targets.length >= 2) break; // Polite cap per reading slot
+  }
+
+  for (const tgt of targets) {
+    if (signal?.aborted) return;
+    const versionsToWarm = [...ENGLISH_BIBLE_VERSIONS, ...MALAYALAM_BIBLE_VERSIONS];
+    await Promise.allSettled(
+      versionsToWarm.map(ver => fetchChapterTranslationMap(ver, tgt.bookId, tgt.pocId, tgt.chapter))
+    );
+  }
 }
 
 export function isUsableVerseText(txt) {
@@ -303,9 +502,12 @@ export async function initScriptureVault() {
       fallbackVaultMemory = await res.json();
       const passages = fallbackVaultMemory.passages || {};
       for (const [refKey, passageData] of Object.entries(passages)) {
+        const existing = getRecordSync('scripture_cache', refKey);
+        if (existing?.translation_en && existing.translation_en !== 'BSB') continue;
         await putRecord('scripture_cache', {
           id: refKey,
           ...passageData,
+          translation_en: 'BSB',
           translation_ml: 'POC',
           activeTier: 4,
           tierBadge: 'Tier 4 • Offline Vault Ready (0ms)',
@@ -330,11 +532,13 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
   const showLatin = typeof localStorage !== 'undefined' && localStorage.getItem('ephphatha_show_latin') === 'true';
   const vaultMatch = fallbackVaultMemory?.passages?.[passageRef];
 
+  let primaryEnTrans = '';
   for (const seg of segments) {
     let enTrans = 'BSB';
     if (userVersion === 'RSV2CE' || seg.bookId > 66) enTrans = 'RSV2CE';
     else if (userVersion === 'WEB') enTrans = 'WEB';
     else enTrans = seg.bookId > 66 ? 'RSV2CE' : 'BSB';
+    if (!primaryEnTrans) primaryEnTrans = enTrans;
 
     const reqPromises = [
       fetch(`https://bolls.life/get-text/${enTrans}/${seg.bookId}/${seg.chapter}/`, { signal }),
@@ -377,6 +581,21 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
     );
     const laMap = new Map(laArr.map(x => [Number(x.verse), cleanVerseHtml(x.text)]));
 
+    // Seed LRU chapter cache for instant version switching back to primary
+    const enVersesSeed = new Map();
+    enArr.forEach(x => {
+      const vNum = Number(x?.verse);
+      const cleaned = cleanVerseHtml(x?.text || '');
+      if (vNum > 0 && isUsableVerseText(cleaned)) enVersesSeed.set(vNum, cleaned);
+    });
+    if (enVersesSeed.size > 0) {
+      setAltChapterCacheEntry(`${enTrans}|${seg.bookId}|${seg.chapter}`, { status: 'ok', versesByNum: enVersesSeed });
+    }
+    if (mlMap.size > 0) {
+      const mlVerUsed = (pocVerses && pocVerses.length > 0) ? 'POC' : 'MOV';
+      setAltChapterCacheEntry(`${mlVerUsed}|${seg.bookId}|${seg.chapter}`, { status: 'ok', versesByNum: mlMap });
+    }
+
     // Sort verses in strict numerical ascending order (1, 2, 3, ... N)
     const sortedEn = [...enArr].sort((a, b) => Number(a.verse) - Number(b.verse));
 
@@ -412,6 +631,8 @@ async function fetchFullSequentialFromMultilingualGateway(passageRef, passageRef
   return {
     reference_en: passageRef,
     reference_ml: passageRefMl || passageRef,
+    translation_en: primaryEnTrans || 'BSB',
+    translation_ml: 'POC',
     verses: allVerses
   };
 }
@@ -467,6 +688,8 @@ async function fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, 
   return {
     reference_en: passageRef,
     reference_ml: passageRefMl || passageRef,
+    translation_en: 'WEB',
+    translation_ml: 'POC',
     verses: allVerses
   };
 }
@@ -506,11 +729,16 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '', op
       const fullPayload = await fetchFullSequentialFromMultilingualGateway(passageRef, passageRefMl, controller.signal, preferredVersion);
       clearTimeout(timer);
 
-      const validated = validateScripturePayload({ ...fullPayload, translation_ml: 'POC' });
-      await putRecord('scripture_cache', { id: passageRef, ...validated });
+      const validated = validateScripturePayload(fullPayload);
+      const enriched = {
+        ...validated,
+        translation_en: fullPayload.translation_en || getDefaultLanguageVersions(preferredVersion, 1).en,
+        translation_ml: fullPayload.translation_ml || 'POC'
+      };
+      await putRecord('scripture_cache', { id: passageRef, ...enriched });
       const elapsed = performance.now() - tStart;
       emitFailoverTelemetry(1, 'TIER 1: Primary Online Multilingual Gateway', 'HEALTHY', passageRef, elapsed);
-      return { ...validated, activeTier: 1, tierBadge: 'Tier 1 • Primary Multilingual Gateway', latencyMs: elapsed };
+      return { ...enriched, activeTier: 1, tierBadge: 'Tier 1 • Primary Multilingual Gateway', latencyMs: elapsed };
     } catch (t1Err) {
       emitFailoverTelemetry(1, 'TIER 1: Primary Online Multilingual Gateway', 'DEGRADED', passageRef, performance.now() - tStart, t1Err.message || 'Timeout > 3500ms');
     }
@@ -528,11 +756,12 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '', op
       const mirrorPayload = await fetchFullSequentialFromSecondaryMirror(passageRef, passageRefMl, controller.signal);
       clearTimeout(timer);
 
-      const validated = validateScripturePayload({ ...mirrorPayload, translation_ml: 'POC' });
-      await putRecord('scripture_cache', { id: passageRef, ...validated });
+      const validated = validateScripturePayload(mirrorPayload);
+      const enriched = { ...validated, translation_en: 'WEB', translation_ml: 'POC' };
+      await putRecord('scripture_cache', { id: passageRef, ...enriched });
       const elapsed = performance.now() - tStart;
       emitFailoverTelemetry(2, 'TIER 2: Secondary Public Scripture Mirror', 'FAILOVER_ACTIVE', passageRef, elapsed, 'Tier 1 -> Tier 2 Switch');
-      return { ...validated, activeTier: 2, tierBadge: 'Tier 2 • Secondary Public Mirror', latencyMs: elapsed };
+      return { ...enriched, activeTier: 2, tierBadge: 'Tier 2 • Secondary Public Mirror', latencyMs: elapsed };
     } catch (t2Err) {
       emitFailoverTelemetry(2, 'TIER 2: Secondary Public Scripture Mirror', 'DEGRADED', passageRef, performance.now() - tStart, t2Err.message);
     }
@@ -551,11 +780,12 @@ export async function fetchPassageWithFailover(passageRef, passageRefMl = '', op
       }
       if (fallbackVaultMemory?.passages) {
         const matched = fallbackVaultMemory.passages[passageRef] || buildDeterministicPassageFromVault(passageRef, passageRefMl);
-        const validated = validateScripturePayload({ ...matched, translation_ml: 'POC' });
-        await putRecord('scripture_cache', { id: passageRef, ...validated });
+        const validated = validateScripturePayload(matched);
+        const enriched = { ...validated, translation_en: matched.translation_en || 'BSB', translation_ml: 'POC' };
+        await putRecord('scripture_cache', { id: passageRef, ...enriched });
         const elapsed = performance.now() - tStart;
         emitFailoverTelemetry(3, 'TIER 3: Cloud Text Mirror', 'FAILOVER_ACTIVE', passageRef, elapsed, 'Served from Cloud CDN Vault');
-        return { ...validated, activeTier: 3, tierBadge: 'Tier 3 • Cloud Text Mirror', latencyMs: elapsed };
+        return { ...enriched, activeTier: 3, tierBadge: 'Tier 3 • Cloud Text Mirror', latencyMs: elapsed };
       }
     } catch (t3Err) {
       emitFailoverTelemetry(3, 'TIER 3: Cloud Text Mirror', 'DEGRADED', passageRef, performance.now() - tStart, t3Err.message);
@@ -579,11 +809,14 @@ function serveFromTier4OfflineVault(passageRef, passageRefMl, tStart, reason) {
     ? cached
     : (vaultDirect || buildDeterministicPassageFromVault(passageRef, passageRefMl));
   const validated = validateScripturePayload(passageObj);
+  const actualEnVer = (cached && isCachedPoc && cached.translation_en) || 'BSB';
   const elapsed = performance.now() - tStart;
 
   emitFailoverTelemetry(4, 'TIER 4: Local IndexedDB Offline Vault', 'OFFLINE_READY', passageRef, elapsed, reason);
   return {
     ...validated,
+    translation_en: actualEnVer,
+    translation_ml: 'POC',
     activeTier: 4,
     tierBadge: 'Tier 4 • Offline Vault Ready (0ms)',
     latencyMs: elapsed

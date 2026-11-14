@@ -1129,6 +1129,72 @@ body {
   padding: 2px 8px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition: background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+}
+
+.verse-num-badge:hover {
+  border-color: var(--period-color);
+}
+
+.verse-num-badge:focus-visible {
+  outline: 2px solid var(--period-color);
+  outline-offset: 2px;
+}
+
+.verse-num-badge.version-switched {
+  background: rgba(56, 189, 248, 0.14);
+  background: color-mix(in srgb, var(--period-color) 14%, var(--bg-elevated-card));
+  border-color: var(--period-color);
+}
+
+.verse-num-badge.verse-switching-loading {
+  opacity: 0.62;
+}
+
+.verse-ref-part.lang-part-switched {
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+}
+
+.verse-inline-ver-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--font-sans, system-ui, -apple-system, sans-serif);
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  color: var(--period-color);
+  background: rgba(56, 189, 248, 0.11);
+  background: color-mix(in srgb, var(--period-color) 12%, transparent);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-color: color-mix(in srgb, var(--period-color) 30%, transparent);
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+}
+
+@keyframes verseTextSwapFade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.verse-text-swapping {
+  animation: verseTextSwapFade 0.16s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .verse-text-swapping {
+    animation: none;
+  }
 }
 
 .verse-actions {
