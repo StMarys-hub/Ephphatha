@@ -86,6 +86,7 @@ import { initQrShareModal, openQrShareModal } from './qrShareModal.js';
 import {
   attachVerseVersionSwitcher,
   beginVerseVersionScope,
+  createVerseActionButton,
   formatVerseRefBadge,
   getActiveVerseTexts,
   schedulePassageVersionPrefetch
@@ -1027,36 +1028,36 @@ function renderScriptureVerses(passageData) {
     actions.className = 'verse-actions';
 
     // Listen Aloud (TTS) button for verse
-    const speakBtn = document.createElement('button');
-    speakBtn.type = 'button';
-    speakBtn.className = 'verse-icon-btn';
-    speakBtn.textContent = '🔊 Read';
-    speakBtn.title = 'Read this verse aloud';
-    speakBtn.addEventListener('click', () => {
-      const liveTexts = getActiveVerseTexts('reading', verseDomId, v.en, v.ml);
-      const speakMl = appState.langMode === 'ml' && liveTexts.ml;
-      audioEngine.speakVerseAloud(speakMl ? liveTexts.ml : liveTexts.en, speakMl ? 'ml-IN' : 'en-US');
+    const speakBtn = createVerseActionButton({
+      icon: '🔊',
+      title: 'Read this verse aloud',
+      onClick: () => {
+        const liveTexts = getActiveVerseTexts('reading', verseDomId, v.en, v.ml);
+        const speakMl = appState.langMode === 'ml' && liveTexts.ml;
+        audioEngine.speakVerseAloud(speakMl ? liveTexts.ml : liveTexts.en, speakMl ? 'ml-IN' : 'en-US');
+      }
     });
 
     // Bookmark / Highlight 1-tap button
-    const bmBtn = document.createElement('button');
-    bmBtn.type = 'button';
-    bmBtn.className = `verse-icon-btn ${isBookmarked ? 'bookmarked' : ''}`;
-    bmBtn.textContent = isBookmarked ? '🔖 Saved' : '🔖';
-    bmBtn.title = 'Highlight & Bookmark Verse';
-    bmBtn.addEventListener('click', async () => {
-      const liveTexts = getActiveVerseTexts('reading', verseDomId, v.en, v.ml);
-      await toggleVerseBookmark(bookmarkId, displayRefEn, displayRefMl, { ...v, en: liveTexts.en, ml: liveTexts.ml });
-      renderScriptureVerses(appState.currentPassageData);
-      renderVaultView();
+    const bmBtn = createVerseActionButton({
+      icon: '🔖',
+      title: isBookmarked ? 'Saved — tap to remove bookmark' : 'Highlight & Bookmark Verse',
+      isActive: isBookmarked,
+      onClick: async () => {
+        const liveTexts = getActiveVerseTexts('reading', verseDomId, v.en, v.ml);
+        await toggleVerseBookmark(bookmarkId, displayRefEn, displayRefMl, { ...v, en: liveTexts.en, ml: liveTexts.ml });
+        renderScriptureVerses(appState.currentPassageData);
+        renderVaultView();
+      }
     });
 
     // Inline Note button & editor
-    const noteBtn = document.createElement('button');
-    noteBtn.type = 'button';
-    noteBtn.className = `verse-icon-btn ${existingBookmark?.note ? 'bookmarked' : ''}`;
-    noteBtn.textContent = '📝';
-    noteBtn.title = 'Add or edit personal note';
+    const hasNote = Boolean(existingBookmark?.note);
+    const noteBtn = createVerseActionButton({
+      icon: '📝',
+      title: hasNote ? 'View or edit personal note' : 'Add or edit personal note',
+      isActive: hasNote
+    });
 
     const notePreview = document.createElement('div');
     notePreview.className = `verse-note-chip ${existingBookmark?.note ? '' : 'hidden'}`;
@@ -1097,31 +1098,30 @@ function renderScriptureVerses(passageData) {
     });
 
     // Share with apps (WhatsApp, etc.) or save verse image card
-    const shareCardBtn = document.createElement('button');
-    shareCardBtn.type = 'button';
-    shareCardBtn.className = 'verse-icon-btn';
-    shareCardBtn.textContent = '📤 Share';
-    shareCardBtn.title = 'Share verse to WhatsApp / apps or save image card';
-    shareCardBtn.addEventListener('click', async () => {
-      const periodObj = appState.scheduleByDay[appState.selectedDay]?.period;
-      const liveTexts = getActiveVerseTexts('reading', verseDomId, v.en, v.ml);
-      const result = await shareOrSaveVerseCard({
-        dayNumber: appState.selectedDay,
-        periodName: periodObj?.name || 'Salvation History',
-        periodAccentHex: periodObj?.accent_hex || '#2B8CBE',
-        referenceEn: displayRefEn,
-        referenceMl: fullRefMl,
-        verseNumber: v.verse,
-        textEn: liveTexts.en,
-        textMl: liveTexts.ml,
-        langMode: appState.langMode || 'bilingual'
-      });
-      if (result.action === 'saved') {
-        showCloudSyncToast(result.copied ? '📋 Copied verse & saved card' : '🎨 Saved verse card');
-      } else if (result.action === 'shared') {
-        showCloudSyncToast('📤 Shared verse');
+    const shareCardBtn = createVerseActionButton({
+      icon: '📤',
+      title: 'Share verse to WhatsApp / apps or save image card',
+      onClick: async () => {
+        const periodObj = appState.scheduleByDay[appState.selectedDay]?.period;
+        const liveTexts = getActiveVerseTexts('reading', verseDomId, v.en, v.ml);
+        const result = await shareOrSaveVerseCard({
+          dayNumber: appState.selectedDay,
+          periodName: periodObj?.name || 'Salvation History',
+          periodAccentHex: periodObj?.accent_hex || '#2B8CBE',
+          referenceEn: displayRefEn,
+          referenceMl: fullRefMl,
+          verseNumber: v.verse,
+          textEn: liveTexts.en,
+          textMl: liveTexts.ml,
+          langMode: appState.langMode || 'bilingual'
+        });
+        if (result.action === 'saved') {
+          showCloudSyncToast(result.copied ? '📋 Copied verse & saved card' : '🎨 Saved verse card');
+        } else if (result.action === 'shared') {
+          showCloudSyncToast('📤 Shared verse');
+        }
+        pushTelemetryLog('VERSE_CARD_SHARED', `Share action (${result.action}) for ${displayRefEn}`);
       }
-      pushTelemetryLog('VERSE_CARD_SHARED', `Share action (${result.action}) for ${displayRefEn}`);
     });
 
     actions.appendChild(speakBtn);

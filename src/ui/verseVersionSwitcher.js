@@ -528,3 +528,44 @@ export function refreshVerseBadgeForMode(viewId, verseKey, nextMode) {
     defaultMlVer: rec.defaultMlVer
   });
 }
+
+/**
+ * Updates a uniform icon-only verse action button cleanly without changing its outer width.
+ */
+export function updateVerseActionButton(btn, { icon, title, isActive } = {}) {
+  if (!btn) return;
+  if (typeof isActive === 'boolean') {
+    btn.classList.toggle('bookmarked', isActive);
+    btn.setAttribute('aria-pressed', String(isActive));
+  }
+  if (title !== undefined) {
+    btn.title = title;
+    btn.setAttribute('aria-label', title);
+  }
+  const iconEl = btn.querySelector('.verse-btn-icon');
+  if (iconEl && icon !== undefined) iconEl.textContent = icon;
+}
+
+/**
+ * Builds a uniform, fixed-footprint icon-only button for verse toolbars
+ * so toggling states never shifts neighboring controls or squeezes the reference badge.
+ */
+export function createVerseActionButton({ icon, title, isActive = false, onClick }) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = `verse-icon-btn verse-action-tile ${isActive ? 'bookmarked' : ''}`.trim();
+  btn.title = title;
+  btn.setAttribute('aria-label', title);
+  btn.setAttribute('aria-pressed', String(Boolean(isActive)));
+
+  const iconEl = document.createElement('span');
+  iconEl.className = 'verse-btn-icon';
+  iconEl.setAttribute('aria-hidden', 'true');
+  iconEl.textContent = icon;
+
+  btn.appendChild(iconEl);
+  if (typeof onClick === 'function') {
+    btn.addEventListener('click', onClick);
+  }
+  return btn;
+}

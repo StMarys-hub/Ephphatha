@@ -18,9 +18,11 @@ import { shareOrSaveVerseCard } from '../domain/crdtEngine.js';
 import {
   attachVerseVersionSwitcher,
   beginVerseVersionScope,
+  createVerseActionButton,
   getActiveVerseTexts,
   refreshVerseBadgeForMode,
-  schedulePassageVersionPrefetch
+  schedulePassageVersionPrefetch,
+  updateVerseActionButton
 } from './verseVersionSwitcher.js';
 
 export const canonicalState = {
@@ -806,25 +808,24 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     actions.className = 'verse-actions';
 
     // Speak Button (TTS)
-    const speakBtn = document.createElement('button');
-    speakBtn.type = 'button';
-    speakBtn.className = 'verse-icon-btn';
-    speakBtn.textContent = '🔊 Read';
-    speakBtn.title = 'Listen to this verse aloud';
-    speakBtn.addEventListener('click', () => {
-      if (deps.audioEngine) {
-        const liveTexts = getActiveVerseTexts('bible', vDomId, v.en, v.ml || '');
-        const speakMl = canonicalState.langMode === 'ml' && liveTexts.ml;
-        deps.audioEngine.speakVerseAloud(speakMl ? liveTexts.ml : liveTexts.en, speakMl ? 'ml-IN' : 'en-US');
+    const speakBtn = createVerseActionButton({
+      icon: '🔊',
+      title: 'Listen to this verse aloud',
+      onClick: () => {
+        if (deps.audioEngine) {
+          const liveTexts = getActiveVerseTexts('bible', vDomId, v.en, v.ml || '');
+          const speakMl = canonicalState.langMode === 'ml' && liveTexts.ml;
+          deps.audioEngine.speakVerseAloud(speakMl ? liveTexts.ml : liveTexts.en, speakMl ? 'ml-IN' : 'en-US');
+        }
       }
     });
 
     // Bookmark / Highlight Button
-    const bmBtn = document.createElement('button');
-    bmBtn.type = 'button';
-    bmBtn.className = `verse-icon-btn ${isBookmarked ? 'active-bookmark' : ''}`;
-    bmBtn.textContent = isBookmarked ? '🔖 Saved' : '🔖';
-    bmBtn.title = isBookmarked ? 'Remove highlight & bookmark' : 'Highlight & bookmark verse';
+    const bmBtn = createVerseActionButton({
+      icon: '🔖',
+      title: isBookmarked ? 'Remove highlight & bookmark' : 'Highlight & bookmark verse',
+      isActive: isBookmarked
+    });
 
     const notePreview = document.createElement('div');
     notePreview.className = `verse-note-chip ${existingBookmark?.note ? '' : 'hidden'}`;
@@ -837,8 +838,10 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
       const existing = activeBookmarks[bookmarkId];
       if (existing && forceSaveNote === null) {
         await deleteRecord('bookmarks', bookmarkId);
-        bmBtn.classList.remove('active-bookmark');
-        bmBtn.textContent = '🔖';
+        updateVerseActionButton(bmBtn, {
+          title: 'Highlight & bookmark verse',
+          isActive: false
+        });
         card.classList.remove('verse-highlighted');
         notePreview.classList.add('hidden');
         notePreview.textContent = '';
@@ -856,8 +859,10 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
           note: forceSaveNote !== null ? forceSaveNote : (existing?.note || '')
         };
         await putRecord('bookmarks', bookmarkRecord);
-        bmBtn.classList.add('active-bookmark');
-        bmBtn.textContent = '🔖 Saved';
+        updateVerseActionButton(bmBtn, {
+          title: 'Remove highlight & bookmark',
+          isActive: true
+        });
         card.classList.add('verse-highlighted');
         if (bookmarkRecord.note) {
           notePreview.textContent = `📝 ${bookmarkRecord.note}`;
@@ -871,11 +876,12 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     bmBtn.addEventListener('click', () => toggleHighlightAndBookmark(null));
 
     // Inline Note Button
-    const noteBtn = document.createElement('button');
-    noteBtn.type = 'button';
-    noteBtn.className = `verse-icon-btn ${existingBookmark?.note ? 'active-bookmark' : ''}`;
-    noteBtn.textContent = '📝';
-    noteBtn.title = 'Add or edit personal note';
+    const hasNote = Boolean(existingBookmark?.note);
+    const noteBtn = createVerseActionButton({
+      icon: '📝',
+      title: hasNote ? 'View or edit personal note' : 'Add personal note',
+      isActive: hasNote
+    });
 
     const noteEditor = document.createElement('div');
     noteEditor.className = 'verse-note-editor hidden';
@@ -888,12 +894,15 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
 
     const noteSaveBtn = document.createElement('button');
     noteSaveBtn.type = 'button';
-    noteSaveBtn.className = 'verse-icon-btn active-bookmark';
+    noteSaveBtn.className = 'verse-icon-btn bookmarked';
     noteSaveBtn.textContent = 'Save';
     noteSaveBtn.addEventListener('click', async () => {
       const cleanNote = noteInput.value.trim();
       await toggleHighlightAndBookmark(cleanNote);
-      noteBtn.classList.toggle('active-bookmark', Boolean(cleanNote));
+      updateVerseActionButton(noteBtn, {
+        title: cleanNote ? 'View or edit personal note' : 'Add personal note',
+        isActive: Boolean(cleanNote)
+      });
       noteEditor.classList.add('hidden');
     });
     noteInput.addEventListener('keydown', (e) => {
@@ -912,23 +921,22 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     });
 
     // Share Button
-    const shareBtn = document.createElement('button');
-    shareBtn.type = 'button';
-    shareBtn.className = 'verse-icon-btn';
-    shareBtn.textContent = '📤 Share';
-    shareBtn.title = 'Share verse to WhatsApp / apps or save image card';
-    shareBtn.addEventListener('click', async () => {
-      const liveTexts = getActiveVerseTexts('bible', vDomId, v.en, v.ml || '');
-      await shareOrSaveVerseCard({
-        periodName: 'Holy Scripture',
-        periodAccentHex: '#2B8CBE',
-        referenceEn: `${book.en} ${chapterNum}:${v.verse}`,
-        referenceMl: `${book.ml} ${chapterNum}:${v.verse}`,
-        verseNumber: v.verse,
-        textEn: liveTexts.en,
-        textMl: liveTexts.ml,
-        langMode: canonicalState.langMode || 'bilingual'
-      });
+    const shareBtn = createVerseActionButton({
+      icon: '📤',
+      title: 'Share verse to WhatsApp / apps or save image card',
+      onClick: async () => {
+        const liveTexts = getActiveVerseTexts('bible', vDomId, v.en, v.ml || '');
+        await shareOrSaveVerseCard({
+          periodName: 'Holy Scripture',
+          periodAccentHex: '#2B8CBE',
+          referenceEn: `${book.en} ${chapterNum}:${v.verse}`,
+          referenceMl: `${book.ml} ${chapterNum}:${v.verse}`,
+          verseNumber: v.verse,
+          textEn: liveTexts.en,
+          textMl: liveTexts.ml,
+          langMode: canonicalState.langMode || 'bilingual'
+        });
+      }
     });
 
     actions.appendChild(speakBtn);

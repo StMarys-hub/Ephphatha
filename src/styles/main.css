@@ -1117,23 +1117,50 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: nowrap;
   gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+  min-width: 0;
 }
 
 .verse-num-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 1 auto;
+  min-width: 0;
+  height: 34px;
   font-weight: 800;
-  font-size: 0.75rem;
+  font-size: clamp(0.68rem, 2.7vw, 0.78rem);
+  line-height: 1.2;
   color: var(--period-color);
   background: var(--bg-elevated-card);
-  padding: 2px 8px;
+  padding: 0 9px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
   transition: background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+}
+
+.verse-num-badge::-webkit-scrollbar {
+  display: none;
+}
+
+.verse-ref-part {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.verse-ref-sep {
+  opacity: 0.55;
+  flex-shrink: 0;
 }
 
 .verse-num-badge:hover {
@@ -1199,7 +1226,9 @@ body {
 
 .verse-actions {
   display: flex;
+  align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
 
 .verse-icon-btn {
@@ -1218,7 +1247,43 @@ body {
   white-space: nowrap;
 }
 
-.verse-icon-btn.bookmarked {
+.verse-icon-btn.verse-action-tile {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 9px;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.verse-btn-icon {
+  font-size: 0.96rem;
+  line-height: 1;
+}
+
+@media (min-width: 440px) {
+  .verse-actions {
+    gap: 6px;
+  }
+  .verse-num-badge {
+    height: 38px;
+    padding: 0 11px;
+  }
+  .verse-icon-btn.verse-action-tile {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+  .verse-btn-icon {
+    font-size: 1.02rem;
+  }
+}
+
+.verse-icon-btn.bookmarked,
+.verse-icon-btn.active-bookmark {
   background: var(--period-color);
   color: #FFFFFF;
   border-color: var(--period-color);
@@ -4034,13 +4099,21 @@ body[data-lang-pref="en"] .canonical-verse-ml {
 .verse-note-input {
   flex: 1;
   min-width: 0;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: var(--radius-sm);
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
   border: 1px solid var(--border-subtle);
   background: var(--bg-subtle-surface);
   color: var(--text-primary);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
+}
+
+.verse-note-editor .verse-icon-btn {
+  height: 40px;
+  min-width: 56px;
+  padding: 0 12px;
+  border-radius: 10px;
+  justify-content: center;
 }
 
 /* Zero-Footprint Contextual Quick Search & Scroll-to-Top Pill (Bible Catalog) */
