@@ -597,6 +597,29 @@ body {
   flex-shrink: 0;
 }
 
+.period-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.periods-summary-bar:hover .period-chevron {
+  background: var(--bg-subtle-surface);
+  color: var(--text-primary);
+}
+
+.periods-drawer-card[open] .period-chevron {
+  transform: rotate(180deg);
+  color: var(--period-color);
+}
+
 .periods-strip {
   display: flex;
   gap: 8px;
@@ -604,6 +627,20 @@ body {
   padding: 8px 12px 12px 12px;
   border-top: 1px solid var(--border-subtle);
   scrollbar-width: thin;
+  scrollbar-color: var(--border-subtle) transparent;
+}
+
+.periods-strip::-webkit-scrollbar {
+  height: 4px;
+}
+
+.periods-strip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.periods-strip::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 999px;
 }
 
 .period-chip {
@@ -737,20 +774,16 @@ body {
 
 @media (max-width: 480px) {
   .periods-summary-bar {
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-wrap: nowrap;
+    gap: 8px;
     padding: 8px 10px;
   }
   #hero-period-badge {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .eras-chip {
-    margin-left: auto;
-    font-size: 0.7rem;
-    padding: 3px 9px;
   }
   .day-nav-row {
     gap: 5px;
