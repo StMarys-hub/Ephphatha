@@ -94,6 +94,7 @@ const appState = {
   preferredBibleVersion: localStorage.getItem('ephphatha_preferred_bible_version') || 'POC',
   verseWeight: localStorage.getItem('ephphatha_verse_weight') || 'strong',
   englishFont: localStorage.getItem('ephphatha_english_font') || 'crimson',
+  malayalamFont: localStorage.getItem('ephphatha_ml_font') || 'manjari',
   periods: [],
   scheduleByDay: {},
   currentPassageData: null,
@@ -398,6 +399,13 @@ function applyPeriodColorTokens(period) {
 export function applyTypographyAndLanguagePreferences() {
   document.documentElement.setAttribute('data-verse-weight', appState.verseWeight || 'strong');
   document.documentElement.setAttribute('data-english-font', appState.englishFont || 'crimson');
+  document.documentElement.setAttribute('data-malayalam-font', appState.malayalamFont || 'manjari');
+  document.querySelectorAll('[data-en-font]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-en-font') === (appState.englishFont || 'crimson'));
+  });
+  document.querySelectorAll('[data-ml-font]').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-ml-font') === (appState.malayalamFont || 'manjari'));
+  });
   document.body.setAttribute('data-lang-pref', appState.langMode || 'bilingual');
   document.body.classList.toggle('show-latin-vulgata', Boolean(appState.showLatinVulgate));
 }
@@ -2568,12 +2576,10 @@ function bindGlobalControls() {
     });
   }
 
-  // Drawer Settings: English Scripture Reading Font
-  const selEnglishFont = document.getElementById('select-english-font');
-  if (selEnglishFont) {
-    selEnglishFont.value = appState.englishFont || 'crimson';
-    selEnglishFont.addEventListener('change', (e) => {
-      const font = e.target.value;
+  // Drawer Settings: English & Malayalam Scripture Reading Font Swatches
+  document.querySelectorAll('[data-en-font]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const font = btn.getAttribute('data-en-font') || 'crimson';
       appState.englishFont = font;
       localStorage.setItem('ephphatha_english_font', font);
       applyTypographyAndLanguagePreferences();
@@ -2584,7 +2590,22 @@ function bindGlobalControls() {
         syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
       }
     });
-  }
+  });
+
+  document.querySelectorAll('[data-ml-font]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const font = btn.getAttribute('data-ml-font') || 'manjari';
+      appState.malayalamFont = font;
+      localStorage.setItem('ephphatha_ml_font', font);
+      applyTypographyAndLanguagePreferences();
+      if (appState.userProfile) {
+        appState.userProfile.malayalamFont = font;
+        localStorage.setItem('ephphatha_biometric_profile_v3', JSON.stringify(appState.userProfile));
+        const localMap = getAllRecordsMapSync('progress');
+        syncUserDataToGoogleSheet(appState.userProfile, localMap).catch(() => {});
+      }
+    });
+  });
 
   // Google Sheets Master Database Connection Controls
   document.getElementById('btn-save-sheets-sync-url')?.addEventListener('click', async () => {
@@ -2860,8 +2881,10 @@ function restoreUserSettingsFromCloudProfile(user) {
   if (user.englishFont) {
     appState.englishFont = user.englishFont;
     localStorage.setItem('ephphatha_english_font', appState.englishFont);
-    const selF = document.getElementById('select-english-font');
-    if (selF) selF.value = appState.englishFont;
+  }
+  if (user.malayalamFont) {
+    appState.malayalamFont = user.malayalamFont;
+    localStorage.setItem('ephphatha_ml_font', appState.malayalamFont);
   }
   applyTypographyAndLanguagePreferences();
 }

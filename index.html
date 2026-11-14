@@ -989,30 +989,66 @@
 
         <div class="settings-field-group">
           <label class="settings-field-label" for="select-verse-weight">
-            <span>Typography Text Contrast</span>
+            <span>Text Contrast</span>
           </label>
           <div class="settings-select-wrap">
             <select id="select-verse-weight" class="sanctuary-input settings-custom-select">
-              <option value="strong">Sturdy &amp; Strong (High Contrast Readability — Recommended)</option>
-              <option value="regular">Regular Weight</option>
-              <option value="bold">Extra Bold (Deep Contrast)</option>
+              <option value="strong">Strong (Recommended)</option>
+              <option value="regular">Regular</option>
+              <option value="bold">Bold</option>
             </select>
           </div>
         </div>
 
         <div class="settings-field-group">
-          <label class="settings-field-label" for="select-english-font">
-            <span>English Scripture Reading Font</span>
-          </label>
-          <div class="settings-select-wrap">
-            <select id="select-english-font" class="sanctuary-input settings-custom-select">
-              <option value="crimson">Crimson Pro (Classical Scripture Serif — Recommended)</option>
-              <option value="garamond">EB Garamond (Traditional Literary Bible Serif)</option>
-              <option value="literata">Literata (Digital Screen &amp; E-Reader Book Serif)</option>
-              <option value="merriweather">Merriweather (High-Legibility Modern Serif)</option>
-              <option value="inter">Inter (Clean Modern Sans-Serif)</option>
-              <option value="system-serif">Georgia / System Serif (Offline Standard)</option>
-            </select>
+          <div class="settings-field-label">
+            <span>English Font</span>
+          </div>
+          <div class="font-swatch-grid" id="english-font-swatches" role="radiogroup" aria-label="English Font">
+            <button type="button" class="font-swatch-card active" data-en-font="crimson">
+              <span class="font-swatch-preview" style="font-family: 'Crimson Pro', Georgia, serif;">Aa</span>
+              <span class="font-swatch-name">Crimson</span>
+            </button>
+            <button type="button" class="font-swatch-card" data-en-font="garamond">
+              <span class="font-swatch-preview" style="font-family: 'EB Garamond', Georgia, serif;">Aa</span>
+              <span class="font-swatch-name">Garamond</span>
+            </button>
+            <button type="button" class="font-swatch-card" data-en-font="literata">
+              <span class="font-swatch-preview" style="font-family: 'Literata', Georgia, serif;">Aa</span>
+              <span class="font-swatch-name">Literata</span>
+            </button>
+            <button type="button" class="font-swatch-card" data-en-font="merriweather">
+              <span class="font-swatch-preview" style="font-family: 'Merriweather', Georgia, serif;">Aa</span>
+              <span class="font-swatch-name">Merriweather</span>
+            </button>
+            <button type="button" class="font-swatch-card" data-en-font="inter">
+              <span class="font-swatch-preview" style="font-family: 'Inter', sans-serif;">Aa</span>
+              <span class="font-swatch-name">Inter</span>
+            </button>
+            <button type="button" class="font-swatch-card" data-en-font="system-serif">
+              <span class="font-swatch-preview" style="font-family: Georgia, serif;">Aa</span>
+              <span class="font-swatch-name">Georgia</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="settings-field-group">
+          <div class="settings-field-label">
+            <span>Malayalam Font</span>
+          </div>
+          <div class="font-swatch-grid" id="malayalam-font-swatches" role="radiogroup" aria-label="Malayalam Font">
+            <button type="button" class="font-swatch-card active" data-ml-font="manjari">
+              <span class="font-swatch-preview" style="font-family: 'SMC Manjari', 'Manjari', sans-serif;">വചനം</span>
+              <span class="font-swatch-name">Manjari</span>
+            </button>
+            <button type="button" class="font-swatch-card" data-ml-font="rachana">
+              <span class="font-swatch-preview" style="font-family: 'SMC Rachana', sans-serif;">വചനം</span>
+              <span class="font-swatch-name">Rachana</span>
+            </button>
+            <button type="button" class="font-swatch-card" data-ml-font="meera">
+              <span class="font-swatch-preview" style="font-family: 'SMC Meera', sans-serif;">വചനം</span>
+              <span class="font-swatch-name">Meera</span>
+            </button>
           </div>
         </div>
 

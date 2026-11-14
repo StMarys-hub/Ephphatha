@@ -32,6 +32,24 @@
   unicode-range: U+0D00-0D7F, U+200C-200D, U+25CC;
 }
 
+@font-face {
+  font-family: 'SMC Rachana';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../../assets/fonts/Rachana-Regular.woff2') format('woff2');
+  unicode-range: U+0D00-0D7F, U+200C-200D, U+25CC;
+}
+
+@font-face {
+  font-family: 'SMC Rachana';
+  font-style: normal;
+  font-weight: 600 800;
+  font-display: swap;
+  src: url('../../assets/fonts/Rachana-Bold.woff2') format('woff2');
+  unicode-range: U+0D00-0D7F, U+200C-200D, U+25CC;
+}
+
 :root,
 [data-theme="light"] {
   --bg-primary: #FAF7F2;          /* Warm Alabaster Parchment */
@@ -1159,6 +1177,78 @@ html[data-english-font="inter"] .canonical-verse-en {
 html[data-english-font="system-serif"] .verse-text-en,
 html[data-english-font="system-serif"] .canonical-verse-en {
   font-family: Georgia, 'Times New Roman', serif;
+}
+
+/* User configurable Malayalam Scripture Reading Font */
+html[data-malayalam-font="manjari"] .lang-ml,
+html[data-malayalam-font="manjari"] .verse-text-ml,
+html[data-malayalam-font="manjari"] .canonical-verse-ml {
+  font-family: 'SMC Manjari', 'Manjari', sans-serif;
+}
+html[data-malayalam-font="rachana"] .lang-ml,
+html[data-malayalam-font="rachana"] .verse-text-ml,
+html[data-malayalam-font="rachana"] .canonical-verse-ml {
+  font-family: 'SMC Rachana', 'Rachana', 'SMC Meera', sans-serif;
+}
+html[data-malayalam-font="meera"] .lang-ml,
+html[data-malayalam-font="meera"] .verse-text-ml,
+html[data-malayalam-font="meera"] .canonical-verse-ml {
+  font-family: 'SMC Meera', 'Meera', sans-serif;
+}
+
+/* Visual Font Swatch Cards in Settings Drawer */
+.font-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.font-swatch-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 9px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-subtle-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.font-swatch-card:hover {
+  border-color: color-mix(in srgb, var(--period-color) 55%, var(--border-subtle));
+  background: color-mix(in srgb, var(--period-color) 8%, var(--bg-subtle-surface));
+}
+
+.font-swatch-card:active {
+  transform: scale(0.97);
+}
+
+.font-swatch-card.active {
+  border-color: var(--period-color);
+  background: color-mix(in srgb, var(--period-color) 14%, var(--bg-subtle-surface));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--period-color) 40%, transparent);
+}
+
+.font-swatch-preview {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.font-swatch-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.font-swatch-card.active .font-swatch-name {
+  color: var(--text-primary);
 }
 
 .verse-text-la,
