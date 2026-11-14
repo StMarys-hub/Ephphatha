@@ -628,12 +628,7 @@ function renderDayHeroCard(daySchedule) {
   }
 
   // Update Reading Slot Tab labels (Concise Scannable Micro-copy)
-  const slots = [
-    { key: 'narrative', label: '1. Narrative', ref: daySchedule.readings.narrative, refMl: daySchedule.readings.narrative_ml },
-    { key: 'supplemental', label: '2. Supplemental', ref: daySchedule.readings.supplemental, refMl: daySchedule.readings.supplemental_ml },
-    { key: 'psalm_wisdom', label: '3. Psalm', ref: daySchedule.readings.psalm_wisdom, refMl: daySchedule.readings.psalm_wisdom_ml }
-  ];
-
+  const slots = getDayReadingSlots(daySchedule);
   const slotContainer = document.getElementById('reading-slot-tabs');
   if (slotContainer) {
     slotContainer.textContent = '';
@@ -653,14 +648,183 @@ function renderDayHeroCard(daySchedule) {
       btn.appendChild(subSpan);
 
       btn.addEventListener('click', () => {
-        appState.activeReadingSlot = s.key;
-        renderDayHeroCard(daySchedule);
-        loadActiveReadingSlot(daySchedule);
+        activateReadingSlot(s.key, daySchedule);
       });
 
       slotContainer.appendChild(btn);
     });
+
+    const activeSlotBtn = slotContainer.querySelector('.slot-tab.active');
+    if (activeSlotBtn) {
+      const targetLeft = activeSlotBtn.offsetLeft - (slotContainer.clientWidth - activeSlotBtn.offsetWidth) / 2;
+      slotContainer.scrollLeft = Math.max(0, targetLeft);
+    }
   }
+
+  renderReaderSectionFooter();
+}
+
+/**
+ * Returns ordered daily reading section descriptors for the given day schedule.
+ */
+function getDayReadingSlots(daySchedule) {
+  const r = daySchedule?.readings || {};
+  return [
+    { key: 'narrative', label: '1. Narrative', ref: r.narrative || '', refMl: r.narrative_ml || '' },
+    { key: 'supplemental', label: '2. Supplemental', ref: r.supplemental || '', refMl: r.supplemental_ml || '' },
+    { key: 'psalm_wisdom', label: '3. Psalm', ref: r.psalm_wisdom || '', refMl: r.psalm_wisdom_ml || '' }
+  ];
+}
+
+/**
+ * Smoothly scrolls the Reading view to the page top or reader section tabs bar.
+ */
+function scrollSanctuaryTo(target = 'top') {
+  document.getElementById('sanctuary-nav-toolbar')?.classList.remove('toolbar-hidden');
+  if (target === 'reader') {
+    const readerCard = document.getElementById('sanctuary-reader-card');
+    if (readerCard) {
+      const headerOffset = 64;
+      const topY = Math.max(0, window.scrollY + readerCard.getBoundingClientRect().top - headerOffset);
+      window.scrollTo({ top: topY, behavior: 'smooth' });
+      return;
+    }
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
+ * Switches active reading slot tab, loads its passage, and optionally scrolls cleanly.
+ */
+function activateReadingSlot(slotKey, daySchedule, { scrollTarget = null } = {}) {
+  if (!daySchedule) return;
+  appState.activeReadingSlot = slotKey;
+  renderDayHeroCard(daySchedule);
+  loadActiveReadingSlot(daySchedule);
+  if (scrollTarget) {
+    scrollSanctuaryTo(scrollTarget);
+  }
+}
+
+/**
+ * Renders quick Back-to-Top and Next Section controls at the bottom of a Day section reading.
+ */
+function renderReaderSectionFooter(passageData = appState.currentPassageData) {
+  const footer = document.getElementById('reader-section-footer');
+  if (!footer) return;
+
+  const daySchedule = appState.scheduleByDay[appState.selectedDay];
+  const hasVerses = Boolean(passageData?.verses?.length);
+  if (!daySchedule || !hasVerses) {
+    footer.classList.add('hidden');
+    footer.textContent = '';
+    return;
+  }
+
+  footer.classList.remove('hidden');
+  footer.textContent = '';
+
+  const slots = getDayReadingSlots(daySchedule);
+  const activeIdx = Math.max(0, slots.findIndex(s => s.key === appState.activeReadingSlot));
+  const nextSlot = activeIdx < slots.length - 1 ? slots[activeIdx + 1] : null;
+  const isMlOnly = appState.langMode === 'ml';
+  const showMlSub = appState.langMode !== 'en';
+
+  const grid = document.createElement('div');
+  grid.className = 'reader-section-nav-grid';
+
+  const topBtn = document.createElement('button');
+  topBtn.type = 'button';
+  topBtn.id = 'btn-reader-back-to-top';
+  topBtn.className = 'reader-section-nav-card back-top';
+  topBtn.title = 'Return to top of Reading page and section tabs';
+
+  const topHint = document.createElement('span');
+  topHint.className = 'reader-section-nav-hint';
+  topHint.textContent = '↑ Back to Top';
+
+  const topTitle = document.createElement('span');
+  topTitle.className = 'reader-section-nav-title';
+  topTitle.textContent = 'Day & Sections';
+
+  topBtn.appendChild(topHint);
+  topBtn.appendChild(topTitle);
+  topBtn.addEventListener('click', () => scrollSanctuaryTo('top'));
+  grid.appendChild(topBtn);
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.id = 'btn-reader-next-section';
+  nextBtn.className = 'reader-section-nav-card next-section';
+
+  const nextHint = document.createElement('span');
+  nextHint.className = 'reader-section-nav-hint';
+
+  const nextTitle = document.createElement('span');
+  nextTitle.className = 'reader-section-nav-title';
+
+  if (nextSlot) {
+    nextHint.textContent = 'Next Section ▶';
+    nextTitle.textContent = isMlOnly && nextSlot.refMl
+      ? `${activeIdx + 2}. ${nextSlot.refMl}`
+      : `${nextSlot.label}: ${nextSlot.ref}`;
+    if (isMlOnly) nextTitle.classList.add('lang-ml');
+
+    nextBtn.appendChild(nextHint);
+    nextBtn.appendChild(nextTitle);
+
+    if (showMlSub && !isMlOnly && nextSlot.refMl) {
+      const mlSub = document.createElement('span');
+      mlSub.className = 'reader-section-nav-ml lang-ml';
+      mlSub.textContent = nextSlot.refMl;
+      nextBtn.appendChild(mlSub);
+    }
+
+    nextBtn.title = `Scroll up and open ${nextSlot.label}: ${nextSlot.ref}`;
+    nextBtn.addEventListener('click', () => {
+      activateReadingSlot(nextSlot.key, daySchedule, { scrollTarget: 'reader' });
+    });
+  } else {
+    const dayNum = Number(appState.selectedDay) || 1;
+    const isDone = Boolean(getRecordSync('progress', `day_${dayNum}`)?.completed);
+    if (!isDone) {
+      nextHint.textContent = 'End of Readings ✓';
+      nextTitle.textContent = `Complete Day ${dayNum}`;
+      nextBtn.title = `Mark Day ${dayNum} as completed`;
+      nextBtn.appendChild(nextHint);
+      nextBtn.appendChild(nextTitle);
+      nextBtn.addEventListener('click', async () => {
+        await setDayCompletionStatus(dayNum, true, {
+          audioTimestampSec: Math.floor(audioEngine.currentTimeSec)
+        });
+      });
+    } else if (dayNum < 365) {
+      const nextDaySchedule = appState.scheduleByDay[dayNum + 1];
+      nextHint.textContent = 'Next Day ▶';
+      nextTitle.textContent = nextDaySchedule?.episode_title
+        ? `Day ${dayNum + 1}: ${nextDaySchedule.episode_title}`
+        : `Open Day ${dayNum + 1}`;
+      nextBtn.title = `Advance to Day ${dayNum + 1}`;
+      nextBtn.appendChild(nextHint);
+      nextBtn.appendChild(nextTitle);
+      nextBtn.addEventListener('click', async () => {
+        await selectDay(dayNum + 1);
+        scrollSanctuaryTo('top');
+      });
+    } else {
+      nextHint.textContent = 'Back to Start ↺';
+      nextTitle.textContent = `${slots[0].label}: ${slots[0].ref}`;
+      nextBtn.title = `Return to ${slots[0].label}`;
+      nextBtn.appendChild(nextHint);
+      nextBtn.appendChild(nextTitle);
+      nextBtn.addEventListener('click', () => {
+        activateReadingSlot('narrative', daySchedule, { scrollTarget: 'reader' });
+      });
+    }
+  }
+
+  grid.appendChild(nextBtn);
+  footer.appendChild(grid);
 }
 
 let activeScriptureAbortController = null;
@@ -768,6 +932,7 @@ function renderScriptureVerses(passageData) {
       const schedule = appState.scheduleByDay[appState.selectedDay];
       if (schedule) loadActiveReadingSlot(schedule);
     });
+    renderReaderSectionFooter(passageData);
     return;
   }
 
@@ -977,6 +1142,7 @@ function renderScriptureVerses(passageData) {
     card.appendChild(noteEditor);
     versesList.appendChild(card);
   });
+  renderReaderSectionFooter(passageData);
 } catch (renderErr) {
   console.error('Error rendering scripture verses:', renderErr);
 }
@@ -1672,6 +1838,16 @@ function refreshGraceStreakHeader() {
   renderHomeDashboardView();
 }
 
+/**
+ * Returns crisp Play triangle or Pause bars SVG so playback status is unmistakable.
+ */
+function getAudioPlayStatusSvg(isPlaying, size = 17) {
+  if (isPlaying) {
+    return `<svg class="audio-play-status-svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>`;
+  }
+  return `<svg class="audio-play-status-svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="8,5 19,12 8,19" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+}
+
 function renderHomeDashboardView() {
   const dayNum = appState.selectedDay || 1;
   const daySchedule = appState.scheduleByDay[dayNum];
@@ -1681,11 +1857,37 @@ function renderHomeDashboardView() {
   const periodLabel = period.name ? ` • ${period.name}` : '';
   setText('btn-home-start-reading-label', `Open Day ${dayNum} Reading${periodLabel}`);
 
-  const isPlaying = audioEngine.isPlaying;
+  const isPlaying = Boolean(audioEngine.isPlaying);
+  const isEn = audioEngine.activeAudioSource === 'en';
+  const langCode = isEn ? 'EN' : 'ML';
   setText(
     'btn-home-play-audio-label',
-    isPlaying ? `Pause Day ${dayNum} Audio` : `Play Day ${dayNum} Audio Reading & Reflection`
+    isPlaying ? `Pause Day ${dayNum} Audio (${langCode})` : `Play Day ${dayNum} Audio (${langCode})`
   );
+
+  const homePlayBtn = document.getElementById('btn-home-play-audio');
+  if (homePlayBtn) {
+    homePlayBtn.classList.toggle('is-playing', isPlaying);
+    homePlayBtn.classList.toggle('ml-playing', isPlaying && !isEn);
+    homePlayBtn.classList.toggle('en-playing', isPlaying && isEn);
+    homePlayBtn.classList.toggle('source-en', isEn);
+    homePlayBtn.classList.toggle('source-ml', !isEn);
+    homePlayBtn.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
+  }
+  const homePlayIcon = document.getElementById('home-play-audio-icon');
+  if (homePlayIcon) {
+    homePlayIcon.innerHTML = getAudioPlayStatusSvg(isPlaying, 16);
+  }
+  const homeAudioCard = document.getElementById('home-card-audio-player');
+  if (homeAudioCard) {
+    homeAudioCard.classList.toggle('is-playing', isPlaying);
+    homeAudioCard.classList.toggle('source-en', isEn);
+    homeAudioCard.classList.toggle('source-ml', !isEn);
+    const arrow = homeAudioCard.querySelector('.home-anchor-arrow');
+    if (arrow) {
+      arrow.textContent = isPlaying ? '❚❚' : '▶';
+    }
+  }
 
   // Anchor 1: Daily Reading
   setText('home-anchor-day-tag', `Active Reading • Day ${dayNum} (${period.name || 'Salvation History'})`);
@@ -1694,7 +1896,6 @@ function renderHomeDashboardView() {
   setText('home-anchor-reading-ref', refs || daySchedule.episode_title || '');
 
   // Anchor 2: Audio Reading & Reflection
-  const isEn = audioEngine.activeAudioSource === 'en';
   const durStr = formatSecondsAsTime(audioEngine.durationSec || daySchedule.audio_duration_sec || 1345);
   setText(
     'home-anchor-audio-status',
@@ -1769,14 +1970,22 @@ function wireTelemetryStreams() {
   });
 
   audioEngine.onStateChange(audioState => {
+    const isPlaying = Boolean(audioState.isPlaying);
+    const isEn = audioState.activeAudioSource === 'en';
     const playBtn = document.getElementById('btn-audio-play-pause');
     if (playBtn) {
-      playBtn.innerHTML = audioState.isPlaying
-        ? `<svg class="audio-headset-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/><rect x="9.5" y="9" width="2" height="6" fill="currentColor" stroke="none"/><rect x="12.5" y="9" width="2" height="6" fill="currentColor" stroke="none"/></svg>`
-        : `<svg class="audio-headset-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/><polygon points="10 9 15 12 10 15 10 9" fill="currentColor" stroke="none"/></svg>`;
+      playBtn.innerHTML = getAudioPlayStatusSvg(isPlaying, 17);
+      playBtn.classList.toggle('is-playing', isPlaying);
+      playBtn.classList.toggle('ml-playing', isPlaying && !isEn);
+      playBtn.classList.toggle('en-playing', isPlaying && isEn);
+      playBtn.classList.toggle('source-en', isEn);
+      playBtn.classList.toggle('source-ml', !isEn);
+      playBtn.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
+      const langLabel = isEn ? 'English' : 'Malayalam';
+      const actionLabel = isPlaying ? `Pause ${langLabel} Audio` : `Play ${langLabel} Audio`;
+      playBtn.setAttribute('aria-label', `${actionLabel} Reading & Reflection`);
+      playBtn.title = actionLabel;
     }
-
-    const isEn = audioState.activeAudioSource === 'en';
 
     // Synchronize Language Pill Buttons (Bottom Bar + Settings Drawer)
     ['btn-audio-lang-ml', 'btn-drawer-lang-ml'].forEach(id => {
@@ -1787,10 +1996,6 @@ function wireTelemetryStreams() {
       const el = document.getElementById(id);
       if (el) el.classList.toggle('active', isEn);
     });
-
-    if (playBtn) {
-      playBtn.classList.toggle('en-playing', isEn && audioState.isPlaying);
-    }
 
     setText('audio-time-current', formatSecondsAsTime(audioState.currentTimeSec));
     setText('audio-time-total', formatSecondsAsTime(audioState.durationSec));
@@ -2276,17 +2481,20 @@ function bindGlobalControls() {
     audioEngine.setAudioSource('en');
   });
 
-  // Bottom Navigation Tabs
+  // Bottom Navigation Tabs (tap active Reading tab while scrolled down to jump to top)
   document.querySelectorAll('[data-nav-tab]').forEach(btn => {
     btn.addEventListener('click', () => {
-      switchMainTab(btn.getAttribute('data-nav-tab'));
+      const targetTab = btn.getAttribute('data-nav-tab');
+      const currentY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+      if (targetTab === 'sanctuary' && appState.activeTab === 'sanctuary' && currentY > 120) {
+        scrollSanctuaryTo('top');
+        return;
+      }
+      switchMainTab(targetTab);
     });
   });
 
-  // Top Header Home Button & Brand Cluster Home Navigation
-  document.getElementById('btn-header-home')?.addEventListener('click', () => {
-    switchMainTab('home');
-  });
+  // Brand Cluster Home Navigation
   const brandHome = document.getElementById('btn-brand-home');
   brandHome?.addEventListener('click', () => {
     switchMainTab('home');
@@ -2833,10 +3041,6 @@ function switchMainTab(tabName) {
   document.querySelectorAll('[data-nav-tab]').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-nav-tab') === tabName);
   });
-  const headerHomeBtn = document.getElementById('btn-header-home');
-  if (headerHomeBtn) {
-    headerHomeBtn.classList.toggle('active', tabName === 'home');
-  }
 
   if (tabName === 'home') {
     renderHomeDashboardView();
