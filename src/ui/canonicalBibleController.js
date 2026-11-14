@@ -191,6 +191,9 @@ export function initCanonicalBibleView(dependencies = {}) {
 
   // Initialize auto-hiding sticky toolbar on scroll down
   initToolbarAutoHideOnScroll();
+
+  // Initialize zero-footprint contextual Quick Search & Scroll-to-Top on Bible catalog
+  initCatalogQuickSearchTrigger();
 }
 
 export function renderBibleView() {
@@ -771,13 +774,17 @@ function renderCanonicalChapterVerses(passageData, book, chapterNum) {
     const card = document.createElement('article');
     card.className = `verse-card ${isBookmarked ? 'verse-highlighted' : ''}`;
     card.id = vDomId;
+    card.dataset.verseNumber = String(v.verse);
 
     const header = document.createElement('div');
     header.className = 'verse-card-header';
 
     const numBadge = document.createElement('span');
     numBadge.className = 'verse-num-badge';
-    numBadge.textContent = `${book.en} ${chapterNum}:${v.verse}`;
+    numBadge.dataset.refEn = `${book.en} ${chapterNum}:${v.verse}`;
+    numBadge.dataset.refMl = `${book.ml} ${chapterNum}:${v.verse}`;
+    numBadge.dataset.bookMl = book.ml;
+    numBadge.textContent = numBadge.dataset.refEn;
 
     const actions = document.createElement('div');
     actions.className = 'verse-actions';
@@ -981,6 +988,30 @@ export function applyLanguageModeToReader() {
   document.querySelectorAll('.canonical-verse-la').forEach(el => {
     el.style.display = showLatin ? 'block' : 'none';
   });
+  document.querySelectorAll('#bible-verses-stream .verse-num-badge').forEach(badge => {
+    const refEn = badge.dataset.refEn || '';
+    const refMl = badge.dataset.refMl || '';
+    const bookMl = badge.dataset.bookMl || '';
+    badge.textContent = '';
+    if (mode === 'ml' && refMl) {
+      const mlSpan = document.createElement('span');
+      mlSpan.className = 'lang-ml';
+      mlSpan.textContent = refMl;
+      badge.appendChild(mlSpan);
+    } else if (mode === 'bilingual' && bookMl) {
+      badge.appendChild(document.createTextNode(refEn));
+      const sep = document.createElement('span');
+      sep.className = 'verse-ref-sep';
+      sep.textContent = '•';
+      const mlSpan = document.createElement('span');
+      mlSpan.className = 'lang-ml';
+      mlSpan.textContent = bookMl;
+      badge.appendChild(sep);
+      badge.appendChild(mlSpan);
+    } else {
+      badge.textContent = refEn;
+    }
+  });
 }
 
 /**
@@ -1095,4 +1126,115 @@ function initToolbarAutoHideOnScroll() {
 
     lastScrollY = currentScrollY;
   }
+}
+
+/**
+ * Zero-Footprint Quick Search & Scroll-to-Top on the Bible Catalog:
+ * - Zero permanent screen footprint (stays hidden while search input is in view).
+ * - Appears only when search bar is scrolled out of view AND user scrolls upward,
+ *   then auto-hides after 2.8s of scroll idle.
+ * - Focuses the search input synchronously inside the user tap so mobile keyboards
+ *   open immediately while smoothly scrolling to the top.
+ */
+function initCatalogQuickSearchTrigger() {
+  const pillBtn = document.getElementById('btn-bible-quick-search');
+  const searchInput = document.getElementById('bible-search-input');
+  const viewBible = document.getElementById('view-bible');
+  const catalogPane = document.getElementById('bible-catalog-pane');
+  const bibleNavBtn = document.querySelector('[data-nav-tab="bible"]');
+
+  if (!pillBtn || !searchInput || !viewBible || !catalogPane) return;
+
+  let isSearchBarVisible = true;
+  let lastScrollY = window.scrollY || 0;
+  let ticking = false;
+  let hideTimerId = null;
+
+  const isCatalogActive = () =>
+    !viewBible.classList.contains('hidden') && !catalogPane.classList.contains('hidden');
+
+  const hidePill = () => {
+    if (hideTimerId) {
+      clearTimeout(hideTimerId);
+      hideTimerId = null;
+    }
+    pillBtn.classList.remove('visible');
+  };
+
+  const showPillWithIdleAutoHide = () => {
+    if (!isCatalogActive() || isSearchBarVisible) {
+      hidePill();
+      return;
+    }
+    pillBtn.classList.add('visible');
+    if (hideTimerId) clearTimeout(hideTimerId);
+    hideTimerId = setTimeout(() => {
+      pillBtn.classList.remove('visible');
+      hideTimerId = null;
+    }, 2800);
+  };
+
+  const triggerTopAndSearchFocus = () => {
+    hidePill();
+    // Focus synchronously within user gesture so mobile keyboards open immediately
+    searchInput.focus({ preventScroll: true });
+    if (searchInput.value) {
+      searchInput.select();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  pillBtn.addEventListener('click', triggerTopAndSearchFocus);
+
+  // Tapping the active Bible bottom-nav tab while scrolled down also jumps to search
+  bibleNavBtn?.addEventListener('click', () => {
+    const currentY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+    if (isCatalogActive() && currentY > 120) {
+      triggerTopAndSearchFocus();
+    }
+  });
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        isSearchBarVisible = Boolean(entry?.isIntersecting);
+        if (isSearchBarVisible) {
+          hidePill();
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(searchInput);
+  }
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        ticking = false;
+        const currentY = Math.max(0, window.scrollY || document.documentElement.scrollTop || 0);
+        const delta = currentY - lastScrollY;
+        lastScrollY = currentY;
+
+        if (!isCatalogActive() || currentY <= 180) {
+          hidePill();
+          return;
+        }
+
+        if (!('IntersectionObserver' in window)) {
+          isSearchBarVisible = currentY <= 220;
+        }
+
+        if (delta < -6 && !isSearchBarVisible) {
+          showPillWithIdleAutoHide();
+        } else if (delta > 16) {
+          hidePill();
+        }
+      });
+    },
+    { passive: true }
+  );
 }

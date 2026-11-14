@@ -470,6 +470,25 @@
 
           <!-- Books Grid Container -->
           <div class="bible-books-grid" id="bible-books-grid"></div>
+
+          <!-- Zero-Footprint Contextual Quick Search & Scroll-to-Top Pill -->
+          <button
+            type="button"
+            class="bible-quick-search-pill"
+            id="btn-bible-quick-search"
+            aria-label="Scroll to top and search Bible books"
+            title="Scroll to Top & Search"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 19V5" />
+              <path d="M5 12l7-7 7 7" />
+            </svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" />
+            </svg>
+            <span>Search</span>
+          </button>
         </div>
 
         <!-- B. CANONICAL CHAPTER READER PANE (Reading a Specific Chapter) -->
@@ -788,12 +807,17 @@
                 Your bookmarked verses and personal reading progress.
               </p>
             </div>
-            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
-              <button type="button" class="verse-icon-btn" id="btn-export-recovery-card">
-                🗝️ Recovery Key
+            <div class="vault-header-actions">
+              <div class="lang-mode-group vault-lang-compact" role="group" aria-label="Saved Verses Language Mode">
+                <button type="button" class="lang-mode-btn active" data-lang-mode="bilingual">EN+മല</button>
+                <button type="button" class="lang-mode-btn" data-lang-mode="en">EN</button>
+                <button type="button" class="lang-mode-btn lang-ml" data-lang-mode="ml">മല</button>
+              </div>
+              <button type="button" class="verse-icon-btn vault-compact-btn" id="btn-export-recovery-card" title="Recovery Key">
+                🗝️ Key
               </button>
-              <button type="button" class="ergonomic-btn primary-period" id="btn-export-appdata">
-                ⬇️ Export Backup
+              <button type="button" class="verse-icon-btn vault-compact-btn primary-period" id="btn-export-appdata" title="Export Backup">
+                ⬇️ Backup
               </button>
             </div>
           </div>

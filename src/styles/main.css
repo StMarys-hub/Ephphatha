@@ -3783,3 +3783,90 @@ body[data-lang-pref="en"] .canonical-verse-ml {
   font-size: 0.8rem;
 }
 
+/* Zero-Footprint Contextual Quick Search & Scroll-to-Top Pill (Bible Catalog) */
+.bible-quick-search-pill {
+  position: fixed;
+  right: 16px;
+  bottom: 132px;
+  z-index: 95;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--period-color) 42%, var(--border-subtle));
+  background: color-mix(in srgb, var(--bg-card) 86%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 14px, 0) scale(0.95);
+  transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.15s ease;
+  will-change: transform, opacity;
+}
+
+.bible-quick-search-pill.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.bible-quick-search-pill:active {
+  transform: translate3d(0, 1px, 0) scale(0.96);
+}
+
+.bible-quick-search-pill svg:first-child {
+  color: var(--period-color);
+}
+
+/* Compact Bilingual Verse Reference Separator & Highlight Pulse */
+.verse-ref-sep {
+  opacity: 0.5;
+  margin: 0 4px;
+}
+
+.vault-header-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.vault-lang-compact .lang-mode-btn {
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  min-height: 28px;
+  line-height: 1.1;
+}
+
+.vault-compact-btn {
+  height: 28px;
+  padding: 0 9px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.verse-jump-highlight {
+  animation: verseJumpPulse 2.1s ease-out;
+}
+
+@keyframes verseJumpPulse {
+  0% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--period-color) 65%, transparent);
+    border-color: var(--period-color);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+

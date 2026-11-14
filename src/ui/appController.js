@@ -79,6 +79,7 @@ import {
   openCanonicalChapter,
   applyLanguageModeToReader
 } from './canonicalBibleController.js';
+import { getCanonicalBookByName, getCanonicalBookByPocId } from '../domain/canonicalBible.js';
 import { initQrShareModal, openQrShareModal } from './qrShareModal.js';
 
 const appState = {
@@ -810,13 +811,18 @@ function renderScriptureVerses(passageData) {
     card.className = `verse-card ${isBookmarked ? 'verse-highlighted' : ''}`;
     card.id = verseDomId;
     card.dataset.verseIndex = String(idx);
+    card.dataset.verseNumber = String(v.verse);
+    card.dataset.verseRef = displayRefEn;
 
     const header = document.createElement('div');
     header.className = 'verse-card-header';
 
     const numBadge = document.createElement('span');
     numBadge.className = 'verse-num-badge';
-    numBadge.textContent = displayRefEn;
+    const bookMl = (displayRefMl || '').replace(/\s+\d+(?:[–-]\d+)?(?::\d+(?:[–-]\d+)?)?$/, '').trim();
+    const chVersePart = (displayRefEn.match(/(\d+:\d+)$/)?.[1]) || (v.chapter ? `${v.chapter}:${v.verse}` : String(v.verse));
+    const fullRefMl = bookMl ? `${bookMl} ${chVersePart}` : displayRefEn;
+    formatVerseRefBadge(numBadge, displayRefEn, fullRefMl, bookMl, appState.langMode);
 
     const actions = document.createElement('div');
     actions.className = 'verse-actions';
@@ -1459,6 +1465,11 @@ function renderVaultView() {
   if (!bmContainer) return;
   bmContainer.textContent = '';
 
+  const mode = appState.langMode || 'bilingual';
+  document.querySelectorAll('#view-vault [data-lang-mode]').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-lang-mode') === mode);
+  });
+
   const bookmarks = getAllRecordsSync('bookmarks');
   if (bookmarks.length === 0) {
     const empty = document.createElement('p');
@@ -1474,9 +1485,56 @@ function renderVaultView() {
       headerRow.className = 'verse-card-header';
 
       const head = document.createElement('strong');
-      const sourceLabel = bm.dayNumber ? `Day ${bm.dayNumber} (${bm.periodName || ''})` : (bm.periodName || 'Bible Reader');
-      const refLabel = bm.referenceEn?.includes(`:${bm.verseNumber}`) ? bm.referenceEn : `${bm.referenceEn}:${bm.verseNumber}`;
-      head.textContent = `${sourceLabel} — ${refLabel}`;
+      const sourceLabelEn = bm.dayNumber ? `Day ${bm.dayNumber} (${bm.periodName || ''})` : (bm.periodName || 'Bible Reader');
+      const refEn = bm.referenceEn?.includes(`:${bm.verseNumber}`) ? bm.referenceEn : `${bm.referenceEn}:${bm.verseNumber}`;
+      const bookMl = (bm.referenceMl || '').replace(/\s+\d+(?:[–-]\d+)?(?::\d+(?:[–-]\d+)?)?$/, '').trim() || parseSavedBibleLocation(bm)?.book?.ml || '';
+      const chVersePart = (refEn.match(/(\d+:\d+)$/)?.[1]) || String(bm.verseNumber || '');
+      const refMl = bookMl && chVersePart ? `${bookMl} ${chVersePart}` : (bm.referenceMl || refEn);
+
+      if (mode === 'ml') {
+        const prefix = bm.dayNumber ? `ദിവസം ${bm.dayNumber} — ` : '';
+        head.className = 'lang-ml';
+        head.textContent = `${prefix}${refMl}`;
+      } else if (mode === 'bilingual' && bookMl) {
+        head.appendChild(document.createTextNode(`${sourceLabelEn} — ${refEn}`));
+        const sep = document.createElement('span');
+        sep.className = 'verse-ref-sep';
+        sep.textContent = '•';
+        const mlSpan = document.createElement('span');
+        mlSpan.className = 'lang-ml';
+        mlSpan.textContent = bookMl;
+        head.appendChild(sep);
+        head.appendChild(mlSpan);
+      } else {
+        head.textContent = `${sourceLabelEn} — ${refEn}`;
+      }
+
+      const headerActions = document.createElement('div');
+      headerActions.className = 'verse-actions';
+
+      const bibleLoc = parseSavedBibleLocation(bm);
+      if (bm.dayNumber || bibleLoc) {
+        const returnBtn = document.createElement('button');
+        returnBtn.type = 'button';
+        returnBtn.className = 'verse-icon-btn';
+        returnBtn.textContent = '↩';
+        returnBtn.title = bm.dayNumber
+          ? `Return to Day ${bm.dayNumber} Reading`
+          : `Return to ${bibleLoc.book.en} ${bibleLoc.chapter}`;
+        returnBtn.setAttribute('aria-label', returnBtn.title);
+        returnBtn.addEventListener('click', async () => {
+          if (bm.dayNumber) {
+            switchMainTab('sanctuary');
+            await selectDay(bm.dayNumber, { scrollToTop: false });
+            scrollToAndPulseVerse('#verses-list', bm.verseNumber, bm.referenceEn);
+          } else if (bibleLoc) {
+            switchMainTab('bible');
+            await openCanonicalChapter(bibleLoc.book.pocId, bibleLoc.chapter);
+            scrollToAndPulseVerse('#bible-verses-stream', bm.verseNumber);
+          }
+        });
+        headerActions.appendChild(returnBtn);
+      }
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
@@ -1490,8 +1548,9 @@ function renderVaultView() {
         if (appState.currentPassageData) renderScriptureVerses(appState.currentPassageData);
       });
 
+      headerActions.appendChild(removeBtn);
       headerRow.appendChild(head);
-      headerRow.appendChild(removeBtn);
+      headerRow.appendChild(headerActions);
 
       const pEn = document.createElement('p');
       pEn.className = 'verse-text-en';
@@ -1503,8 +1562,12 @@ function renderVaultView() {
       pMl.textContent = bm.ml || '';
 
       item.appendChild(headerRow);
-      item.appendChild(pEn);
-      item.appendChild(pMl);
+      if (mode === 'bilingual' || mode === 'en') {
+        item.appendChild(pEn);
+      }
+      if ((mode === 'bilingual' || mode === 'ml') && bm.ml) {
+        item.appendChild(pMl);
+      }
 
       if (bm.note) {
         const noteChip = document.createElement('div');
@@ -1516,6 +1579,68 @@ function renderVaultView() {
       bmContainer.appendChild(item);
     });
   }
+}
+
+function formatVerseRefBadge(badgeEl, refEn, refMl, bookMl, mode) {
+  badgeEl.textContent = '';
+  if (mode === 'ml' && refMl) {
+    const mlSpan = document.createElement('span');
+    mlSpan.className = 'lang-ml';
+    mlSpan.textContent = refMl;
+    badgeEl.appendChild(mlSpan);
+  } else if (mode === 'bilingual' && bookMl) {
+    badgeEl.appendChild(document.createTextNode(refEn));
+    const sep = document.createElement('span');
+    sep.className = 'verse-ref-sep';
+    sep.textContent = '•';
+    const mlSpan = document.createElement('span');
+    mlSpan.className = 'lang-ml';
+    mlSpan.textContent = bookMl;
+    badgeEl.appendChild(sep);
+    badgeEl.appendChild(mlSpan);
+  } else {
+    badgeEl.textContent = refEn;
+  }
+}
+
+function parseSavedBibleLocation(bm) {
+  if (!bm) return null;
+  if (bm.pocId && bm.chapter) {
+    const book = getCanonicalBookByPocId(Number(bm.pocId));
+    if (book) return { book, chapter: Number(bm.chapter) };
+  }
+  const ref = String(bm.referenceEn || '').trim();
+  const match = ref.match(/^([1-3]?\s*[A-Za-z][A-Za-z\s.'-]+?)\s+(\d+)/);
+  if (!match) return null;
+  const book = getCanonicalBookByName(match[1].trim());
+  const chapter = Number(match[2]);
+  if (!book || !chapter) return null;
+  return { book, chapter };
+}
+
+function scrollToAndPulseVerse(containerSelector, verseNumber, referenceEn = '') {
+  const targetNum = String(verseNumber || '');
+  if (!targetNum) return;
+
+  window.requestAnimationFrame(() => {
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+
+    const candidates = Array.from(container.querySelectorAll(`[data-verse-number="${targetNum}"]`));
+    let targetEl = candidates[0];
+    if (candidates.length > 1 && referenceEn) {
+      const refPrefix = String(referenceEn).split(':')[0].trim().toLowerCase();
+      targetEl = candidates.find(el => (el.dataset.verseRef || '').toLowerCase().includes(refPrefix)) || targetEl;
+    }
+
+    if (targetEl) {
+      targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      targetEl.classList.remove('verse-jump-highlight');
+      void targetEl.offsetWidth;
+      targetEl.classList.add('verse-jump-highlight');
+      setTimeout(() => targetEl.classList.remove('verse-jump-highlight'), 2200);
+    }
+  });
 }
 
 /* ============================================================================
@@ -2053,10 +2178,12 @@ function bindGlobalControls() {
   document.querySelectorAll('[data-lang-mode]').forEach(btn => {
     btn.addEventListener('click', () => {
       appState.langMode = btn.getAttribute('data-lang-mode') || 'bilingual';
+      localStorage.setItem('ephphatha_lang_mode', appState.langMode);
       document.querySelectorAll('[data-lang-mode]').forEach(b => {
         b.classList.toggle('active', b.getAttribute('data-lang-mode') === appState.langMode);
       });
       renderScriptureVerses(appState.currentPassageData);
+      renderVaultView();
     });
   });
 
